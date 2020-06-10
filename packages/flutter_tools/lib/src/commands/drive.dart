@@ -244,6 +244,7 @@ class DriveCommand extends RunCommandBase {
         throwToolExit('Application failed to start. Will not run test. Quitting.', exitCode: 1);
       }
       observatoryUri = result.observatoryUri.toString();
+      await device.dds.startDartDevelopmentService(Uri.parse(observatoryUri), ipv6);
     } else {
       globals.printStatus('Will connect to already running application instance.');
       observatoryUri = stringArg('use-existing-app');
@@ -506,6 +507,8 @@ Future<void> _runTests(List<String> testArgs, Map<String, String> environment) a
 
   globalPackagesPath = globals.fs.path.normalize(globals.fs.path.absolute(globalPackagesPath));
   final String dartVmPath = globals.fs.path.join(dartSdkPath, 'bin', 'dart');
+  // Note: since we're running on the standalone VM, the DartDevelopmentService
+  // will be started in that process.
   final int result = await processUtils.stream(
     <String>[
       dartVmPath,

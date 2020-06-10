@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:dds/dds.dart';
 import 'package:meta/meta.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:vm_service/vm_service.dart' as vm_service;
@@ -511,7 +512,7 @@ class FlutterPlatform extends PlatformPlugin {
       Uri processObservatoryUri;
       _pipeStandardStreamsToConsole(
         process,
-        reportObservatoryUri: (Uri detectedUri) {
+        reportObservatoryUri: (Uri detectedUri) async {
           assert(processObservatoryUri == null);
           assert(explicitObservatoryPort == null ||
               explicitObservatoryPort == detectedUri.port);
@@ -524,13 +525,14 @@ class FlutterPlatform extends PlatformPlugin {
             globals.printTrace('test $ourTestCount: using observatory uri $detectedUri from pid ${process.pid}');
           }
           processObservatoryUri = detectedUri;
+          await DartDevelopmentService.startDartDevelopmentService(processObservatoryUri);
           {
             globals.printTrace('Connecting to service protocol: $processObservatoryUri');
             final Future<vm_service.VmService> localVmService = connectToVmService(processObservatoryUri,
               compileExpression: _compileExpressionService);
-            localVmService.then((vm_service.VmService vmservice) {
+            unawaited(localVmService.then((vm_service.VmService vmservice) {
               globals.printTrace('Successfully connected to service protocol: $processObservatoryUri');
-            });
+            }));
           }
           gotProcessObservatoryUri.complete();
           watcher?.handleStartedProcess(
