@@ -2,9 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'package:file/memory.dart';
 import 'package:file/src/interface/file.dart';
 import 'package:file_testing/file_testing.dart';
+import 'package:flutter_tools/src/base/common.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/base/io.dart';
 import 'package:flutter_tools/src/base/logger.dart';
@@ -15,7 +18,8 @@ import 'package:flutter_tools/src/cache.dart';
 import 'package:mockito/mockito.dart';
 
 import '../src/common.dart';
-import '../src/mocks.dart';
+import '../src/fake_http_client.dart';
+import '../src/fakes.dart';
 
 final Platform testPlatform = FakePlatform(environment: const <String, String>{});
 
@@ -29,7 +33,7 @@ void main() {
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: MockHttpClient(),
+      httpClient: FakeHttpClient.any(),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -43,22 +47,53 @@ void main() {
     expect(fileSystem.file('out/test'), exists);
   });
 
+  testWithoutContext('ArtifactUpdater can download a zip archive and delete stale files', () async {
+    final MockOperatingSystemUtils operatingSystemUtils = MockOperatingSystemUtils();
+    final MemoryFileSystem fileSystem = MemoryFileSystem.test();
+    final BufferLogger logger = BufferLogger.test();
+    final ArtifactUpdater artifactUpdater = ArtifactUpdater(
+      fileSystem: fileSystem,
+      logger: logger,
+      operatingSystemUtils: operatingSystemUtils,
+      platform: testPlatform,
+      httpClient: FakeHttpClient.any(),
+      tempStorage: fileSystem.currentDirectory.childDirectory('temp')
+        ..createSync(),
+    );
+    // Unrelated file from another cache.
+    fileSystem.file('out/bar').createSync(recursive: true);
+    // Stale file from current cache.
+    fileSystem.file('out/test/foo.txt').createSync(recursive: true);
+
+    await artifactUpdater.downloadZipArchive(
+      'test message',
+      Uri.parse('http:///test.zip'),
+      fileSystem.currentDirectory.childDirectory('out'),
+    );
+    expect(logger.statusText, contains('test message'));
+    expect(fileSystem.file('out/test'), exists);
+    expect(fileSystem.file('out/bar'), exists);
+    expect(fileSystem.file('out/test/foo.txt'), isNot(exists));
+  });
+
   testWithoutContext('ArtifactUpdater will not validate the md5 hash if the '
     'x-goog-hash header is present but missing an md5 entry', () async {
     final MockOperatingSystemUtils operatingSystemUtils = MockOperatingSystemUtils();
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final BufferLogger logger = BufferLogger.test();
-    final MockHttpClient client = MockHttpClient();
-    client.testRequest.testResponse.headers = FakeHttpHeaders(<String, List<String>>{
-      'x-goog-hash': <String>[],
-    });
 
     final ArtifactUpdater artifactUpdater = ArtifactUpdater(
       fileSystem: fileSystem,
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: client,
+      httpClient: FakeHttpClient.list(<FakeRequest>[
+        FakeRequest(Uri.parse('http:///test.zip'), response: const FakeResponse(
+          headers: <String, List<String>>{
+            'x-goog-hash': <String>[],
+          }
+        )),
+      ]),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -77,20 +112,23 @@ void main() {
     final MockOperatingSystemUtils operatingSystemUtils = MockOperatingSystemUtils();
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final BufferLogger logger = BufferLogger.test();
-    final MockHttpClient client = MockHttpClient();
-    client.testRequest.testResponse.headers = FakeHttpHeaders(<String, List<String>>{
-      'x-goog-hash': <String>[
-        'foo-bar-baz',
-        'md5=k7iFrf4NoInN9jSQT9WfcQ=='
-      ],
-    });
 
     final ArtifactUpdater artifactUpdater = ArtifactUpdater(
       fileSystem: fileSystem,
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: client,
+      httpClient: FakeHttpClient.list(<FakeRequest>[
+        FakeRequest(Uri.parse('http:///test.zip'), response: const FakeResponse(
+          body: <int>[0],
+          headers: <String, List<String>>{
+            'x-goog-hash': <String>[
+              'foo-bar-baz',
+              'md5=k7iFrf4NoInN9jSQT9WfcQ=='
+            ],
+          }
+        )),
+      ]),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -109,20 +147,31 @@ void main() {
     final MockOperatingSystemUtils operatingSystemUtils = MockOperatingSystemUtils();
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final BufferLogger logger = BufferLogger.test();
-    final MockHttpClient client = MockHttpClient();
-    client.testRequest.testResponse.headers = FakeHttpHeaders(<String, List<String>>{
-      'x-goog-hash': <String>[
-        'foo-bar-baz',
-        'md5=k7iFrf4SQT9WfcQ=='
-      ],
-    });
 
     final ArtifactUpdater artifactUpdater = ArtifactUpdater(
       fileSystem: fileSystem,
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: client,
+      httpClient: FakeHttpClient.list(<FakeRequest>[
+         FakeRequest(Uri.parse('http:///test.zip'), response: const FakeResponse(
+           body: <int>[0],
+           headers: <String, List<String>>{
+             'x-goog-hash': <String>[
+              'foo-bar-baz',
+              'md5=k7iFrf4SQT9WfcQ=='
+            ],
+          }
+        )),
+       FakeRequest(Uri.parse('http:///test.zip'), response: const FakeResponse(
+           headers: <String, List<String>>{
+             'x-goog-hash': <String>[
+              'foo-bar-baz',
+              'md5=k7iFrf4SQT9WfcQ=='
+            ],
+          }
+        )),
+      ]),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -139,7 +188,7 @@ void main() {
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final Logger logger = StdoutLogger(
       terminal: Terminal.test(supportsColor: true),
-      stdio: MockStdio(),
+      stdio: FakeStdio(),
       outputPreferences: OutputPreferences.test(),
     );
     final ArtifactUpdater artifactUpdater = ArtifactUpdater(
@@ -147,7 +196,10 @@ void main() {
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: MockHttpClient()..exceptionOnFirstRun = true,
+      httpClient: FakeHttpClient.list(<FakeRequest>[
+        FakeRequest(Uri.parse('http:///test.zip'), responseError: const HttpException('')),
+        FakeRequest(Uri.parse('http:///test.zip')),
+      ]),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -165,14 +217,16 @@ void main() {
     final MockOperatingSystemUtils operatingSystemUtils = MockOperatingSystemUtils();
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final BufferLogger logger = BufferLogger.test();
-    final MockHttpClient client = MockHttpClient();
-    client.testRequest.testResponse.statusCode = HttpStatus.preconditionFailed;
+
     final ArtifactUpdater artifactUpdater = ArtifactUpdater(
       fileSystem: fileSystem,
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: client,
+      httpClient: FakeHttpClient.list(<FakeRequest>[
+        FakeRequest(Uri.parse('http:///test.zip'), response: const FakeResponse(statusCode: HttpStatus.preconditionFailed)),
+        FakeRequest(Uri.parse('http:///test.zip'), response: const FakeResponse(statusCode: HttpStatus.preconditionFailed)),
+      ]),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -183,7 +237,6 @@ void main() {
       fileSystem.currentDirectory.childDirectory('out'),
     ), throwsToolExit());
 
-    expect(client.attempts, 2);
     expect(logger.statusText, contains('test message'));
     expect(fileSystem.file('out/test'), isNot(exists));
   });
@@ -192,8 +245,6 @@ void main() {
     final MockOperatingSystemUtils operatingSystemUtils = MockOperatingSystemUtils();
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final BufferLogger logger = BufferLogger.test();
-    final MockHttpClient client = MockHttpClient();
-    client.argumentError = true;
     final ArtifactUpdater artifactUpdater = ArtifactUpdater(
       fileSystem: fileSystem,
       logger: logger,
@@ -203,7 +254,9 @@ void main() {
           'FLUTTER_STORAGE_BASE_URL': 'foo-bar'
         },
       ),
-      httpClient: client,
+      httpClient: FakeHttpClient.list(<FakeRequest>[
+        FakeRequest(Uri.parse('http:///foo-bar/test.zip'), responseError: ArgumentError())
+      ]),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -214,7 +267,6 @@ void main() {
       fileSystem.currentDirectory.childDirectory('out'),
     ), throwsToolExit());
 
-    expect(client.attempts, 1);
     expect(logger.statusText, contains('test message'));
     expect(fileSystem.file('out/test'), isNot(exists));
   });
@@ -223,14 +275,14 @@ void main() {
     final MockOperatingSystemUtils operatingSystemUtils = MockOperatingSystemUtils();
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final BufferLogger logger = BufferLogger.test();
-    final MockHttpClient client = MockHttpClient();
-    client.argumentError = true;
     final ArtifactUpdater artifactUpdater = ArtifactUpdater(
       fileSystem: fileSystem,
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: client,
+      httpClient: FakeHttpClient.list(<FakeRequest>[
+        FakeRequest(Uri.parse('http:///test.zip'), responseError: ArgumentError()),
+      ]),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -241,12 +293,11 @@ void main() {
       fileSystem.currentDirectory.childDirectory('out'),
     ), throwsA(isA<ArgumentError>()));
 
-    expect(client.attempts, 1);
     expect(logger.statusText, contains('test message'));
     expect(fileSystem.file('out/test'), isNot(exists));
   });
 
-  testWithoutContext('ArtifactUpdater will de-download a file if unzipping fails', () async {
+  testWithoutContext('ArtifactUpdater will re-download a file if unzipping fails', () async {
     final MockOperatingSystemUtils operatingSystemUtils = MockOperatingSystemUtils();
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final BufferLogger logger = BufferLogger.test();
@@ -255,7 +306,7 @@ void main() {
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: MockHttpClient(),
+      httpClient: FakeHttpClient.any(),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -279,7 +330,7 @@ void main() {
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: MockHttpClient(),
+      httpClient: FakeHttpClient.any(),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -294,7 +345,7 @@ void main() {
     expect(fileSystem.file('out/test'), exists);
   });
 
-  testWithoutContext('ArtifactUpdater will bail if unzipping fails more than twice', () async {
+  testWithoutContext('ArtifactUpdater will bail with a tool exit if unzipping fails more than twice', () async {
     final MockOperatingSystemUtils operatingSystemUtils = MockOperatingSystemUtils();
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final BufferLogger logger = BufferLogger.test();
@@ -303,7 +354,7 @@ void main() {
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: MockHttpClient(),
+      httpClient: FakeHttpClient.any(),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -313,7 +364,7 @@ void main() {
       'test message',
       Uri.parse('http:///test.zip'),
       fileSystem.currentDirectory.childDirectory('out'),
-    ), throwsA(isA<Exception>()));
+    ), throwsA(isA<ToolExit>()));
     expect(fileSystem.file('te,[/test'), isNot(exists));
     expect(fileSystem.file('out/test'), isNot(exists));
   });
@@ -327,7 +378,7 @@ void main() {
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: MockHttpClient(),
+      httpClient: FakeHttpClient.any(),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -337,7 +388,7 @@ void main() {
       'test message',
       Uri.parse('http:///test.zip'),
       fileSystem.currentDirectory.childDirectory('out'),
-    ), throwsA(isA<Exception>()));
+    ), throwsA(isA<ToolExit>()));
     expect(fileSystem.file('te,[/test'), isNot(exists));
     expect(fileSystem.file('out/test'), isNot(exists));
   });
@@ -351,7 +402,7 @@ void main() {
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: MockHttpClient(),
+      httpClient: FakeHttpClient.any(),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -373,7 +424,7 @@ void main() {
       logger: logger,
       operatingSystemUtils: operatingSystemUtils,
       platform: testPlatform,
-      httpClient: MockHttpClient(),
+      httpClient: FakeHttpClient.any(),
       tempStorage: fileSystem.currentDirectory.childDirectory('temp')
         ..createSync(),
     );
@@ -414,59 +465,5 @@ class MockOperatingSystemUtils extends Mock implements OperatingSystemUtils {
     }
     targetDirectory.childFile(gzippedTarFile.fileSystem.path.basenameWithoutExtension(gzippedTarFile.path))
       .createSync();
-  }
-}
-
-class MockHttpClient extends Mock implements HttpClient {
-  int attempts = 0;
-  bool argumentError = false;
-  bool exceptionOnFirstRun = false;
-  final MockHttpClientRequest testRequest = MockHttpClientRequest();
-
-  @override
-  Future<HttpClientRequest> getUrl(Uri url) async {
-    if (exceptionOnFirstRun && attempts == 0) {
-      attempts += 1;
-      throw Exception();
-    }
-    attempts += 1;
-    if (argumentError) {
-      throw ArgumentError();
-    }
-    return testRequest;
-  }
-}
-
-class MockHttpClientRequest extends Mock implements HttpClientRequest {
-  final MockHttpClientResponse testResponse = MockHttpClientResponse();
-
-  @override
-  Future<HttpClientResponse> close() async {
-    return testResponse;
-  }
-}
-
-class MockHttpClientResponse extends Mock implements HttpClientResponse {
-  @override
-  int statusCode = HttpStatus.ok;
-
-  @override
-  HttpHeaders headers = FakeHttpHeaders(<String, List<String>>{});
-
-  @override
-  Future<void> forEach(void Function(List<int> element) action) async {
-    action(<int>[0]);
-    return;
-  }
-}
-
-class FakeHttpHeaders extends Fake implements HttpHeaders {
-  FakeHttpHeaders(this.values);
-
-  final Map<String, List<String>> values;
-
-  @override
-  List<String> operator [](String key) {
-    return values[key];
   }
 }

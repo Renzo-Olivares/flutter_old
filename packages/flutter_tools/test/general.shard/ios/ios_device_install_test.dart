@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'package:file/memory.dart';
 import 'package:flutter_tools/src/application_package.dart';
 import 'package:flutter_tools/src/artifacts.dart';
@@ -135,9 +137,7 @@ void main() {
         ], environment: const <String, String>{
           'PATH': '/usr/bin:null',
           ...kDyLdLibEntry,
-        }, onRun: () {
-          throw const ProcessException('ios-deploy', <String>[]);
-        })
+        }, exception: const ProcessException('ios-deploy', <String>[])),
       ]);
       final IOSDevice device = setUpIOSDevice(processManager: processManager, artifacts: artifacts);
       final bool isAppInstalled = await device.isAppInstalled(iosApp);
@@ -242,9 +242,7 @@ void main() {
       ], environment: const <String, String>{
         'PATH': '/usr/bin:null',
         ...kDyLdLibEntry,
-      }, onRun: () {
-        throw const ProcessException('ios-deploy', <String>[]);
-      })
+      }, exception: const ProcessException('ios-deploy', <String>[])),
     ]);
     final IOSDevice device = setUpIOSDevice(processManager: processManager, artifacts: artifacts);
     final bool wasAppInstalled = await device.installApp(iosApp);
@@ -265,9 +263,7 @@ void main() {
       ], environment: const <String, String>{
         'PATH': '/usr/bin:null',
         ...kDyLdLibEntry,
-      }, onRun: () {
-        throw const ProcessException('ios-deploy', <String>[]);
-      })
+      }, exception: const ProcessException('ios-deploy', <String>[])),
     ]);
     final IOSDevice device = setUpIOSDevice(processManager: processManager, artifacts: artifacts);
     final bool wasAppUninstalled = await device.uninstallApp(iosApp);
