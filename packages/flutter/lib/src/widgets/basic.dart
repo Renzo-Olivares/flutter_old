@@ -5791,6 +5791,8 @@ class RichText extends MultiChildRenderObjectWidget {
     return result;
   }
 
+  /// The current selection registrant handle, or `null` if selection is disabled for this
+  /// paragraph.
   final SelectionRegistrant? selectionRegistrant;
 
   /// The text to display in this widget.
