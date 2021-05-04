@@ -48,8 +48,8 @@ void main() {
 
   Cache createCache(Platform platform) {
     return Cache.test(
-      platform: platform,
-      processManager: fakeProcessManager
+        platform: platform,
+        processManager: fakeProcessManager
     );
   }
 
@@ -82,7 +82,7 @@ void main() {
       final FileSystem fileSystem = MemoryFileSystem.test();
       final Cache cache = Cache.test(fileSystem: fileSystem, processManager: FakeProcessManager.any());
       fileSystem.file(fileSystem.path.join('bin', 'cache', 'lockfile'))
-        .createSync(recursive: true);
+          .createSync(recursive: true);
 
       await cache.lock();
 
@@ -94,18 +94,18 @@ void main() {
       final FileSystem fileSystem = MemoryFileSystem.test();
       final Cache cache = Cache.test(fileSystem: fileSystem, processManager: FakeProcessManager.any());
       fileSystem.file(fileSystem.path.join('bin', 'cache', 'lockfile'))
-        .createSync(recursive: true);
+          .createSync(recursive: true);
 
       expect(() async => cache.lock(), throwsToolExit());
     }, skip: true); // TODO(jonahwilliams): implement support for lock so this can be tested with the memory file system.
 
     testWithoutContext('should not throw when FLUTTER_ALREADY_LOCKED is set', () {
-     final Cache cache = Cache.test(
-       platform: FakePlatform(environment: <String, String>{
-        'FLUTTER_ALREADY_LOCKED': 'true',
-       }),
-       processManager: FakeProcessManager.any(),
-     );
+      final Cache cache = Cache.test(
+        platform: FakePlatform(environment: <String, String>{
+          'FLUTTER_ALREADY_LOCKED': 'true',
+        }),
+        processManager: FakeProcessManager.any(),
+      );
 
       expect(cache.checkLockAcquired, returnsNormally);
     });
@@ -277,9 +277,9 @@ void main() {
       final FakeSecondayCachedArtifact artifact2 = FakeSecondayCachedArtifact()
         ..upToDate = false
         ..updateException = SocketException(
-        'Connection reset by peer',
-        address: address,
-      );
+          'Connection reset by peer',
+          address: address,
+        );
 
       final BufferLogger logger = BufferLogger.test();
       final Cache cache = Cache.test(
@@ -288,7 +288,7 @@ void main() {
         logger: logger,
       );
       await expectLater(
-        () => cache.updateAll(<DevelopmentArtifact>{DevelopmentArtifact.universal}),
+            () => cache.updateAll(<DevelopmentArtifact>{DevelopmentArtifact.universal}),
         throwsException,
       );
       expect(artifact1.didUpdate, true);
@@ -382,7 +382,7 @@ void main() {
     final File ideviceScreenshotFile = iosUsbArtifacts.location.childFile('idevicescreenshot')
       ..createSync();
     iosUsbArtifacts.location.childFile('idevicesyslog')
-      .createSync();
+        .createSync();
 
     expect(iosUsbArtifacts.isUpToDateInner(fileSystem), true);
 
@@ -521,31 +521,31 @@ void main() {
   });
 
   testWithoutContext('FontSubset artifacts for all platforms on x64 hosts', () {
-      fakeProcessManager.addCommand(unameCommandForX64);
+    fakeProcessManager.addCommand(unameCommandForX64);
 
-      final Cache cache = createCache(FakePlatform(operatingSystem: 'fuchsia'));
-      final FontSubsetArtifacts artifacts = FontSubsetArtifacts(cache, platform: FakePlatform(operatingSystem: 'fuchsia'));
-      cache.includeAllPlatforms = true;
+    final Cache cache = createCache(FakePlatform(operatingSystem: 'fuchsia'));
+    final FontSubsetArtifacts artifacts = FontSubsetArtifacts(cache, platform: FakePlatform(operatingSystem: 'fuchsia'));
+    cache.includeAllPlatforms = true;
 
-      expect(artifacts.getBinaryDirs(), <List<String>>[
-        <String>['darwin-x64', 'darwin-x64/font-subset.zip'],
-        <String>['linux-x64', 'linux-x64/font-subset.zip'],
-        <String>['windows-x64', 'windows-x64/font-subset.zip'],
-      ]);
+    expect(artifacts.getBinaryDirs(), <List<String>>[
+      <String>['darwin-x64', 'darwin-x64/font-subset.zip'],
+      <String>['linux-x64', 'linux-x64/font-subset.zip'],
+      <String>['windows-x64', 'windows-x64/font-subset.zip'],
+    ]);
   });
 
   testWithoutContext('FontSubset artifacts for all platforms on arm64 hosts', () {
-      fakeProcessManager.addCommand(unameCommandForArm64);
+    fakeProcessManager.addCommand(unameCommandForArm64);
 
-      final Cache cache = createCache(FakePlatform(operatingSystem: 'fuchsia'));
-      final FontSubsetArtifacts artifacts = FontSubsetArtifacts(cache, platform: FakePlatform(operatingSystem: 'fuchsia'));
-      cache.includeAllPlatforms = true;
+    final Cache cache = createCache(FakePlatform(operatingSystem: 'fuchsia'));
+    final FontSubsetArtifacts artifacts = FontSubsetArtifacts(cache, platform: FakePlatform(operatingSystem: 'fuchsia'));
+    cache.includeAllPlatforms = true;
 
-      expect(artifacts.getBinaryDirs(), <List<String>>[
-        <String>['darwin-x64', 'darwin-x64/font-subset.zip'], // arm64 macOS hosts are not supported now
-        <String>['linux-arm64', 'linux-arm64/font-subset.zip'],
-        <String>['windows-x64', 'windows-x64/font-subset.zip'], // arm64 macOS hosts are not supported now
-      ]);
+    expect(artifacts.getBinaryDirs(), <List<String>>[
+      <String>['darwin-x64', 'darwin-x64/font-subset.zip'], // arm64 macOS hosts are not supported now
+      <String>['linux-arm64', 'linux-arm64/font-subset.zip'],
+      <String>['windows-x64', 'windows-x64/font-subset.zip'], // arm64 macOS hosts are not supported now
+    ]);
   });
 
   testWithoutContext('macOS desktop artifacts ignore filtering when requested', () {
@@ -611,35 +611,35 @@ void main() {
   });
 
   testWithoutContext('Linux desktop artifacts for x64 include profile and release artifacts', () {
-      fakeProcessManager.addCommand(unameCommandForX64);
+    fakeProcessManager.addCommand(unameCommandForX64);
 
-      final Cache cache = createCache(FakePlatform(operatingSystem: 'linux'));
-      final LinuxEngineArtifacts artifacts = LinuxEngineArtifacts(
-        cache,
-        platform: FakePlatform(operatingSystem: 'linux'),
-      );
+    final Cache cache = createCache(FakePlatform(operatingSystem: 'linux'));
+    final LinuxEngineArtifacts artifacts = LinuxEngineArtifacts(
+      cache,
+      platform: FakePlatform(operatingSystem: 'linux'),
+    );
 
-      expect(artifacts.getBinaryDirs(), <List<String>>[
-        <String>['linux-x64', 'linux-x64/linux-x64-flutter-gtk.zip'],
-        <String>['linux-x64-profile', 'linux-x64-profile/linux-x64-flutter-gtk.zip'],
-        <String>['linux-x64-release', 'linux-x64-release/linux-x64-flutter-gtk.zip'],
-      ]);
+    expect(artifacts.getBinaryDirs(), <List<String>>[
+      <String>['linux-x64', 'linux-x64/linux-x64-flutter-gtk.zip'],
+      <String>['linux-x64-profile', 'linux-x64-profile/linux-x64-flutter-gtk.zip'],
+      <String>['linux-x64-release', 'linux-x64-release/linux-x64-flutter-gtk.zip'],
+    ]);
   });
 
   testWithoutContext('Linux desktop artifacts for arm64 include profile and release artifacts', () {
-      fakeProcessManager.addCommand(unameCommandForArm64);
+    fakeProcessManager.addCommand(unameCommandForArm64);
 
-      final Cache cache = createCache(FakePlatform(operatingSystem: 'linux'));
-      final LinuxEngineArtifacts artifacts = LinuxEngineArtifacts(
-        cache,
-        platform: FakePlatform(operatingSystem: 'linux'),
-      );
+    final Cache cache = createCache(FakePlatform(operatingSystem: 'linux'));
+    final LinuxEngineArtifacts artifacts = LinuxEngineArtifacts(
+      cache,
+      platform: FakePlatform(operatingSystem: 'linux'),
+    );
 
-      expect(artifacts.getBinaryDirs(), <List<String>>[
-        <String>['linux-arm64', 'linux-arm64/linux-arm64-flutter-gtk.zip'],
-        <String>['linux-arm64-profile', 'linux-arm64-profile/linux-arm64-flutter-gtk.zip'],
-        <String>['linux-arm64-release', 'linux-arm64-release/linux-arm64-flutter-gtk.zip'],
-      ]);
+    expect(artifacts.getBinaryDirs(), <List<String>>[
+      <String>['linux-arm64', 'linux-arm64/linux-arm64-flutter-gtk.zip'],
+      <String>['linux-arm64-profile', 'linux-arm64-profile/linux-arm64-flutter-gtk.zip'],
+      <String>['linux-arm64-release', 'linux-arm64-release/linux-arm64-flutter-gtk.zip'],
+    ]);
   });
 
   testWithoutContext('Cache can delete stampfiles of artifacts', () {
@@ -670,7 +670,7 @@ void main() {
     expect(toolStampFile, isNot(exists));
   });
 
-   testWithoutContext('Cache does not attempt to delete already missing stamp files', () {
+  testWithoutContext('Cache does not attempt to delete already missing stamp files', () {
     final FileSystem fileSystem = MemoryFileSystem.test();
     final FakeIosUsbArtifacts artifactSet = FakeIosUsbArtifacts();
     final BufferLogger logger = BufferLogger.test();
@@ -763,10 +763,10 @@ void main() {
     final FileSystem fileSystem = MemoryFileSystem.test(opHandle: exceptionHandler.opHandle);
     final Logger logger = BufferLogger.test();
     final FakeCache cache = FakeCache(
-      fileSystem: fileSystem,
-      logger: logger,
-      platform: FakePlatform(),
-      osUtils: FakeOperatingSystemUtils()
+        fileSystem: fileSystem,
+        logger: logger,
+        platform: FakePlatform(),
+        osUtils: FakeOperatingSystemUtils()
     );
     final File file = fileSystem.file('stamp');
     cache.stampFile = file;
@@ -787,10 +787,10 @@ void main() {
     final FileSystem fileSystem = MemoryFileSystem.test();
     final Logger logger = BufferLogger.test();
     final FakeCache cache = FakeCache(
-      fileSystem: fileSystem,
-      logger: logger,
-      platform: FakePlatform(),
-      osUtils: FakeOperatingSystemUtils()
+        fileSystem: fileSystem,
+        logger: logger,
+        platform: FakePlatform(),
+        osUtils: FakeOperatingSystemUtils()
     );
 
     final File file = fileSystem.file('stamp')..writeAsStringSync('ABC ');
@@ -800,7 +800,7 @@ void main() {
   });
 
   testWithoutContext('PubDependencies needs to be updated if the package config'
-    ' file or the source directories are missing', () async {
+      ' file or the source directories are missing', () async {
     final BufferLogger logger = BufferLogger.test();
     final MemoryFileSystem fileSystem = MemoryFileSystem.test();
     final PubDependencies pubDependencies = PubDependencies(
@@ -836,7 +836,7 @@ void main() {
     expect(await pubDependencies.isUpToDate(fileSystem), false); // dependencies are missing.
 
     fileSystem.file('.pub-cache/hosted/pub.dartlang.org/example-7.0.0/lib/foo.dart')
-      .createSync(recursive: true);
+        .createSync(recursive: true);
 
     expect(await pubDependencies.isUpToDate(fileSystem), true);
   });
