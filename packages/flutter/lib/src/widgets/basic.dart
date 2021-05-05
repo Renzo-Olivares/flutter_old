@@ -5943,6 +5943,7 @@ class RawImage extends LeafRenderObjectWidget {
     this.invertColors = false,
     this.filterQuality = FilterQuality.low,
     this.isAntiAlias = false,
+    this.selectionRegistrant,
   }) : assert(scale != null),
        assert(alignment != null),
        assert(repeat != null),
@@ -5956,6 +5957,8 @@ class RawImage extends LeafRenderObjectWidget {
   /// Creators of a [RawImage] are expected to call [Image.dispose] on this
   /// image handle when the [RawImage] will no longer be needed.
   final ui.Image? image;
+
+  final SelectionRegistrant? selectionRegistrant;
 
   /// A string identifying the source of the image.
   final String? debugImageLabel;
@@ -6107,6 +6110,7 @@ class RawImage extends LeafRenderObjectWidget {
       invertColors: invertColors,
       filterQuality: filterQuality,
       isAntiAlias: isAntiAlias,
+      selectionRegistrant: selectionRegistrant,
     );
   }
 
@@ -6132,7 +6136,8 @@ class RawImage extends LeafRenderObjectWidget {
       ..matchTextDirection = matchTextDirection
       ..textDirection = matchTextDirection || alignment is! Alignment ? Directionality.of(context) : null
       ..invertColors = invertColors
-      ..filterQuality = filterQuality;
+      ..filterQuality = filterQuality
+      ..selectionRegistrant = selectionRegistrant;
   }
 
   @override
