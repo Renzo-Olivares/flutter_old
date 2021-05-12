@@ -339,7 +339,6 @@ class Image extends StatefulWidget {
     this.gaplessPlayback = false,
     this.isAntiAlias = false,
     this.filterQuality = FilterQuality.low,
-    this.selectable = false,
   }) : assert(image != null),
        assert(alignment != null),
        assert(repeat != null),
@@ -403,7 +402,6 @@ class Image extends StatefulWidget {
     Map<String, String>? headers,
     int? cacheWidth,
     int? cacheHeight,
-    this.selectable = false,
   }) : image = ResizeImage.resizeIfNeeded(cacheWidth, cacheHeight, NetworkImage(src, scale: scale, headers: headers)),
        assert(alignment != null),
        assert(repeat != null),
@@ -466,7 +464,6 @@ class Image extends StatefulWidget {
     this.filterQuality = FilterQuality.low,
     int? cacheWidth,
     int? cacheHeight,
-    this.selectable = false,
   }) : image = ResizeImage.resizeIfNeeded(cacheWidth, cacheHeight, FileImage(file, scale: scale)),
        loadingBuilder = null,
        assert(alignment != null),
@@ -630,7 +627,6 @@ class Image extends StatefulWidget {
     this.filterQuality = FilterQuality.low,
     int? cacheWidth,
     int? cacheHeight,
-    this.selectable = false,
   }) : image = ResizeImage.resizeIfNeeded(
          cacheWidth,
          cacheHeight,
@@ -700,7 +696,6 @@ class Image extends StatefulWidget {
     this.filterQuality = FilterQuality.low,
     int? cacheWidth,
     int? cacheHeight,
-    this.selectable = false,
   }) : image = ResizeImage.resizeIfNeeded(cacheWidth, cacheHeight, MemoryImage(bytes, scale: scale)),
        loadingBuilder = null,
        assert(alignment != null),
@@ -713,8 +708,6 @@ class Image extends StatefulWidget {
 
   /// The image to display.
   final ImageProvider image;
-
-  final bool selectable;
 
   /// A builder function responsible for creating the widget that represents
   /// this image.
