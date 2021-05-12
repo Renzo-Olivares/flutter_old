@@ -27,6 +27,7 @@ import 'scroll_configuration.dart';
 import 'scroll_controller.dart';
 import 'scroll_physics.dart';
 import 'scrollable.dart';
+import 'selection_area.dart';
 import 'text.dart';
 import 'text_editing_action.dart';
 import 'text_selection.dart';
@@ -2897,6 +2898,7 @@ class _Editable extends MultiChildRenderObjectWidget {
       promptRectRange: promptRectRange,
       promptRectColor: promptRectColor,
       clipBehavior: clipBehavior,
+      selectionService: SelectionArea.of(context),
     );
   }
 
@@ -2939,6 +2941,7 @@ class _Editable extends MultiChildRenderObjectWidget {
       ..paintCursorAboveText = paintCursorAboveText
       ..promptRectColor = promptRectColor
       ..clipBehavior = clipBehavior
-      ..setPromptRectRange(promptRectRange);
+      ..setPromptRectRange(promptRectRange)
+      ..selectionService = SelectionArea.of(context);
   }
 }
