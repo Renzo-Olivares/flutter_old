@@ -1703,6 +1703,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   /// remote value is outdated and needs updating.
   TextEditingValue? _lastKnownRemoteTextEditingValue;
 
+  bool _updateEditingValueInProgress = false;
+
   @override
   TextEditingValue get currentTextEditingValue => _value;
 
@@ -1714,13 +1716,18 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
 
     // Since we still have to support keyboard select, this is the best place
     // to disable text updating.
+    print('updateEditingValue');
+    _updateEditingValueInProgress = true;
     if (!_shouldCreateInputConnection) {
+      print('shouldnt create input connection');
+      _updateEditingValueInProgress = false;
       return;
     }
 
     if (widget.readOnly) {
       // In the read-only case, we only care about selection changes, and reject
       // everything else.
+      print('wudget read only');
       value = _value.copyWith(selection: value.selection);
     }
     _lastKnownRemoteTextEditingValue = value;
@@ -1729,18 +1736,24 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       // This is possible, for example, when the numeric keyboard is input,
       // the engine will notify twice for the same value.
       // Track at https://github.com/flutter/flutter/issues/65811
+      print('same value');
+      _updateEditingValueInProgress = false;
       return;
     }
 
     if (value.text == _value.text && value.composing == _value.composing) {
       // `selection` is the only change.
+      print('selection is only change');
       _handleSelectionChanged(value.selection, SelectionChangedCause.keyboard);
     } else {
+      print('else');
       hideToolbar();
       _currentPromptRectRange = null;
 
       if (_hasInputConnection) {
+        print('have input connection');
         if (widget.obscureText && value.text.length == _value.text.length + 1) {
+          print('obscure');
           _obscureShowCharTicksPending = _kObscureShowLatestCharCursorTicks;
           _obscureLatestCharIndex = _value.selection.baseOffset;
         }
@@ -1760,6 +1773,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       _stopCursorTimer(resetCharTicks: false);
       _startCursorTimer();
     }
+    _updateEditingValueInProgress = false;
   }
 
   @override
@@ -1875,6 +1889,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
 
   @pragma('vm:notify-debugger-on-exception')
   void _finalizeEditing(TextInputAction action, {required bool shouldUnfocus}) {
+    print('Finalize editing');
     // Take any actions necessary now that the user has completed editing.
     if (widget.onEditingComplete != null) {
       try {
@@ -1939,6 +1954,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   /// will attempt to send [currentTextEditingValue] to the text input plugin if
   /// it detected a change.
   void beginBatchEdit() {
+    print('begin batch edit');
     _batchEditDepth += 1;
   }
 
@@ -1948,21 +1964,31 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   /// Throws an error in debug mode if this [EditableText] is not in a batch
   /// edit.
   void endBatchEdit() {
+    print('end batch edit');
     _batchEditDepth -= 1;
     assert(
       _batchEditDepth >= 0,
       'Unbalanced call to endBatchEdit: beginBatchEdit must be called first.',
     );
+
     _updateRemoteEditingValueIfNeeded();
   }
 
   void _updateRemoteEditingValueIfNeeded() {
-    if (_batchEditDepth > 0 || !_hasInputConnection)
+    print('Update remote editing value');
+    if (_batchEditDepth > 0 || !_hasInputConnection) {
+      print('batch depth greater than 0');
       return;
+    }
     final TextEditingValue localValue = _value;
-    if (localValue == _lastKnownRemoteTextEditingValue)
+    if (localValue == _lastKnownRemoteTextEditingValue) {
+      print('same value');
       return;
-    _textInputConnection!.setEditingState(localValue);
+    }
+    print('before');
+    _textInputConnection?.setEditingState(localValue);
+    print(localValue.text);
+    print('after');
     _lastKnownRemoteTextEditingValue = localValue;
   }
 
@@ -2032,6 +2058,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   bool get _shouldBeInAutofillContext => _needsAutofill && currentAutofillScope != null;
 
   void _openInputConnection() {
+    print('open input connection');
     if (!_shouldCreateInputConnection) {
       return;
     }
@@ -2075,6 +2102,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   }
 
   void _closeInputConnectionIfNeeded() {
+    print('close input connection if needed');
     if (_hasInputConnection) {
       _textInputConnection!.close();
       _textInputConnection = null;
@@ -2093,6 +2121,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
 
   @override
   void connectionClosed() {
+    print('connection closed');
     if (_hasInputConnection) {
       _textInputConnection!.connectionClosedReceived();
       _textInputConnection = null;
@@ -2132,6 +2161,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     // We return early if the selection is not valid. This can happen when the
     // text of [EditableText] is updated at the same time as the selection is
     // changed by a gesture event.
+    print('Handle Selection Changed');
     if (!widget.controller.isSelectionWithinTextBounds(selection))
       return;
 
@@ -2271,11 +2301,13 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     // current composing region) is very infinite-loop-prone: the formatters
     // will keep trying to modify the composing region while Gboard will keep
     // trying to restore the original composing region.
+    print('formatAndSetaValue');
     final bool textChanged = _value.text != value.text
                           || (!_value.composing.isCollapsed && value.composing.isCollapsed);
     final bool selectionChanged = _value.selection != value.selection;
 
     if (textChanged) {
+      print('text changed');
       value = widget.inputFormatters?.fold<TextEditingValue>(
         value,
         (TextEditingValue newValue, TextInputFormatter formatter) => formatter.formatEditUpdate(_value, newValue),
@@ -2294,12 +2326,16 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         (userInteraction &&
         (cause == SelectionChangedCause.longPress ||
          cause == SelectionChangedCause.keyboard))) {
+      print('selection changed');
       _handleSelectionChanged(value.selection, cause);
     }
     if (textChanged) {
+      print('text changed 2');
       try {
+        print('try changed');
         widget.onChanged?.call(value.text);
       } catch (exception, stack) {
+        print('catch changed');
         FlutterError.reportError(FlutterErrorDetails(
           exception: exception,
           stack: stack,
