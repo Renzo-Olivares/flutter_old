@@ -826,7 +826,7 @@ class _TextSelectionHandleOverlayState
 
     final Offset handleAnchor = widget.selectionControls.getHandleAnchor(
       type,
-      widget.renderObject.preferredLineHeight,
+      widget.renderObject.size.height,
     );
     final Size handleSize = widget.selectionControls.getHandleSize(
       widget.renderObject.preferredLineHeight,
@@ -875,7 +875,7 @@ class _TextSelectionHandleOverlayState
               child: widget.selectionControls.buildHandle(
                 context,
                 type,
-                widget.renderObject.preferredLineHeight,
+                widget.renderObject.size.height,
                 widget.onSelectionHandleTapped,
               ),
             ),
