@@ -2740,6 +2740,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       return TextSpan(style: widget.style, text: text);
     }
     // Read only mode should not paint text composing.
+    print('iam here');
     return widget.controller.buildTextSpan(
       context: context,
       style: widget.style,

@@ -4,7 +4,7 @@
 
 import 'dart:collection';
 import 'dart:math' as math;
-import 'dart:ui' as ui show TextBox, BoxHeightStyle, BoxWidthStyle, PlaceholderAlignment;
+import 'dart:ui' as ui show TextBox, BoxHeightStyle, BoxWidthStyle, PlaceholderAlignment, Paragraph;
 
 import 'package:characters/characters.dart';
 import 'package:flutter/foundation.dart';
@@ -3423,7 +3423,7 @@ class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin, 
     handleTap();
   }
 
-  /// If [ignorePointer] is false (the default) then this method is called by
+  /// If [ignorePointer] is false (the default) then this method is calle`d by
   /// the internal gesture recognizer's [DoubleTapGestureRecognizer.onDoubleTap]
   /// callback.
   ///
