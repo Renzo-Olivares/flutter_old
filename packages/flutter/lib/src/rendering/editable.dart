@@ -139,11 +139,8 @@ bool _isWhitespace(int codeUnit) {
 /// Keyboard handling, IME handling, scrolling, toggling the [showCursor] value
 /// to actually blink the cursor, and other features not mentioned above are the
 /// responsibility of higher layers and not handled by this object.
-<<<<<<< HEAD
-class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin, ContainerRenderObjectMixin<RenderBox, TextParentData>, RenderBoxContainerDefaultsMixin<RenderBox, TextParentData> {
-=======
-class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin implements Selectable {
->>>>>>> 273251bd4d (make this work for render editable too)
+
+class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin, ContainerRenderObjectMixin<RenderBox, TextParentData>, RenderBoxContainerDefaultsMixin<RenderBox, TextParentData> implements Selectable {
   /// Creates a render object that implements the visual aspects of a text field.
   ///
   /// The [textAlign] argument must not be null. It defaults to [TextAlign.start].
@@ -206,11 +203,8 @@ class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin i
     required this.textSelectionDelegate,
     RenderEditablePainter? painter,
     RenderEditablePainter? foregroundPainter,
-<<<<<<< HEAD
     List<RenderBox>? children,
-=======
     SelectionService? selectionService,
->>>>>>> 273251bd4d (make this work for render editable too)
   }) : assert(textAlign != null),
        assert(textDirection != null, 'RenderEditable created without a textDirection.'),
        assert(maxLines == null || maxLines > 0),
