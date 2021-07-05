@@ -130,6 +130,14 @@ class TextEditingInlineSpanReplacement {
   InlineSpanGenerator generator;
 }
 
+class EditableSpanReplacement {
+  EditableSpanReplacement(this.range, this.generator);
+
+  TextRange range;
+
+  InlineSpanGenerator generator;
+}
+
 /// A controller for an editable text field.
 ///
 /// Whenever the user modifies a text field with an associated
@@ -400,6 +408,8 @@ class ReplacementTextEditingController extends TextEditingController {
   /// replacement patterns.
   final bool composingRegionReplaceable;
 
+  List<EditableSpanReplacement> rangeReplacements = [];
+
   @override
   TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
     assert(!value.composing.isValid || !withComposing || value.isComposingRangeValid);
@@ -430,9 +440,22 @@ class ReplacementTextEditingController extends TextEditingController {
     // to the mapping pointing towards the generated InlineSpan.
     for (final TextEditingInlineSpanReplacement replacement in replacements) {
       for (final Match match in replacement.pattern.allMatches(value.text)) {
-        _addToMappingWithoutOverlap(replacement.generator, TextRange(start: match.start, end: match.end), rangeSpanMapping, value.text);
+          _addToMappingWithoutOverlap(replacement.generator,
+              TextRange(start: match.start, end: match.end),
+              rangeSpanMapping, value.text);
       }
     }
+
+    for(final EditableSpanReplacement replacement in rangeReplacements){
+      _addToMappingWithoutOverlap(
+          replacement.generator,
+          TextRange(start: replacement.range.start, end: value.text.length < replacement.range.end? value.text.length: replacement.range.end),
+          rangeSpanMapping,
+          value.text
+      );
+      print(rangeReplacements);
+    }
+
     // If the composing range is out of range for the current text, ignore it to
     // preserve the tree integrity, otherwise in release mode a RangeError will
     // be thrown and this EditableText will be built with a broken subtree.
@@ -496,6 +519,11 @@ class ReplacementTextEditingController extends TextEditingController {
     if (!overlap) {
       rangeSpanMapping[matchedRange] = generator(matchedRange.textInside(text), matchedRange);
     }
+  }
+
+  void setSpan(EditableSpanReplacement span){
+    rangeReplacements.add(span);
+    notifyListeners();
   }
 }
 
