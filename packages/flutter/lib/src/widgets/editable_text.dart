@@ -42,6 +42,19 @@ typedef SelectionChangedCallback = void Function(TextSelection selection, Select
 /// Signature for the callback that reports the app private command results.
 typedef AppPrivateCommandCallback = void Function(String, Map<String, dynamic>);
 
+/// Signature for the generator function that produces an [InlineSpan] for replacement
+/// in a [TextEditingInlineSpanReplacement].
+///
+/// This function takes a String which is the matched substring to be replaced and a [TextRange]
+/// representing the range in the full string the matched substring originated from.
+///
+/// This used in [ReplacementTextEditingController] to generate [InlineSpan]s when
+/// a match is found for replacement.
+///
+/// If returning a [PlaceholderSpan], the [TextRange] must be passed to the
+/// [PlaceholderSpan] constructor.
+typedef InlineSpanGenerator = InlineSpan Function(String, TextRange);
+
 // The time it takes for the cursor to fade from fully opaque to fully
 // transparent and vice versa. A full cursor blink, from transparent to opaque
 // to transparent, is twice this duration.
@@ -54,6 +67,68 @@ const Duration _kCursorBlinkWaitForStart = Duration(milliseconds: 150);
 // Number of cursor ticks during which the most recently entered character
 // is shown in an obscured text field.
 const int _kObscureShowLatestCharCursorTicks = 3;
+
+/// Represents one "replacement" to check for, consisting of a [Pattern] to
+/// match and a generator [InlineSpanGenerator] function that creates an
+/// [InlineSpan] from a matched string.
+///
+/// The generator function is called for every match of the pattern found.
+///
+/// Typically, the generator should return a custom [TextSpan] with unique styling
+/// or a [WidgetSpan] to embed widgets within text fields.
+///
+/// {@tool snippet}
+/// In this example, all strings enclosed in {} are matched and
+/// the contents of the braces are interpreted as an image url.
+///
+/// ```dart
+/// TextEditingInlineSpanReplacement(
+///   RegExp(r'\{[\w\/\.]+\}'),
+///   (String value, TextRange range) {
+///     return WidgetSpan(
+///       child: Image.asset(value.substring(1, value.length - 1)),
+///       range: range,
+///     );
+///   },
+/// )
+/// ```
+/// {@end-tool}
+///
+/// {@tool snippet}
+/// In this simple example, the word following a # symbol is styled in blue.
+///
+/// ```dart
+/// TextEditingInlineSpanReplacement(
+///   RegExpr(r'#[\w]+'),
+///   (String value, TextRange range) {
+///     return TextSpan(text: value, style: TextStyle(color: Colors.blue));
+///   },
+/// )
+/// ```
+///
+/// See also:
+///
+/// * [ReplacementTextEditingController], which uses this class to create
+/// rich text fields.
+/// {@end-tool}
+class TextEditingInlineSpanReplacement {
+  /// Constructs a replacement that replaces matches of the [pattern] with the
+  /// output of the [generator].
+  TextEditingInlineSpanReplacement(this.pattern, this.generator);
+
+  /// The [Pattern] to match.
+  ///
+  /// Matched patterns are replaced with the output of the [generator] callback.
+  Pattern pattern;
+
+  /// Function that returns an [InlineSpan] instance for each match of
+  /// [Pattern].
+  ///
+  /// When returning a [PlaceholderSpan] such as [WidgetSpan], the [TextRange] argument
+  /// must be provided to the [PlaceholderSpan] constructor so that the caret position
+  /// can be computed properly.
+  InlineSpanGenerator generator;
+}
 
 /// A controller for an editable text field.
 ///
@@ -275,6 +350,151 @@ class TextEditingController extends ValueNotifier<TextEditingValue> {
   /// Check that the [selection] is inside of the composing range.
   bool _isSelectionWithinComposingRange(TextSelection selection) {
     return selection.start >= value.composing.start && selection.end <= value.composing.end;
+  }
+}
+
+/// A [TextEditingController] that contains a list of [TextEditingInlineSpanReplacement]s that
+/// insert custom [InlineSpan]s in place of matched [Pattern]s.
+///
+/// This controller must be passed [TextEditingInlineSpanReplacement], each of which contains
+/// a [Pattern] to match with and a generator function to generate an [InlineSpan] to replace
+/// the matched [Pattern] with based on the matched string.
+///
+/// See [TextEditingInlineSpanReplacement] for example replacements to provide this class with.
+class ReplacementTextEditingController extends TextEditingController {
+  /// Constructs a controller with optional text that handles the provided list of replacements.
+  ReplacementTextEditingController({
+    String? text,
+    required this.replacements,
+    this.composingRegionReplaceable = true,
+  }) : assert(replacements.isNotEmpty), super(text: text);
+
+  /// Creates a controller for an editable text field from an initial [TextEditingValue].
+  ///
+  /// This constructor treats a null [value] argument as if it were [TextEditingValue.empty].
+  ReplacementTextEditingController.fromValue(TextEditingValue? value, {
+    required this.replacements,
+    this.composingRegionReplaceable = true
+  }) :  assert(replacements.isNotEmpty), super.fromValue(value);
+
+  /// The [TextEditingInlineSpanReplacement]s that are evaluated on the editing value.
+  ///
+  /// Each replacement is evaluated in order from first to last. If multiple replacement
+  /// [Pattern]s match against the same range of text,
+  /// the first replacement will be used and any additional matches that overlap will
+  /// be ignored.
+  ///
+  /// For example, if given replacements with patterns of '{hello}' and
+  /// 'hello', only the first replacement will be used as the second is always
+  /// overlapping with the first.
+  final List<TextEditingInlineSpanReplacement> replacements;
+  
+  /// If composing regions should be matched against for replacements.
+  /// 
+  /// When false, composing regions are invalidated from being matched against.
+  /// 
+  /// When true, composing regions are attempted to be applied after patterns are
+  /// matched and replacements made. This means that composing region may sometimes
+  /// fail to display if the text in the composing region matches against of the
+  /// replacement patterns.
+  final bool composingRegionReplaceable;
+
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+    assert(!value.composing.isValid || !withComposing || value.isComposingRangeValid);
+
+    // Keep a mapping of TextRanges to the InlineSpan to replace it with.
+    final Map<TextRange, InlineSpan> rangeSpanMapping = <TextRange, InlineSpan>{};
+
+    // If the composing range is out of range for the current text, ignore it to
+    // preserve the tree integrity, otherwise in release mode a RangeError will
+    // be thrown and this EditableText will be built with a broken subtree.
+    //
+    // Add composing region as a replacement to a TextSpan with underline.
+    if (!composingRegionReplaceable && value.isComposingRangeValid && withComposing) {
+      _addToMappingWithoutOverlap((String value, TextRange range) {
+        final TextStyle composingStyle = style != null ? style.merge(const TextStyle(decoration: TextDecoration.underline))
+            : const TextStyle(decoration: TextDecoration.underline);
+        return TextSpan(
+          style: composingStyle,
+          text: value,
+        );
+      },
+          value.composing,
+          rangeSpanMapping,
+          value.text
+      );
+    }
+    // Iterate through TextEditingInlineSpanReplacements, adding non overlapping
+    // to the mapping pointing towards the generated InlineSpan.
+    for (final TextEditingInlineSpanReplacement replacement in replacements) {
+      for (final Match match in replacement.pattern.allMatches(value.text)) {
+        _addToMappingWithoutOverlap(replacement.generator, TextRange(start: match.start, end: match.end), rangeSpanMapping, value.text);
+      }
+    }
+    // If the composing range is out of range for the current text, ignore it to
+    // preserve the tree integrity, otherwise in release mode a RangeError will
+    // be thrown and this EditableText will be built with a broken subtree.
+    //
+    // Add composing region as a replacement to a TextSpan with underline.
+    if (composingRegionReplaceable && value.isComposingRangeValid && withComposing) {
+      _addToMappingWithoutOverlap((String value, TextRange range) {
+        final TextStyle composingStyle = style != null ? style.merge(const TextStyle(decoration: TextDecoration.underline))
+            : const TextStyle(decoration: TextDecoration.underline);
+        return TextSpan(
+          style: composingStyle,
+          text: value,
+        );
+      },
+          value.composing,
+          rangeSpanMapping,
+          value.text
+      );
+    }
+    // Sort the matches by start index. Since no overlapping exists, this is safe.
+    final List<TextRange> sortedRanges = rangeSpanMapping.keys.toList();
+    sortedRanges.sort((TextRange a, TextRange b) => a.start.compareTo(b.start));
+    // Create TextSpans for non-replaced text ranges and insert the replacements spans
+    // for any ranges that are marked to be replaced.
+    final List<InlineSpan> spans = <InlineSpan>[];
+    int previousEndIndex = 0;
+    for (final TextRange range in sortedRanges) {
+      if (range.start > previousEndIndex) {
+        spans.add(TextSpan(text: value.text.substring(previousEndIndex, range.start)));
+      }
+      spans.add(rangeSpanMapping[range]!);
+      previousEndIndex = range.end;
+    }
+    // Add any trailing text as a regular TextSpan.
+    if (previousEndIndex < value.text.length) {
+      spans.add(TextSpan(text: value.text.substring(previousEndIndex, value.text.length)));
+    }
+    return TextSpan(
+      style: style,
+      children: spans,
+    );
+  }
+
+  static void _addToMappingWithoutOverlap(
+      InlineSpanGenerator generator,
+      TextRange matchedRange,
+      Map<TextRange, InlineSpan> rangeSpanMapping,
+      String text
+      ) {
+    bool overlap = false;
+    for (final TextRange range in rangeSpanMapping.keys) {
+      // Only the first match for a given text range is replaced.
+      // Overlapping matches are ignored.
+      if (matchedRange.start >= range.start && matchedRange.start < range.end ||
+      matchedRange.end > range.start && matchedRange.end <= range.end ||
+      matchedRange.start < range.start && matchedRange.end > range.end){
+        overlap = true;
+        break;
+      }
+    }
+    if (!overlap) {
+      rangeSpanMapping[matchedRange] = generator(matchedRange.textInside(text), matchedRange);
+    }
   }
 }
 
