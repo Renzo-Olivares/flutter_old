@@ -247,28 +247,19 @@ class CupertinoTextSelectionControls extends TextSelectionControls {
 
   /// Builder for iOS text selection edges.
   @override
-  Widget buildHandle(BuildContext context, TextSelectionHandleType type, double textLineHeight, [VoidCallback? onTap, double? secondaryLineHeight]) {
+  Widget buildHandle(BuildContext context, TextSelectionHandleType type, double textLineHeight, [VoidCallback? onTap, double? startGlyphHeight, double? endGlyphHeight]) {
     // iOS selection handles do not respond to taps.
 
     // We want a size that's a vertical line the height of the text plus a 18.0
     // padding in every direction that will constitute the selection drag area.
-    secondaryLineHeight = secondaryLineHeight?? textLineHeight;
+    startGlyphHeight = startGlyphHeight?? textLineHeight;
+    endGlyphHeight = endGlyphHeight?? textLineHeight;
 
-    final Size desiredSize = getHandleSize(textLineHeight);
-    final Size desiredSizeRight = getHandleSize(secondaryLineHeight);
-
+    final Size desiredSize;
+    final Widget handle;
+    
     final Widget customPaint = CustomPaint(
       painter: _TextSelectionHandlePainter(CupertinoTheme.of(context).primaryColor),
-    );
-
-    final Widget leftHandle = SizedBox.fromSize(
-      size: desiredSize,
-      child: customPaint,
-    );
-
-    final Widget rightHandle = SizedBox.fromSize(
-      size: desiredSizeRight,
-      child: customPaint,
     );
 
     // [buildHandle]'s widget is positioned at the selection cursor's bottom
@@ -276,14 +267,24 @@ class CupertinoTextSelectionControls extends TextSelectionControls {
     // on top of the text selection endpoints.
     switch (type) {
       case TextSelectionHandleType.left:
-        return leftHandle;
+        desiredSize = getHandleSize(startGlyphHeight);
+        handle = SizedBox.fromSize(
+          size: desiredSize,
+          child: customPaint,
+        );
+        return handle;
       case TextSelectionHandleType.right:
+        desiredSize = getHandleSize(endGlyphHeight);
+        handle = SizedBox.fromSize(
+          size: desiredSize,
+          child: customPaint,
+        );
         return Transform(
           transform: Matrix4.identity()
-            ..translate(desiredSizeRight.width / 2, desiredSizeRight.height / 2)
+            ..translate(desiredSize.width / 2, desiredSize.height / 2)
             ..rotateZ(math.pi)
-            ..translate(-desiredSizeRight.width / 2, -desiredSizeRight.height / 2),
-          child: rightHandle,
+            ..translate(-desiredSize.width / 2, -desiredSize.height / 2),
+          child: handle,
         );
       // iOS doesn't draw anything for collapsed selections.
       case TextSelectionHandleType.collapsed:
@@ -295,32 +296,35 @@ class CupertinoTextSelectionControls extends TextSelectionControls {
   ///
   /// See [TextSelectionControls.getHandleAnchor].
   @override
-  Offset getHandleAnchor(TextSelectionHandleType type, double textLineHeight, [double? secondaryLineHeight]) {
-    secondaryLineHeight = secondaryLineHeight?? textLineHeight;
+  Offset getHandleAnchor(TextSelectionHandleType type, double textLineHeight, [double? startGlyphHeight, double? endGlyphHeight]) {
+    startGlyphHeight = startGlyphHeight?? textLineHeight;
+    endGlyphHeight = endGlyphHeight?? textLineHeight;
 
-    final Size leftHandleSize = getHandleSize(textLineHeight);
-    final Size rightHandleSize = getHandleSize(secondaryLineHeight);
+    final Size handleSize;
 
     switch (type) {
       // The circle is at the top for the left handle, and the anchor point is
       // all the way at the bottom of the line.
       case TextSelectionHandleType.left:
+        handleSize = getHandleSize(startGlyphHeight);
         return Offset(
-          leftHandleSize.width / 2,
-          leftHandleSize.height,
+          handleSize.width / 2,
+          handleSize.height,
         );
       // The right handle is vertically flipped, and the anchor point is near
       // the top of the circle to give slight overlap.
       case TextSelectionHandleType.right:
+        handleSize = getHandleSize(endGlyphHeight);
         return Offset(
-          rightHandleSize.width / 2,
-          rightHandleSize.height - 2 * _kSelectionHandleRadius + _kSelectionHandleOverlap,
+          handleSize.width / 2,
+          handleSize.height - 2 * _kSelectionHandleRadius + _kSelectionHandleOverlap,
         );
       // A collapsed handle anchors itself so that it's centered.
       case TextSelectionHandleType.collapsed:
+        handleSize = getHandleSize(textLineHeight);
         return Offset(
-          leftHandleSize.width / 2,
-          textLineHeight + (leftHandleSize.height - textLineHeight) / 2,
+          handleSize.width / 2,
+          textLineHeight + (handleSize.height - textLineHeight) / 2,
         );
     }
   }
