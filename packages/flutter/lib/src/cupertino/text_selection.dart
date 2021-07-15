@@ -252,12 +252,12 @@ class CupertinoTextSelectionControls extends TextSelectionControls {
 
     // We want a size that's a vertical line the height of the text plus a 18.0
     // padding in every direction that will constitute the selection drag area.
-    startGlyphHeight = startGlyphHeight?? textLineHeight;
-    endGlyphHeight = endGlyphHeight?? textLineHeight;
+    startGlyphHeight = startGlyphHeight ?? textLineHeight;
+    endGlyphHeight = endGlyphHeight ?? textLineHeight;
 
     final Size desiredSize;
     final Widget handle;
-    
+
     final Widget customPaint = CustomPaint(
       painter: _TextSelectionHandlePainter(CupertinoTheme.of(context).primaryColor),
     );
@@ -297,8 +297,8 @@ class CupertinoTextSelectionControls extends TextSelectionControls {
   /// See [TextSelectionControls.getHandleAnchor].
   @override
   Offset getHandleAnchor(TextSelectionHandleType type, double textLineHeight, [double? startGlyphHeight, double? endGlyphHeight]) {
-    startGlyphHeight = startGlyphHeight?? textLineHeight;
-    endGlyphHeight = endGlyphHeight?? textLineHeight;
+    startGlyphHeight = startGlyphHeight ?? textLineHeight;
+    endGlyphHeight = endGlyphHeight ?? textLineHeight;
 
     final Size handleSize;
 

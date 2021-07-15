@@ -827,16 +827,6 @@ class _TextSelectionHandleOverlayState
     final Rect? startHandleRect = widget.renderObject.getRectForComposingRange(TextRange(start: widget.selection.start, end: widget.selection.start + 1));
     final Rect? endHandleRect = widget.renderObject.getRectForComposingRange(TextRange(start: widget.selection.end, end: widget.selection.end - 1));
 
-    // final Offset handleAnchor = widget.selectionControls.getHandleAnchor(
-    //   type,
-    //   startHandleRect?.height ?? widget.renderObject.preferredLineHeight,
-    //   defaultTargetPlatform == TargetPlatform.iOS? endHandleRect?.height: null
-    // );
-    //
-    // final Size handleSize = widget.selectionControls.getHandleSize(
-    //   widget.renderObject.preferredLineHeight,
-    // );
-
     final Offset handleAnchor = widget.selectionControls.getHandleAnchor(
         type,
         widget.renderObject.preferredLineHeight,
