@@ -2694,7 +2694,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                 minLines: widget.minLines,
                 expands: widget.expands,
                 strutStyle: widget.strutStyle,
-                selectionColor: _hasFocus ? widget.selectionColor : null,
+                // Special casing for SelectableText, show the selection even
+                // when the field isn't focused
+                selectionColor: (_hasFocus || widget.readOnly) ? widget.selectionColor : null,
                 textScaleFactor: widget.textScaleFactor ?? MediaQuery.textScaleFactorOf(context),
                 textAlign: widget.textAlign,
                 textDirection: _textDirection,
