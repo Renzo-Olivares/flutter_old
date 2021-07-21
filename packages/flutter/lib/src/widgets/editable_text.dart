@@ -2342,7 +2342,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
 
   void _onCursorColorTick() {
     renderEditable.cursorColor = widget.cursorColor.withOpacity(_cursorBlinkOpacityController.value);
-    _cursorVisibilityNotifier.value = widget.showCursor && _cursorBlinkOpacityController.value > 0;
+    _cursorVisibilityNotifier.value = widget.showCursor && _hasFocus && _cursorBlinkOpacityController.value > 0;
   }
 
   /// Whether the blinking cursor is actually visible at this precise moment
@@ -2685,7 +2685,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                 cursorColor: _cursorColor,
                 backgroundCursorColor: widget.backgroundCursorColor,
                 showCursor: EditableText.debugDeterministicCursor
-                    ? ValueNotifier<bool>(widget.showCursor)
+                    ? ValueNotifier<bool>(widget.showCursor && _hasFocus)
                     : _cursorVisibilityNotifier,
                 forceLine: widget.forceLine,
                 readOnly: widget.readOnly,
@@ -2694,7 +2694,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                 minLines: widget.minLines,
                 expands: widget.expands,
                 strutStyle: widget.strutStyle,
-                selectionColor: widget.selectionColor,
+                selectionColor: _hasFocus ? widget.selectionColor : null,
                 textScaleFactor: widget.textScaleFactor ?? MediaQuery.textScaleFactorOf(context),
                 textAlign: widget.textAlign,
                 textDirection: _textDirection,
@@ -2754,7 +2754,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     return widget.controller.buildTextSpan(
       context: context,
       style: widget.style,
-      withComposing: !widget.readOnly,
+      withComposing: !widget.readOnly && _hasFocus,
     );
   }
 }
