@@ -71,7 +71,6 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pumpAndSettle();
 
     final EditableTextState editableTextState = tester.firstState(find.byType(EditableText));
     final RenderEditable renderEditable = editableTextState.renderEditable;

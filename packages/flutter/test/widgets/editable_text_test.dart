@@ -3879,6 +3879,51 @@ void main() {
     expect(((setClient.arguments as Iterable<dynamic>).last as Map<String, dynamic>)['keyboardAppearance'], 'Brightness.dark');
   });
 
+  testWidgets('Composing text is not underlined when unfocused', (WidgetTester tester) async {
+    final TextEditingController controller = TextEditingController.fromValue(
+      const TextEditingValue(
+        text: 'text composing text',
+        selection: TextSelection.collapsed(offset: 14),
+        composing: TextRange(start: 5, end: 14),
+      ),
+    );
+    final FocusNode focusNode = FocusNode(debugLabel: 'Test Focus Node');
+
+    await tester.pumpWidget(MaterialApp( // So we can show overlays.
+      home: EditableText(
+        backgroundCursorColor: Colors.grey,
+        controller: controller,
+        focusNode: focusNode,
+        style: textStyle,
+        cursorColor: cursorColor,
+        selectionControls: materialTextSelectionControls,
+        keyboardType: TextInputType.text,
+        onEditingComplete: () {
+          // This prevents the default focus change behavior on submission.
+        },
+      ),
+    ));
+
+    final RenderEditable renderEditable = findRenderEditable(tester);
+    expect((renderEditable.text! as TextSpan).children, isNull);
+    // Everything's just formated the same way.
+    expect((renderEditable.text! as TextSpan).text, 'text composing text');
+    expect(renderEditable.text!.style!.decoration, isNull);
+
+    focusNode.requestFocus();
+    await tester.idle();
+    await tester.pump();
+    expect((renderEditable.text! as TextSpan).children, isNotNull);
+
+
+    focusNode.unfocus();
+    await tester.idle();
+    await tester.pump();
+    expect((renderEditable.text! as TextSpan).children, isNull);
+    expect((renderEditable.text! as TextSpan).text, 'text composing text');
+    expect(renderEditable.text!.style!.decoration, isNull);
+  });
+
   testWidgets('Composing text is underlined and underline is cleared when losing focus', (WidgetTester tester) async {
     final TextEditingController controller = TextEditingController.fromValue(
       const TextEditingValue(
@@ -7791,6 +7836,108 @@ void main() {
 
     expect(fadeTransition.toString(), contains('DISPOSED'));
   }, skip: kIsWeb);
+
+  testWidgets('Does not drop selection on unfocus', (WidgetTester tester) async {
+    const TextEditingValue value = TextEditingValue(
+      text: 'Text',
+      selection: TextSelection(baseOffset: 4, extentOffset: 0, affinity: TextAffinity.upstream),
+      composing: TextRange(start: 0, end: 4)
+    );
+    final TextEditingController controller = TextEditingController.fromValue(value);
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(),
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: EditableText(
+            backgroundCursorColor: Colors.blue,
+            controller: controller,
+            focusNode: focusNode,
+            style: textStyle,
+            cursorColor: cursorColor,
+          ),
+        ),
+      ),
+    );
+
+    // Focus the EditableText, the value should not change.
+    focusNode.requestFocus();
+    await tester.idle();
+    await tester.pump();
+
+    expect(focusNode.hasFocus, isTrue);
+    expect(controller.value, value);
+
+    // Unfocus the EditableText, the selection and text text should not change.
+    // The client may choose to clear the composing region.
+    focusNode.unfocus();
+    await tester.idle();
+    await tester.pump();
+
+    expect(focusNode.hasFocus, isFalse);
+    expect(controller.value.text, value.text);
+    expect(controller.value.selection, value.selection);
+
+    // Focus the EditableText again, the selection and the text should not
+    // change.
+    focusNode.requestFocus();
+    await tester.idle();
+    await tester.pump();
+
+    expect(focusNode.hasFocus, isTrue);
+    expect(controller.value.text, value.text);
+    expect(controller.value.selection, value.selection);
+  });
+
+  testWidgets('Do not paint selection when unfocused', (WidgetTester tester) async {
+    const TextEditingValue value = TextEditingValue(
+      text: 'Text',
+      selection: TextSelection(baseOffset: 4, extentOffset: 0, affinity: TextAffinity.upstream),
+      composing: TextRange(start: 0, end: 4)
+    );
+    final TextEditingController controller = TextEditingController.fromValue(value);
+    const Color selectionColor = Color(0x12345678);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(),
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: EditableText(
+            backgroundCursorColor: Colors.blue,
+            controller: controller,
+            focusNode: focusNode,
+            style: textStyle,
+            cursorColor: cursorColor,
+            selectionColor: selectionColor,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.renderObject(find.byType(EditableText)),
+      isNot(paints..rect(color: selectionColor)),
+    );
+
+    focusNode.requestFocus();
+    await tester.idle();
+    await tester.pump();
+
+    expect(
+      tester.renderObject(find.byType(EditableText)),
+      paints..rect(color: selectionColor),
+    );
+
+    focusNode.unfocus();
+    await tester.idle();
+    await tester.pump();
+
+    expect(
+      tester.renderObject(find.byType(EditableText)),
+      isNot(paints..rect(color: selectionColor)),
+    );
+  });
 }
 
 class UnsettableController extends TextEditingController {
