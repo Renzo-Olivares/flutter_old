@@ -433,93 +433,6 @@ class TextPainter {
   }
   List<PlaceholderDimensions>? _placeholderDimensions;
 
-  // Placeholders when used in TextFields are frequenty inserted as replacements
-  // for strings of text. However, in text layout, the placeholder is treated as a
-  // single object replacement character codepoint. This means that the TextField
-  // treats text editing position/offsets with the full un-replaced string's length
-  // while the layout rendering treats placeholders as a single offset.
-  //
-  // This method converts a un-replaced offset to the layout engine's single codepoint
-  // placeholder offset by accounting for the replaced string's length and subtracting
-  // it from the offset.
-  //
-  // This conversion should be applied before calling any _paragraph methods, and any
-  // offsets returned by _paragraph should call _getRawOffset before using the value.
-  //
-  // See also:
-  //
-  // * _getRawOffset
-  // * _getPlaceholderAdjustedPosition
-  int _getPlaceholderAdjustedOffset(int offset, [TextAffinity? affinity]){
-    if(_placeholderDimensions == null) {
-      return offset;
-    }
-    int adjustment = 0;
-    for(final PlaceholderDimensions dims in _placeholderDimensions!){
-      if(!dims.range.isValid){
-        continue;
-      }
-      if(dims.range.end <= offset){
-        // placeholders are represented as a single replacement character,
-        // so we subtract 1 from the length to account for it.
-        adjustment += dims.range.end - dims.range.start - 1;
-      }else if(dims.range.end > offset && offset >= dims.range.start){
-        // Within the range.
-        // place offset at beginning or end of placeholder depending on
-        // which half it is in.
-        adjustment += offset - dims.range.start;
-        print(affinity);
-        if(affinity == null && offset > dims.range.start + dims.range.end / 2 || affinity == TextAffinity.upstream){
-          adjustment--;
-        }
-      }else{
-        break;
-      }
-    }
-    return offset - adjustment;
-  }
-
-  // This method performs the opposite conversion of _getPlaceholderAdjustedOffset,
-  // taking a layout-space offset and adding placeholder replaced string lengths
-  // as appropriate.
-  int _getRawOffset(int offset){
-    if(_placeholderDimensions == null){
-      return offset;
-    }
-    for(final PlaceholderDimensions dims in _placeholderDimensions!){
-      if(!dims.range.isValid){
-        continue;
-      }
-      if(offset > dims.range.end || offset > dims.range.start && offset <= dims.range.end){
-        offset += dims.range.end - dims.range.start - 1;
-      }else{
-        break;
-      }
-    }
-    return offset;
-  }
-
-  TextPosition _getPlaceholderAdjustedPosition(TextPosition position){
-    return TextPosition(
-      offset: _getPlaceholderAdjustedOffset(position.offset),
-      affinity: position.affinity
-    );
-  }
-
-  TextPosition _getRawPosition(TextPosition position){
-    return TextPosition(
-      offset: _getRawOffset(position.offset),
-      affinity: position.affinity
-    );
-  }
-
-  TextRange _getRawRange(TextRange range){
-    return TextRange(
-      start: _getRawOffset(range.start),
-      end: _getRawOffset(range.end)
-    );
-  }
-
   ui.ParagraphStyle _createParagraphStyle([ TextDirection? defaultTextDirection ]) {
     // The defaultTextDirection argument is used for preferredLineHeight in case
     // textDirection hasn't yet been set.
@@ -692,11 +605,11 @@ class TextPainter {
       double newWidth;
       switch (textWidthBasis) {
         case TextWidthBasis.longestLine:
-          // The parent widget expects the paragraph to be exactly
-          // `TextPainter.width` wide, if that value satisfies the constraints
-          // it gave to the TextPainter. So when `textWidthBasis` is longestLine,
-          // the paragraph's width needs to be as close to the width of its
-          // longest line as possible.
+        // The parent widget expects the paragraph to be exactly
+        // `TextPainter.width` wide, if that value satisfies the constraints
+        // it gave to the TextPainter. So when `textWidthBasis` is longestLine,
+        // the paragraph's width needs to be as close to the width of its
+        // longest line as possible.
           newWidth = _applyFloatingPointHack(_paragraph!.longestLine);
           break;
         case TextWidthBasis.parent:
@@ -728,7 +641,7 @@ class TextPainter {
       if (_needsLayout) {
         throw FlutterError(
           'TextPainter.paint called when text geometry was not yet calculated.\n'
-          'Please call layout() before paint() to position the text before painting it.',
+              'Please call layout() before paint() to position the text before painting it.',
         );
       }
       return true;
@@ -756,7 +669,6 @@ class TextPainter {
   /// Returns the closest offset after `offset` at which the input cursor can be
   /// positioned.
   int? getOffsetAfter(int offset) {
-    offset = _getPlaceholderAdjustedOffset(offset, TextAffinity.downstream);
     final int? nextCodeUnit = _text!.codeUnitAt(offset);
     if (nextCodeUnit == null)
       return null;
@@ -767,7 +679,6 @@ class TextPainter {
   /// Returns the closest offset before `offset` at which the input cursor can
   /// be positioned.
   int? getOffsetBefore(int offset) {
-    offset = _getPlaceholderAdjustedOffset(offset, TextAffinity.downstream);
     final int? prevCodeUnit = _text!.codeUnitAt(offset - 1);
     if (prevCodeUnit == null)
       return null;
@@ -935,7 +846,7 @@ class TextPainter {
     assert(!_needsLayout);
     if (position == _previousCaretPosition && caretPrototype == _previousCaretPrototype)
       return;
-    final int offset = _getPlaceholderAdjustedOffset(position.offset);
+    final int offset = position.offset;
     assert(position.affinity != null);
     Rect? rect;
     switch (position.affinity) {
@@ -976,16 +887,16 @@ class TextPainter {
   /// the given `selection`: a multi-code-unit glyph will be excluded if only
   /// part of its code units are in `selection`.
   List<TextBox> getBoxesForSelection(
-    TextSelection selection, {
-    ui.BoxHeightStyle boxHeightStyle = ui.BoxHeightStyle.tight,
-    ui.BoxWidthStyle boxWidthStyle = ui.BoxWidthStyle.tight,
-  }) {
+      TextSelection selection, {
+        ui.BoxHeightStyle boxHeightStyle = ui.BoxHeightStyle.tight,
+        ui.BoxWidthStyle boxWidthStyle = ui.BoxWidthStyle.tight,
+      }) {
     assert(!_needsLayout);
     assert(boxHeightStyle != null);
     assert(boxWidthStyle != null);
     return _paragraph!.getBoxesForRange(
-      _getPlaceholderAdjustedOffset(selection.start, TextAffinity.upstream),
-      _getPlaceholderAdjustedOffset(selection.end, TextAffinity.downstream),
+      selection.start,
+      selection.end,
       boxHeightStyle: boxHeightStyle,
       boxWidthStyle: boxWidthStyle,
     );
@@ -994,7 +905,7 @@ class TextPainter {
   /// Returns the position within the text for the given pixel offset.
   TextPosition getPositionForOffset(Offset offset) {
     assert(!_needsLayout);
-    return _getRawPosition(_paragraph!.getPositionForOffset(offset));
+    return _paragraph!.getPositionForOffset(offset);
   }
 
   /// Returns the text range of the word at the given offset. Characters not
@@ -1006,7 +917,7 @@ class TextPainter {
   /// <http://www.unicode.org/reports/tr29/#Word_Boundaries>.
   TextRange getWordBoundary(TextPosition position) {
     assert(!_needsLayout);
-    return _getRawRange(_paragraph!.getWordBoundary(_getPlaceholderAdjustedPosition(position)));
+    return _paragraph!.getWordBoundary(position);
   }
 
   /// Returns the text range of the line at the given offset.
@@ -1014,8 +925,7 @@ class TextPainter {
   /// The newline (if any) is not returned as part of the range.
   TextRange getLineBoundary(TextPosition position) {
     assert(!_needsLayout);
-    position = _getPlaceholderAdjustedPosition(position);
-    return _getRawRange(_paragraph!.getLineBoundary(_getPlaceholderAdjustedPosition(position)));
+    return _paragraph!.getLineBoundary(position);
   }
 
   /// Returns the full list of [LineMetrics] that describe in detail the various
