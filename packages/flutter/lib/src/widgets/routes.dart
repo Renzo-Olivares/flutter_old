@@ -6,10 +6,8 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/semantics.dart';
 
 import 'actions.dart';
 import 'basic.dart';
@@ -816,45 +814,42 @@ class _ModalScopeState<T> extends State<_ModalScope<T>> {
                     controller: primaryScrollController,
                     child: FocusScope(
                       node: focusScopeNode, // immutable
-                      child: FocusTrap(
-                        focusScopeNode: focusScopeNode,
-                        child: RepaintBoundary(
-                          child: AnimatedBuilder(
-                            animation: _listenable, // immutable
-                            builder: (BuildContext context, Widget? child) {
-                              return widget.route.buildTransitions(
-                                context,
-                                widget.route.animation!,
-                                widget.route.secondaryAnimation!,
-                                // This additional AnimatedBuilder is include because if the
-                                // value of the userGestureInProgressNotifier changes, it's
-                                // only necessary to rebuild the IgnorePointer widget and set
-                                // the focus node's ability to focus.
-                                AnimatedBuilder(
-                                  animation: widget.route.navigator?.userGestureInProgressNotifier ?? ValueNotifier<bool>(false),
-                                  builder: (BuildContext context, Widget? child) {
-                                    final bool ignoreEvents = _shouldIgnoreFocusRequest;
-                                    focusScopeNode.canRequestFocus = !ignoreEvents;
-                                    return IgnorePointer(
-                                      ignoring: ignoreEvents,
-                                      child: child,
-                                    );
-                                  },
-                                  child: child,
-                                ),
-                              );
-                            },
-                            child: _page ??= RepaintBoundary(
-                              key: widget.route._subtreeKey, // immutable
-                              child: Builder(
-                                builder: (BuildContext context) {
-                                  return widget.route.buildPage(
-                                    context,
-                                    widget.route.animation!,
-                                    widget.route.secondaryAnimation!,
+                      child: RepaintBoundary(
+                        child: AnimatedBuilder(
+                          animation: _listenable, // immutable
+                          builder: (BuildContext context, Widget? child) {
+                            return widget.route.buildTransitions(
+                              context,
+                              widget.route.animation!,
+                              widget.route.secondaryAnimation!,
+                              // This additional AnimatedBuilder is include because if the
+                              // value of the userGestureInProgressNotifier changes, it's
+                              // only necessary to rebuild the IgnorePointer widget and set
+                              // the focus node's ability to focus.
+                              AnimatedBuilder(
+                                animation: widget.route.navigator?.userGestureInProgressNotifier ?? ValueNotifier<bool>(false),
+                                builder: (BuildContext context, Widget? child) {
+                                  final bool ignoreEvents = _shouldIgnoreFocusRequest;
+                                  focusScopeNode.canRequestFocus = !ignoreEvents;
+                                  return IgnorePointer(
+                                    ignoring: ignoreEvents,
+                                    child: child,
                                   );
                                 },
+                                child: child,
                               ),
+                            );
+                          },
+                          child: _page ??= RepaintBoundary(
+                            key: widget.route._subtreeKey, // immutable
+                            child: Builder(
+                              builder: (BuildContext context) {
+                                return widget.route.buildPage(
+                                  context,
+                                  widget.route.animation!,
+                                  widget.route.secondaryAnimation!,
+                                );
+                              },
                             ),
                           ),
                         ),
