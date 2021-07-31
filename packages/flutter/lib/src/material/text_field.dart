@@ -1313,9 +1313,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
       semanticsMaxValueLength = null;
     }
 
-    return FocusTrapArea(
-      focusNode: focusNode,
-      child: MouseRegion(
+    return MouseRegion(
         cursor: effectiveMouseCursor,
         onEnter: (PointerEnterEvent event) => _handleHover(true),
         onExit: (PointerExitEvent event) => _handleHover(false),
@@ -1340,9 +1338,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
               behavior: HitTestBehavior.translucent,
               child: child,
             ),
-          ),
-        ),
-      ),
+          ),),
     );
   }
 }
