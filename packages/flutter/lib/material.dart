@@ -50,6 +50,7 @@ export 'src/material/circle_avatar.dart';
 export 'src/material/color_scheme.dart';
 export 'src/material/colors.dart';
 export 'src/material/constants.dart';
+export 'src/material/content_field.dart';
 export 'src/material/curves.dart';
 export 'src/material/data_table.dart';
 export 'src/material/data_table_source.dart';
