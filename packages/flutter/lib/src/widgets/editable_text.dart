@@ -112,22 +112,28 @@ const int _kObscureShowLatestCharCursorTicks = 3;
 /// rich text fields.
 /// {@end-tool}
 class TextEditingInlineSpanReplacement {
-  /// Constructs a replacement that replaces matches of the [pattern] with the
+  /// Constructs a replacement that replaces matches of the [TextRange] with the
   /// output of the [generator].
-  TextEditingInlineSpanReplacement(this.pattern, this.generator);
+  TextEditingInlineSpanReplacement(this.range, this.generator);
 
-  /// The [Pattern] to match.
+  /// The [TextRange] to replace.
   ///
-  /// Matched patterns are replaced with the output of the [generator] callback.
-  Pattern pattern;
+  /// Matched ranges are replaced with the output of the [generator] callback.
+  TextRange range;
 
   /// Function that returns an [InlineSpan] instance for each match of
-  /// [Pattern].
+  /// [TextRange].
   ///
   /// When returning a [PlaceholderSpan] such as [WidgetSpan], the [TextRange] argument
   /// must be provided to the [PlaceholderSpan] constructor so that the caret position
   /// can be computed properly.
   InlineSpanGenerator generator;
+
+  /// Creates a new replacement with all properties copied except for range, which
+  /// is updated to the specified value.
+  TextEditingInlineSpanReplacement copy({required TextRange range}) {
+    return TextEditingInlineSpanReplacement(range, this.generator);
+  }
 }
 
 /// A controller for an editable text field.
@@ -354,40 +360,37 @@ class TextEditingController extends ValueNotifier<TextEditingValue> {
 }
 
 /// A [TextEditingController] that contains a list of [TextEditingInlineSpanReplacement]s that
-/// insert custom [InlineSpan]s in place of matched [Pattern]s.
+/// insert custom [InlineSpan]s in place of matched [TextRange]s.
 ///
 /// This controller must be passed [TextEditingInlineSpanReplacement], each of which contains
 /// a [Pattern] to match with and a generator function to generate an [InlineSpan] to replace
-/// the matched [Pattern] with based on the matched string.
+/// the matched [TextRange]s with based on the matched string.
 ///
 /// See [TextEditingInlineSpanReplacement] for example replacements to provide this class with.
 class ReplacementTextEditingController extends TextEditingController {
   /// Constructs a controller with optional text that handles the provided list of replacements.
   ReplacementTextEditingController({
     String? text,
-    required this.replacements,
+    List<TextEditingInlineSpanReplacement>? replacements,
     this.composingRegionReplaceable = true,
-  }) : assert(replacements.isNotEmpty), super(text: text);
+  }) : super(text: text);
 
   /// Creates a controller for an editable text field from an initial [TextEditingValue].
   ///
   /// This constructor treats a null [value] argument as if it were [TextEditingValue.empty].
   ReplacementTextEditingController.fromValue(TextEditingValue? value, {
-    required this.replacements,
+    List<TextEditingInlineSpanReplacement>? replacements,
     this.composingRegionReplaceable = true
-  }) :  assert(replacements.isNotEmpty), super.fromValue(value);
+  }) :  super.fromValue(value);
 
   /// The [TextEditingInlineSpanReplacement]s that are evaluated on the editing value.
   ///
   /// Each replacement is evaluated in order from first to last. If multiple replacement
-  /// [Pattern]s match against the same range of text,
-  /// the first replacement will be used and any additional matches that overlap will
-  /// be ignored.
+  /// [TextRange]s match against the same range of text,
+  /// TODO: What happens when replacements match against same range of text?
   ///
-  /// For example, if given replacements with patterns of '{hello}' and
-  /// 'hello', only the first replacement will be used as the second is always
-  /// overlapping with the first.
-  final List<TextEditingInlineSpanReplacement> replacements;
+  /// TODO: Give an example of replacements matching against the same range of text.
+  List<TextEditingInlineSpanReplacement>? replacements;
   
   /// If composing regions should be matched against for replacements.
   /// 
@@ -398,6 +401,102 @@ class ReplacementTextEditingController extends TextEditingController {
   /// fail to display if the text in the composing region matches against of the
   /// replacement patterns.
   final bool composingRegionReplaceable;
+
+  void applyReplacement(TextEditingInlineSpanReplacement replacement) {
+    if (replacements == null) {
+      replacements = [];
+      replacements!.add(replacement);
+    } else {
+      replacements!.add(replacement);
+    }
+  }
+
+  void syncReplacementRanges(String textChanged, int start, int end, String type, [String? textReplaced]) {
+    if (replacements != null) {
+      List<TextEditingInlineSpanReplacement> updatedReplacements = [];
+
+      for (final TextEditingInlineSpanReplacement replacement in replacements!) {
+        // Naive approach: if a text attribute falls within a diff range, then based on the diff we should update the range.
+        // If we have an insertion, and the ranges for an insertion fall inclusively between a range of a given textAttribute,
+        // then expand the ranges of the attribute.
+
+        // When we delete we should update the spans directly associated with the deleting range.
+        // We should also update any other spans with the offset of the deletion.
+        // For example: <b>abc</b> hello world <b>def</b>
+        // two bold ranges (0,3) and (16,19)
+        // When a delete happens anywhere we should adjust the ranges of all attributes that come after the deletion
+        // If a delete happens within an attributes range, then we should adjust that range as well.
+        // Any range before the deletion can stay the same.
+
+        // When we insert we should update the attributes that have a range falling within the diff range inclusively, we should expand these ranges.
+        // We should also update any attributes after this range with the size of the insertion.
+        if (type == 'INSERT') {
+          // <b>abc</b>, bold range (0,2)
+          // insert 'd' between 'b' and 'c'
+          // <b>abdc</b> bold range (0,3)
+          if (start > replacement.range.start && end < replacement.range.end) {
+            // Update range that falls inclusively inside the diff range.
+            updatedReplacements.add(replacement.copy(range: TextRange(start: replacement.range.start, end: replacement.range.end + 1)));
+          } else if (start > replacement.range.end && end > replacement.range.end) {
+            print('updating replacements that happened before insertion');
+            updatedReplacements.add(replacement);
+            // print(replacement);
+          } else if (end < replacement.range.start) {
+            // Update ranges that falls after the diff range.
+            print('updating replacements that happened after insertion');
+            print('not sure about this case');
+            updatedReplacements.add(replacement.copy(range: TextRange(start: replacement.range.start + textChanged.length, end: replacement.range.end + textChanged.length)));
+          }
+        } else if (type == 'DELETE') {
+          // <b>abc</b>, bold range (0,2)
+          // delete 'b'
+          // <b>ac</b> bold range (0,1)
+          print('loooool');
+          if (start >= replacement.range.start && end <= replacement.range.end) {
+            // Update attribute ranges directly associated with deleted range.
+            print('updating inclusive ranges of deletion');
+            print(replacement.range);
+            if (replacement.range.start != replacement.range.end - textChanged.length) {
+              updatedReplacements.add(replacement.copy(range: TextRange(
+                  start: replacement.range.start,
+                  end: replacement.range.end - textChanged.length)));
+            } else {
+              print('start = end on deletion so remove attribute');
+            }
+          } else if (start > replacement.range.end && end > replacement.range.end){
+            // If deletion happened after range of current attribute, skip updating it.
+            // Update ranges that falls after the diff range.
+            print('updating textAttribute ranges that happened before the deletion.');
+            updatedReplacements.add(replacement);
+            print(replacement);
+            // print(textAttribute.range);
+            // print(TextRange(start: textAttribute.range.start - textChanged.length, end: textAttribute.range.end - textChanged.length));
+            // updatedTextAttributes.add(textAttribute.copy(range: TextRange(start: textAttribute.range.start - textChanged.length, end: textAttribute.range.end - textChanged.length)));
+          } else if (end < replacement.range.start) {
+            // If deletion happened before range of current attribute, update it.
+            print('updating textAttribute ranges that happened after the deletion.');
+            print(replacement);
+            print(textChanged + ' ' + textChanged.length.toString());
+            print(replacement.range);
+            print(TextRange(start: replacement.range.start - textChanged.length, end: replacement.range.end - textChanged.length));
+            updatedReplacements.add(replacement.copy(range: TextRange(start: replacement.range.start - textChanged.length, end: replacement.range.end - textChanged.length)));
+          } else if (start == replacement.range.start || start == replacement.range.end || end == replacement.range.start || end == replacement.range.end){
+            print('updating ranges that are touching the deletion');
+
+            // If the textAttribute is of the same type, then merge the attributes and ranges into one.
+            // If they are of different type then, simply don't update them.
+            print(start);
+            print(end);
+            print(replacement);
+            updatedReplacements.add(replacement);
+          }
+        }
+      }
+
+      replacements!.clear();
+      replacements!.addAll(updatedReplacements);
+    }
+  }
 
   @override
   TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
@@ -427,9 +526,11 @@ class ReplacementTextEditingController extends TextEditingController {
     }
     // Iterate through TextEditingInlineSpanReplacements, adding non overlapping
     // to the mapping pointing towards the generated InlineSpan.
-    for (final TextEditingInlineSpanReplacement replacement in replacements) {
-      for (final Match match in replacement.pattern.allMatches(value.text)) {
-        _addToMappingWithoutOverlap(replacement.generator, TextRange(start: match.start, end: match.end), rangeSpanMapping, value.text);
+    if (replacements != null) {
+      for (final TextEditingInlineSpanReplacement replacement in replacements!) {
+        _addToMappingWithoutOverlap(replacement.generator, TextRange(
+            start: replacement.range.start, end: replacement.range.end),
+            rangeSpanMapping, value.text);
       }
     }
     // If the composing range is out of range for the current text, ignore it to
