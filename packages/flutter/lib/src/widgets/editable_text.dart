@@ -68,22 +68,22 @@ const Duration _kCursorBlinkWaitForStart = Duration(milliseconds: 150);
 // is shown in an obscured text field.
 const int _kObscureShowLatestCharCursorTicks = 3;
 
-/// Represents one "replacement" to check for, consisting of a [Pattern] to
+/// Represents one "replacement" to check for, consisting of a [TextRange] to
 /// match and a generator [InlineSpanGenerator] function that creates an
 /// [InlineSpan] from a matched string.
 ///
-/// The generator function is called for every match of the pattern found.
+/// The generator function is called for every match of the range found.
 ///
 /// Typically, the generator should return a custom [TextSpan] with unique styling
 /// or a [WidgetSpan] to embed widgets within text fields.
 ///
 /// {@tool snippet}
-/// In this example, all strings enclosed in {} are matched and
+/// In this example, all strings enclosed in the range from 0 to 5 is matched and
 /// the contents of the braces are interpreted as an image url.
 ///
 /// ```dart
 /// TextEditingInlineSpanReplacement(
-///   RegExp(r'\{[\w\/\.]+\}'),
+///   TextRange(start: 0, end: 5),
 ///   (String value, TextRange range) {
 ///     return WidgetSpan(
 ///       child: Image.asset(value.substring(1, value.length - 1)),
@@ -95,11 +95,11 @@ const int _kObscureShowLatestCharCursorTicks = 3;
 /// {@end-tool}
 ///
 /// {@tool snippet}
-/// In this simple example, the word following a # symbol is styled in blue.
+/// In this simple example, the text in the range of 0 to 5 is styled in blue.
 ///
 /// ```dart
 /// TextEditingInlineSpanReplacement(
-///   RegExpr(r'#[\w]+'),
+///   TextRange(start: 0, end: 5),
 ///   (String value, TextRange range) {
 ///     return TextSpan(text: value, style: TextStyle(color: Colors.blue));
 ///   },
@@ -363,7 +363,7 @@ class TextEditingController extends ValueNotifier<TextEditingValue> {
 /// insert custom [InlineSpan]s in place of matched [TextRange]s.
 ///
 /// This controller must be passed [TextEditingInlineSpanReplacement], each of which contains
-/// a [Pattern] to match with and a generator function to generate an [InlineSpan] to replace
+/// a [TextRange] to match with and a generator function to generate an [InlineSpan] to replace
 /// the matched [TextRange]s with based on the matched string.
 ///
 /// See [TextEditingInlineSpanReplacement] for example replacements to provide this class with.
@@ -396,10 +396,10 @@ class ReplacementTextEditingController extends TextEditingController {
   /// 
   /// When false, composing regions are invalidated from being matched against.
   /// 
-  /// When true, composing regions are attempted to be applied after patterns are
+  /// When true, composing regions are attempted to be applied after ranges are
   /// matched and replacements made. This means that composing region may sometimes
   /// fail to display if the text in the composing region matches against of the
-  /// replacement patterns.
+  /// replacement ranges.
   final bool composingRegionReplaceable;
 
   void applyReplacement(TextEditingInlineSpanReplacement replacement) {
@@ -411,31 +411,46 @@ class ReplacementTextEditingController extends TextEditingController {
     }
   }
 
+  /// Update replacement ranges based on information sent from a supplementary
+  /// text model, that syncs asynchronously with the [TextInputClient]'s text model.
+  ///
+  /// On a single character insertion, the replacements that ranges fall inclusively
+  /// within the range of the insertion, should be updated to take into account
+  /// the insertion that happened within the replacement range. i.e. we expand
+  /// the range.
+  ///
+  /// On a single character insertion, the replacements that ranges fall after the
+  /// range of the insertion, should be updated to take into account the insertion
+  /// that occured and the offset it created as a result.
+  ///
+  /// On a single character insertion, the replacements that ranges fall before
+  /// the range of the insertion, should be skipped and not updated as their values
+  /// are not offset by the insertion.
+  ///
+  /// TODO: Behavior when insertion is at the edges of a replacements range.
+  ///
+  /// On a single character deletion, the replacements that ranges fall inclusively
+  /// within the range of the deletion, should be updated to take into account
+  /// the deletion that happened within the replacement range. i.e. we contact the range.
+  ///
+  /// On a single character deletion, the replacement ranges that fall after the
+  /// ranges of deletion, should be updated to take into account the deletion
+  /// that occured and the offset it created as a result.
+  ///
+  /// On a single character deletion, the replacement ranges that fall before the
+  /// ranges of deletion, should be skipped and not updated as their values are
+  /// not offset by the deletion.
+  ///
+  /// TODO: Behavior when deletion is at edges of a replacements range.
   void syncReplacementRanges(String textChanged, int start, int end, String type, [String? textReplaced]) {
     if (replacements != null) {
       List<TextEditingInlineSpanReplacement> updatedReplacements = [];
 
       for (final TextEditingInlineSpanReplacement replacement in replacements!) {
-        // Naive approach: if a text attribute falls within a diff range, then based on the diff we should update the range.
-        // If we have an insertion, and the ranges for an insertion fall inclusively between a range of a given textAttribute,
-        // then expand the ranges of the attribute.
-
-        // When we delete we should update the spans directly associated with the deleting range.
-        // We should also update any other spans with the offset of the deletion.
-        // For example: <b>abc</b> hello world <b>def</b>
-        // two bold ranges (0,3) and (16,19)
-        // When a delete happens anywhere we should adjust the ranges of all attributes that come after the deletion
-        // If a delete happens within an attributes range, then we should adjust that range as well.
-        // Any range before the deletion can stay the same.
-
-        // When we insert we should update the attributes that have a range falling within the diff range inclusively, we should expand these ranges.
-        // We should also update any attributes after this range with the size of the insertion.
         if (type == 'INSERT') {
-          // <b>abc</b>, bold range (0,2)
-          // insert 'd' between 'b' and 'c'
-          // <b>abdc</b> bold range (0,3)
           if (start > replacement.range.start && end < replacement.range.end) {
             // Update range that falls inclusively inside the diff range.
+            print('updating inclusive range on insertion');
             updatedReplacements.add(replacement.copy(range: TextRange(start: replacement.range.start, end: replacement.range.end + 1)));
           } else if (start > replacement.range.end && end > replacement.range.end) {
             print('updating replacements that happened before insertion');
@@ -448,46 +463,37 @@ class ReplacementTextEditingController extends TextEditingController {
             updatedReplacements.add(replacement.copy(range: TextRange(start: replacement.range.start + textChanged.length, end: replacement.range.end + textChanged.length)));
           }
         } else if (type == 'DELETE') {
-          // <b>abc</b>, bold range (0,2)
-          // delete 'b'
-          // <b>ac</b> bold range (0,1)
-          print('loooool');
           if (start >= replacement.range.start && end <= replacement.range.end) {
-            // Update attribute ranges directly associated with deleted range.
+            // Update replacement ranges directly inclusively associated with deleted range.
             print('updating inclusive ranges of deletion');
-            print(replacement.range);
             if (replacement.range.start != replacement.range.end - textChanged.length) {
-              updatedReplacements.add(replacement.copy(range: TextRange(
-                  start: replacement.range.start,
-                  end: replacement.range.end - textChanged.length)));
+              updatedReplacements.add(
+                replacement.copy(
+                  range: TextRange(
+                    start: replacement.range.start,
+                    end: replacement.range.end - textChanged.length,
+                  ),
+                ),
+              );
             } else {
               print('start = end on deletion so remove attribute');
             }
           } else if (start > replacement.range.end && end > replacement.range.end){
-            // If deletion happened after range of current attribute, skip updating it.
-            // Update ranges that falls after the diff range.
-            print('updating textAttribute ranges that happened before the deletion.');
+            // If range happened before deletion, skip updating it.
+            print('updating replacement ranges that happened before the deletion.');
             updatedReplacements.add(replacement);
-            print(replacement);
-            // print(textAttribute.range);
-            // print(TextRange(start: textAttribute.range.start - textChanged.length, end: textAttribute.range.end - textChanged.length));
-            // updatedTextAttributes.add(textAttribute.copy(range: TextRange(start: textAttribute.range.start - textChanged.length, end: textAttribute.range.end - textChanged.length)));
           } else if (end < replacement.range.start) {
             // If deletion happened before range of current attribute, update it.
-            print('updating textAttribute ranges that happened after the deletion.');
-            print(replacement);
-            print(textChanged + ' ' + textChanged.length.toString());
-            print(replacement.range);
-            print(TextRange(start: replacement.range.start - textChanged.length, end: replacement.range.end - textChanged.length));
+            print('updating replacement ranges that happened after the deletion.');
             updatedReplacements.add(replacement.copy(range: TextRange(start: replacement.range.start - textChanged.length, end: replacement.range.end - textChanged.length)));
           } else if (start == replacement.range.start || start == replacement.range.end || end == replacement.range.start || end == replacement.range.end){
             print('updating ranges that are touching the deletion');
 
-            // If the textAttribute is of the same type, then merge the attributes and ranges into one.
+            // If the replacement is a textspan, then merge the attributes and ranges into one.
             // If they are of different type then, simply don't update them.
-            print(start);
-            print(end);
-            print(replacement);
+            // print(start);
+            // print(end);
+            // print(replacement);
             updatedReplacements.add(replacement);
           }
         }
@@ -511,7 +517,7 @@ class ReplacementTextEditingController extends TextEditingController {
     //
     // Add composing region as a replacement to a TextSpan with underline.
     if (!composingRegionReplaceable && value.isComposingRangeValid && withComposing) {
-      _addToMappingWithoutOverlap((String value, TextRange range) {
+      _addToMappingWithOverlaps((String value, TextRange range) {
         final TextStyle composingStyle = style != null ? style.merge(const TextStyle(decoration: TextDecoration.underline))
             : const TextStyle(decoration: TextDecoration.underline);
         return TextSpan(
@@ -524,11 +530,11 @@ class ReplacementTextEditingController extends TextEditingController {
           value.text
       );
     }
-    // Iterate through TextEditingInlineSpanReplacements, adding non overlapping
-    // to the mapping pointing towards the generated InlineSpan.
+    // Iterate through TextEditingInlineSpanReplacements, handling overlapping
+    // replacements and mapping them towards a generated InlineSpan.
     if (replacements != null) {
       for (final TextEditingInlineSpanReplacement replacement in replacements!) {
-        _addToMappingWithoutOverlap(replacement.generator, TextRange(
+        _addToMappingWithOverlaps(replacement.generator, TextRange(
             start: replacement.range.start, end: replacement.range.end),
             rangeSpanMapping, value.text);
       }
@@ -539,7 +545,7 @@ class ReplacementTextEditingController extends TextEditingController {
     //
     // Add composing region as a replacement to a TextSpan with underline.
     if (composingRegionReplaceable && value.isComposingRangeValid && withComposing) {
-      _addToMappingWithoutOverlap((String value, TextRange range) {
+      _addToMappingWithOverlaps((String value, TextRange range) {
         final TextStyle composingStyle = style != null ? style.merge(const TextStyle(decoration: TextDecoration.underline))
             : const TextStyle(decoration: TextDecoration.underline);
         return TextSpan(
@@ -576,16 +582,18 @@ class ReplacementTextEditingController extends TextEditingController {
     );
   }
 
-  static void _addToMappingWithoutOverlap(
+  static void _addToMappingWithOverlaps(
       InlineSpanGenerator generator,
       TextRange matchedRange,
       Map<TextRange, InlineSpan> rangeSpanMapping,
       String text
       ) {
+    // In some cases we should allow for overlap.
+    // For example in the case of two TextSpans matching the same range for replacement,
+    // we should try to merge the styles into one TextStyle and build a new TextSpan.
     bool overlap = false;
     for (final TextRange range in rangeSpanMapping.keys) {
-      // Only the first match for a given text range is replaced.
-      // Overlapping matches are ignored.
+      // Check if we have overlapping replacements.
       if (matchedRange.start >= range.start && matchedRange.start < range.end ||
       matchedRange.end > range.start && matchedRange.end <= range.end ||
       matchedRange.start < range.start && matchedRange.end > range.end){
@@ -593,6 +601,28 @@ class ReplacementTextEditingController extends TextEditingController {
         break;
       }
     }
+
+    if (overlap) {
+      print('there is an overlap');
+      InlineSpan? generatedReplacement = generator(matchedRange.textInside(text), matchedRange);
+      InlineSpan? previousGeneratedReplacement = rangeSpanMapping[matchedRange];
+
+      if (previousGeneratedReplacement is TextSpan && generatedReplacement is TextSpan) {
+        TextSpan? generatedReplacementTextSpan = (generatedReplacement as TextSpan);
+        TextSpan? previousGeneratedReplacementTextSpan = (previousGeneratedReplacement as TextSpan);
+        TextStyle? genRepStyle = generatedReplacementTextSpan.style;
+        TextStyle? prevRepStyle = previousGeneratedReplacementTextSpan.style;
+        String? text = generatedReplacementTextSpan.text;
+
+        print('the overlap is of textspans...attempting to merge the styles');
+
+        if (text != null && genRepStyle != null && prevRepStyle != null) {
+          final TextStyle mergedReplacementStyle = genRepStyle.merge(prevRepStyle);
+          rangeSpanMapping[matchedRange] = TextSpan(text: text, style: mergedReplacementStyle);
+        }
+      }
+    }
+
     if (!overlap) {
       rangeSpanMapping[matchedRange] = generator(matchedRange.textInside(text), matchedRange);
     }
