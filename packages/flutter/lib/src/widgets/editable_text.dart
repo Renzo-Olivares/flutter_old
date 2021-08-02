@@ -646,8 +646,8 @@ class EditableText extends StatefulWidget {
   /// [style], [cursorColor], [cursorOpacityAnimates],[backgroundCursorColor],
   /// [enableSuggestions], [paintCursorAboveText], [selectionHeightStyle],
   /// [selectionWidthStyle], [textAlign], [dragStartBehavior], [scrollPadding],
-  /// [dragStartBehavior], [toolbarOptions], [rendererIgnoresPointer], and
-  /// [readOnly] arguments must not be null.
+  /// [dragStartBehavior], [toolbarOptions], [rendererIgnoresPointer],
+  /// [readOnly], and [enableIMEPersonalizedLearning] arguments must not be null.
   EditableText({
     Key? key,
     required this.controller,
@@ -715,6 +715,7 @@ class EditableText extends StatefulWidget {
     this.clipBehavior = Clip.hardEdge,
     this.restorationId,
     this.scrollBehavior,
+    this.enableIMEPersonalizedLearning = true,
   }) : assert(controller != null),
        assert(focusNode != null),
        assert(obscuringCharacter != null && obscuringCharacter.length == 1),
@@ -757,6 +758,7 @@ class EditableText extends StatefulWidget {
          !readOnly || autofillHints == null,
          "Read-only fields can't have autofill hints.",
        ),
+       assert(enableIMEPersonalizedLearning != null),
        _strutStyle = strutStyle,
        keyboardType = keyboardType ?? _inferKeyboardType(autofillHints: autofillHints, maxLines: maxLines),
        inputFormatters = maxLines == 1
@@ -1566,6 +1568,9 @@ class EditableText extends StatefulWidget {
   /// than 1.
   final ScrollBehavior? scrollBehavior;
 
+  /// {@macro flutter.services.TextInputConfiguration.enableIMEPersonalizedLearning}
+  final bool enableIMEPersonalizedLearning;
+
   // Infer the keyboard type of an `EditableText` if it's not specified.
   static TextInputType _inferKeyboardType({
     required Iterable<String>? autofillHints,
@@ -1733,6 +1738,7 @@ class EditableText extends StatefulWidget {
     properties.add(DiagnosticsProperty<ScrollPhysics>('scrollPhysics', scrollPhysics, defaultValue: null));
     properties.add(DiagnosticsProperty<Iterable<String>>('autofillHints', autofillHints, defaultValue: null));
     properties.add(DiagnosticsProperty<TextHeightBehavior>('textHeightBehavior', textHeightBehavior, defaultValue: null));
+    properties.add(DiagnosticsProperty<bool>('enableIMEPersonalizedLearning', enableIMEPersonalizedLearning, defaultValue: true));
   }
 }
 
@@ -2556,7 +2562,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
 
   void _onCursorColorTick() {
     renderEditable.cursorColor = widget.cursorColor.withOpacity(_cursorBlinkOpacityController.value);
-    _cursorVisibilityNotifier.value = widget.showCursor && _cursorBlinkOpacityController.value > 0;
+    _cursorVisibilityNotifier.value = widget.showCursor && _hasFocus && _cursorBlinkOpacityController.value > 0;
   }
 
   /// Whether the blinking cursor is actually visible at this precise moment
@@ -2668,10 +2674,11 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       }
     } else {
       WidgetsBinding.instance!.removeObserver(this);
-      // Clear the selection and composition state if this widget lost focus.
-      _value = TextEditingValue(text: _value.text);
-      _currentPromptRectRange = null;
     }
+
+    setState(() {
+      _currentPromptRectRange = null;
+    });
     updateKeepAlive();
   }
 
@@ -2827,6 +2834,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         autofillHints: widget.autofillHints?.toList(growable: false) ?? <String>[],
         currentEditingValue: currentTextEditingValue,
       ),
+      enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
     );
   }
 
@@ -2898,7 +2906,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                 cursorColor: _cursorColor,
                 backgroundCursorColor: widget.backgroundCursorColor,
                 showCursor: EditableText.debugDeterministicCursor
-                    ? ValueNotifier<bool>(widget.showCursor)
+                    ? ValueNotifier<bool>(widget.showCursor && _hasFocus)
                     : _cursorVisibilityNotifier,
                 forceLine: widget.forceLine,
                 readOnly: widget.readOnly,
@@ -2907,7 +2915,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                 minLines: widget.minLines,
                 expands: widget.expands,
                 strutStyle: widget.strutStyle,
-                selectionColor: widget.selectionColor,
+                // Special casing for SelectableText, show the selection even
+                // when the field isn't focused
+                selectionColor: (_hasFocus || widget.readOnly) ? widget.selectionColor : null,
                 textScaleFactor: widget.textScaleFactor ?? MediaQuery.textScaleFactorOf(context),
                 textAlign: widget.textAlign,
                 textDirection: _textDirection,
@@ -2967,7 +2977,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     return widget.controller.buildTextSpan(
       context: context,
       style: widget.style,
-      withComposing: !widget.readOnly,
+      withComposing: !widget.readOnly && _hasFocus,
     );
   }
 }
