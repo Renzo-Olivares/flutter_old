@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter/rendering.dart' show RenderEditable;
+import 'package:flutter/services.dart' show SupplementaryTextModel, TextSelectionDelegate;
 
 import 'actions.dart';
 import 'editable_text.dart';
@@ -25,6 +26,10 @@ abstract class TextEditingActionTarget {
   ///
   /// * [EditableTextState.renderEditable], which overrides this.
   RenderEditable get renderEditable;
+
+  SupplementaryTextModel? get supplementaryModel;
+
+  TextSelectionDelegate get textSelectionDelegate;
 }
 
 /// An [Action] related to editing text.

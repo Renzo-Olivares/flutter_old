@@ -335,6 +335,7 @@ class TextField extends StatefulWidget {
   const TextField({
     Key? key,
     this.controller,
+    this.supplementaryModel = null,
     this.focusNode,
     this.decoration = const InputDecoration(),
     TextInputType? keyboardType,
@@ -449,6 +450,8 @@ class TextField extends StatefulWidget {
   ///
   /// If null, this widget will create its own [TextEditingController].
   final TextEditingController? controller;
+  
+  final SupplementaryTextModel? supplementaryModel;
 
   /// Defines the keyboard focus for this widget.
   ///
@@ -1221,6 +1224,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
           showCursor: widget.showCursor,
           showSelectionHandles: _showSelectionHandles,
           controller: controller,
+          supplementaryModel: widget.supplementaryModel,
           focusNode: focusNode,
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
