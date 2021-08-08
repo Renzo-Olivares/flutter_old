@@ -782,7 +782,6 @@ class EditableText extends StatefulWidget {
   EditableText({
     Key? key,
     required this.controller,
-    this.supplementaryModel = null,
     required this.focusNode,
     this.readOnly = false,
     this.obscuringCharacter = '•',
@@ -904,8 +903,6 @@ class EditableText extends StatefulWidget {
 
   /// Controls the text being edited.
   final TextEditingController controller;
-  
-  final SupplementaryTextModel? supplementaryModel;
 
   /// Controls whether this widget has keyboard focus.
   final FocusNode focusNode;
@@ -2874,12 +2871,6 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   /// when [RenderEditable.ignorePointer] is true.
   @override
   RenderEditable get renderEditable => _editableKey.currentContext!.findRenderObject()! as RenderEditable;
-
-  @override
-  SupplementaryTextModel? get supplementaryModel => widget.supplementaryModel;
-
-  @override
-  TextSelectionDelegate get textSelectionDelegate => this;
 
   @override
   TextEditingValue get textEditingValue => _value;

@@ -34,7 +34,8 @@ class SupplementaryTextModel {
   /// See also:
   ///
   ///   * [deleteForward], which is same but in the opposite direction.
-  void delete(TextSelectionDelegate textSelectionDelegate) {
+  // void delete(TextSelectionDelegate textSelectionDelegate) {
+  void delete(ReplacementTextEditingController controller) {
     // `delete` does not depend on the text layout, and the boundary analysis is
     // done using the `previousCharacter` method instead of ICU, we can keep
     // deleting without having to layout the text. For this reason, we can
@@ -42,14 +43,16 @@ class SupplementaryTextModel {
     //
     // TODO(LongCatIsLooong): remove this method from RenderEditable.
     // https://github.com/flutter/flutter/issues/80226.
-    final TextEditingValue controllerValue = textSelectionDelegate.textEditingValue;
-    final TextSelection selection = controllerValue.selection;
+    // final TextEditingValue controllerValue = textSelectionDelegate.textEditingValue;
+    final TextSelection selection = controller.selection;
 
     // Current diff data.
     String textChanged;
     int start;
     int end;
     String diffType;
+
+    print('deleting: '  + plainText);
 
     if (selection.start ==
         selection.end) {
@@ -89,6 +92,7 @@ class SupplementaryTextModel {
       plainText = selection.textBefore(plainText) +
           selection.textAfter(plainText);
     }
+    controller.syncReplacementRanges(textChanged, start, end, diffType);
   }
 
   /// Deletes a word backwards from the current selection.

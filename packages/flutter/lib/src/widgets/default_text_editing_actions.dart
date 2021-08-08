@@ -7,7 +7,6 @@ import 'editable_text.dart';
 import 'framework.dart';
 import 'text_editing_action.dart';
 import 'text_editing_intents.dart';
-import 'package:flutter/services.dart' show SupplementaryTextModel;
 
 /// An [Actions] widget that handles the default text editing behavior for
 /// Flutter on the current platform.
@@ -90,12 +89,7 @@ class _DoNothingAndStopPropagationTextAction extends TextEditingAction<DoNothing
 class _DeleteTextAction extends TextEditingAction<DeleteTextIntent> {
   @override
   Object? invoke(DeleteTextIntent intent, [BuildContext? context]) {
-    print('backkkkkkk');
     textEditingActionTarget!.renderEditable.delete(SelectionChangedCause.keyboard);
-
-    if (textEditingActionTarget != null && textEditingActionTarget!.supplementaryModel != null) {
-      textEditingActionTarget!.supplementaryModel!.delete(textEditingActionTarget!.textSelectionDelegate);
-    }
   }
 }
 
