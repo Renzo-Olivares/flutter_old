@@ -55,6 +55,20 @@ const Duration _kCursorBlinkWaitForStart = Duration(milliseconds: 150);
 // is shown in an obscured text field.
 const int _kObscureShowLatestCharCursorTicks = 3;
 
+class TextEditingDeltaNotifier extends ValueNotifier<TextEditingDelta> {
+  TextEditingDeltaNotifier({TextEditingDelta? value}) : super(value == null ? TextEditingDelta(oldText: '', deltaText:  '', deltaType: TextEditingDeltaType.equality ,deltaRange: TextRange.empty) : value);
+
+  @override
+  // TODO: implement value
+  TextEditingDelta get value => super.value;
+
+  @override
+  set value(TextEditingDelta newValue) {
+    // TODO: implement value
+    super.value = newValue;
+  }
+}
+
 /// A controller for an editable text field.
 ///
 /// Whenever the user modifies a text field with an associated
@@ -432,6 +446,7 @@ class EditableText extends StatefulWidget {
     Key? key,
     required this.controller,
     required this.focusNode,
+    this.deltaManager,
     this.readOnly = false,
     this.obscuringCharacter = '•',
     this.obscureText = false,
@@ -552,6 +567,8 @@ class EditableText extends StatefulWidget {
 
   /// Controls the text being edited.
   final TextEditingController controller;
+
+  final TextEditingDeltaNotifier? deltaManager;
 
   /// Controls whether this widget has keyboard focus.
   final FocusNode focusNode;
@@ -1500,6 +1517,7 @@ class EditableText extends StatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(DiagnosticsProperty<TextEditingController>('controller', controller));
+    properties.add(DiagnosticsProperty<TextEditingDeltaNotifier>('deltaManager', deltaManager));
     properties.add(DiagnosticsProperty<FocusNode>('focusNode', focusNode));
     properties.add(DiagnosticsProperty<bool>('obscureText', obscureText, defaultValue: false));
     properties.add(DiagnosticsProperty<bool>('autocorrect', autocorrect, defaultValue: true));
@@ -1608,6 +1626,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     super.initState();
     _clipboardStatus?.addListener(_onChangedClipboardStatus);
     widget.controller.addListener(_didChangeTextEditingValue);
+    widget.deltaManager!.addListener(() {print('change');});
     _focusAttachment = widget.focusNode.attach(context);
     widget.focusNode.addListener(_handleFocusChanged);
     _scrollController = widget.scrollController ?? ScrollController();
@@ -1742,6 +1761,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     print('Delta new text: ' + delta.deltaText);
     print('Delta beginning of new range: ' + delta.deltaRange.start.toString());
     print('Delta end of new range: ' + delta.deltaRange.end.toString());
+
+    widget.deltaManager!.value = delta;
   }
 
   @override
