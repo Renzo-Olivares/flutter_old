@@ -1644,6 +1644,7 @@ class TextInput {
 
     switch (method) {
       case 'TextInputClient.updateEditingState':
+        TextEditingValue newState = TextEditingValue.fromJSON(args[1] as Map<String, dynamic>);
         _currentConnection!._client.updateEditingValue(TextEditingValue.fromJSON(args[1] as Map<String, dynamic>));
         break;
       case 'TextInputClient.updateEditingStateWithDeltas':
@@ -1655,6 +1656,7 @@ class TextInput {
           final TextEditingDelta delta = TextEditingDelta.fromJSON(encodedDelta);
           batchDeltas.add(delta);
         }
+        print(batchDeltas.length);
 
         _currentConnection!._client.updateEditingValueWithDeltas(batchDeltas);
         break;
