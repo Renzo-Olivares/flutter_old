@@ -6598,9 +6598,9 @@ void main() {
           ' "composingExtent": -1}';
 
       final Map<String, dynamic> test = jsonDecode(jsonDelta);
-      final TextEditingDelta delta = TextEditingDelta.fromJSON(test as Map<String, dynamic>);
+      final TextEditingDelta delta = TextEditingDelta.fromJSON(test);
 
-      state.updateEditingValueWithDeltas([delta]);
+      state.updateEditingValueWithDeltas(<TextEditingDelta>[delta]);
       await tester.pump();
       expect(controller.text, 'let there be text');
       expect(controller.selection, delta.selection);
@@ -6634,7 +6634,7 @@ void main() {
       );
 
       final EditableTextState state = tester.firstState(find.byType(EditableText));
-      final String jsonDelta = '{'
+      const String jsonDelta = '{'
           '"oldText": "let there be text",'
           ' "deltaText": "let there be text",'
           ' "deltaType" : "DELETION",'
@@ -6649,9 +6649,9 @@ void main() {
 
       final Map<String, dynamic> test = jsonDecode(jsonDelta);
 
-      final TextEditingDelta delta = TextEditingDelta.fromJSON(test as Map<String, dynamic>);
+      final TextEditingDelta delta = TextEditingDelta.fromJSON(test);
 
-      state.updateEditingValueWithDeltas([delta]);
+      state.updateEditingValueWithDeltas(<TextEditingDelta>[delta]);
       await tester.pump();
       expect(controller.text, '');
       expect(controller.selection, delta.selection);
@@ -6685,7 +6685,7 @@ void main() {
       );
 
       final EditableTextState state = tester.firstState(find.byType(EditableText));
-      final String jsonDelta = '{'
+      const String jsonDelta = '{'
           '"oldText": "let there be text",'
           ' "deltaText": "this is your replacement text",'
           ' "deltaType" : "REPLACEMENT",'
@@ -6700,9 +6700,9 @@ void main() {
 
       final Map<String, dynamic> test = jsonDecode(jsonDelta);
 
-      final TextEditingDelta delta = TextEditingDelta.fromJSON(test as Map<String, dynamic>);
+      final TextEditingDelta delta = TextEditingDelta.fromJSON(test);
 
-      state.updateEditingValueWithDeltas([delta]);
+      state.updateEditingValueWithDeltas(<TextEditingDelta>[delta]);
       await tester.pump();
       expect(controller.text, 'this is your replacement text');
       expect(controller.selection, delta.selection);
@@ -6736,7 +6736,7 @@ void main() {
       );
 
       final EditableTextState state = tester.firstState(find.byType(EditableText));
-      final String jsonDelta = '{'
+      const String jsonDelta = '{'
           '"oldText": "let there be text",'
           ' "deltaText": "",'
           ' "deltaType" : "EQUALITY",'
@@ -6751,9 +6751,9 @@ void main() {
 
       final Map<String, dynamic> test = jsonDecode(jsonDelta);
 
-      final TextEditingDelta delta = TextEditingDelta.fromJSON(test as Map<String, dynamic>);
+      final TextEditingDelta delta = TextEditingDelta.fromJSON(test);
 
-      state.updateEditingValueWithDeltas([delta]);
+      state.updateEditingValueWithDeltas(<TextEditingDelta>[delta]);
       await tester.pump();
       expect(controller.text, 'let there be text');
       expect(controller.selection, delta.selection);
@@ -6787,7 +6787,7 @@ void main() {
       );
 
       final EditableTextState state = tester.firstState(find.byType(EditableText));
-      final String jsonInsertionDelta = '{'
+      const String jsonInsertionDelta = '{'
           '"oldText": "",'
           ' "deltaText": "let there be text",'
           ' "deltaType" : "INSERTION",'
@@ -6800,7 +6800,7 @@ void main() {
           ' "composingBase": -1,'
           ' "composingExtent": -1}';
 
-      final String jsonDeletionDelta = '{'
+      const String jsonDeletionDelta = '{'
           '"oldText": "let there be text",'
           ' "deltaText": " text",'
           ' "deltaType" : "DELETION",'
@@ -6813,7 +6813,7 @@ void main() {
           ' "composingBase": -1,'
           ' "composingExtent": -1}';
 
-      final String jsonReplacementDelta = '{'
+      const String jsonReplacementDelta = '{'
           '"oldText": "let there be",'
           ' "deltaText": "be light",'
           ' "deltaType" : "REPLACEMENT",'
@@ -6826,7 +6826,7 @@ void main() {
           ' "composingBase": -1,'
           ' "composingExtent": -1}';
 
-      final String jsonEqualityDelta = '{'
+      const String jsonEqualityDelta = '{'
           '"oldText": "let there be light",'
           ' "deltaText": "",'
           ' "deltaType" : "EQUALITY",'
@@ -6844,7 +6844,7 @@ void main() {
       final TextEditingDelta replacementDelta = TextEditingDelta.fromJSON(jsonDecode(jsonReplacementDelta) as Map<String, dynamic>);
       final TextEditingDelta equalityDelta = TextEditingDelta.fromJSON(jsonDecode(jsonEqualityDelta) as Map<String, dynamic>);
 
-      state.updateEditingValueWithDeltas([insertionDelta, deletionDelta, replacementDelta, equalityDelta]);
+      state.updateEditingValueWithDeltas(<TextEditingDelta>[insertionDelta, deletionDelta, replacementDelta, equalityDelta]);
       await tester.pump();
       expect(controller.text, 'let there be light');
       expect(controller.selection, equalityDelta.selection);
