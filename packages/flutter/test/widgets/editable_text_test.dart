@@ -6597,7 +6597,7 @@ void main() {
           ' "composingBase": -1,'
           ' "composingExtent": -1}';
 
-      final Map<String, dynamic> test = jsonDecode(jsonDelta);
+      final Map<String, dynamic> test = jsonDecode(jsonDelta) as Map<String, dynamic>;
       final TextEditingDelta delta = TextEditingDelta.fromJSON(test);
 
       state.updateEditingValueWithDeltas(<TextEditingDelta>[delta]);
@@ -6647,7 +6647,7 @@ void main() {
           ' "composingBase": -1,'
           ' "composingExtent": -1}';
 
-      final Map<String, dynamic> test = jsonDecode(jsonDelta);
+      final Map<String, dynamic> test = jsonDecode(jsonDelta) as Map<String, dynamic>;
 
       final TextEditingDelta delta = TextEditingDelta.fromJSON(test);
 
@@ -6749,7 +6749,7 @@ void main() {
           ' "composingBase": -1,'
           ' "composingExtent": -1}';
 
-      final Map<String, dynamic> test = jsonDecode(jsonDelta);
+      final Map<String, dynamic> test = jsonDecode(jsonDelta)  as Map<String, dynamic>;
 
       final TextEditingDelta delta = TextEditingDelta.fromJSON(test);
 
