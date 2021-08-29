@@ -839,6 +839,7 @@ class TextEditingDelta with TextEditingDeltaUtils {
 
   /// {@template flutter.services.TextEditingDelta.deltaType}
   /// The type of delta that has occured.
+  ///
   /// See [TextEditingDeltaType] for more information.
   /// {@endtemplate}
   TextEditingDeltaType get deltaType => TextEditingDeltaType.none;
