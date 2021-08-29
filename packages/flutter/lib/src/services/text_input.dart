@@ -766,14 +766,27 @@ mixin TextEditingDeltaUtils {
 
 /// A structure representing a granular change that has occured to the editing
 /// state as a result of text editing.
+///
+/// This class should not be used directly, and should be extended for different
+/// types of deltas.
 class TextEditingDelta with TextEditingDeltaUtils {
+  /// Creates a delta for a given change to the editing state.
+  ///
+  /// {@template flutter.services.TextEditingDelta}
+  /// The [oldText], [deltaText], [deltaRange], [selection], and [composing]
+  /// arguments must not be null.
+  /// {@endtemplate}
   const TextEditingDelta({
     required this.oldText,
     required this.deltaText,
     required this.deltaRange,
     required this.selection,
     required this.composing,
-  });
+  }) : assert(oldText != null),
+       assert(deltaText != null),
+       assert(deltaRange != null),
+       assert(selection != null),
+       assert(composing != null);
 
   /// Creates an instance of this class from a JSON object by checking the
   /// deltaType sent by the engine and building the appropriate delta.
@@ -849,6 +862,9 @@ class TextEditingDelta with TextEditingDeltaUtils {
 
 /// {@macro flutter.services.TextEditingDeltaInsertion}
 class TextEditingDeltaInsertion extends TextEditingDelta {
+  /// Creates an insertion delta for a given change to the editing state.
+  ///
+  /// {@macro flutter.services.TextEditingDelta}
   const TextEditingDeltaInsertion({
     required String oldText,
     required String deltaText,
@@ -862,18 +878,6 @@ class TextEditingDeltaInsertion extends TextEditingDelta {
       selection: selection,
       composing:composing,
   );
-
-  /// {@macro flutter.services.TextEditingDelta.deltaType}
-  @override
-  TextEditingDeltaType get deltaType => TextEditingDeltaType.insertion;
-
-  /// {@macro flutter.services.TextEditingDelta.apply}
-  @override
-  TextEditingValue apply(TextEditingValue value) {
-    String newText = value.text;
-    newText = replace(newText, deltaText, deltaRange.start, deltaRange.end);
-    return value.copyWith(text: newText, selection: selection, composing: composing);
-  }
 
   /// Creates an instance of this class from a JSON object.
   factory TextEditingDeltaInsertion.fromJSON(Map<String, dynamic> encoded) {
@@ -897,10 +901,25 @@ class TextEditingDeltaInsertion extends TextEditingDelta {
       ),
     );
   }
+
+  /// {@macro flutter.services.TextEditingDelta.deltaType}
+  @override
+  TextEditingDeltaType get deltaType => TextEditingDeltaType.insertion;
+
+  /// {@macro flutter.services.TextEditingDelta.apply}
+  @override
+  TextEditingValue apply(TextEditingValue value) {
+    String newText = value.text;
+    newText = replace(newText, deltaText, deltaRange.start, deltaRange.end);
+    return value.copyWith(text: newText, selection: selection, composing: composing);
+  }
 }
 
 /// {@macro flutter.services.TextEditingDeltaDeletion}
 class TextEditingDeltaDeletion extends TextEditingDelta {
+  /// Creates a deletion delta for a given change to the editing state.
+  ///
+  /// {@macro flutter.services.TextEditingDelta}
   const TextEditingDeltaDeletion({
     required String oldText,
     required String deltaText,
@@ -914,29 +933,6 @@ class TextEditingDeltaDeletion extends TextEditingDelta {
     selection: selection,
     composing:composing,
   );
-
-  /// {@macro flutter.services.TextEditingDelta.deltaType}
-  @override
-  TextEditingDeltaType get deltaType => TextEditingDeltaType.deletion;
-
-  /// {@macro flutter.services.TextEditingDelta.apply}
-  @override
-  TextEditingValue apply(TextEditingValue value) {
-    String newText = value.text;
-
-    final int deletionLength = deltaText.length;
-    if (deletionLength > 1) {
-      newText = replace(
-          newText, '', deltaRange.start,
-          deltaRange.end);
-    } else {
-      newText = replace(
-          newText, '', deltaRange.start - deletionLength,
-          deltaRange.end);
-    }
-
-    return value.copyWith(text: newText, selection: selection, composing: composing);
-  }
 
   /// Creates an instance of this class from a JSON object.
   factory TextEditingDeltaDeletion.fromJSON(Map<String, dynamic> encoded) {
@@ -960,10 +956,36 @@ class TextEditingDeltaDeletion extends TextEditingDelta {
       ),
     );
   }
+
+  /// {@macro flutter.services.TextEditingDelta.deltaType}
+  @override
+  TextEditingDeltaType get deltaType => TextEditingDeltaType.deletion;
+
+  /// {@macro flutter.services.TextEditingDelta.apply}
+  @override
+  TextEditingValue apply(TextEditingValue value) {
+    String newText = value.text;
+
+    final int deletionLength = deltaText.length;
+    if (deletionLength > 1) {
+      newText = replace(
+          newText, '', deltaRange.start,
+          deltaRange.end);
+    } else {
+      newText = replace(
+          newText, '', deltaRange.start - deletionLength,
+          deltaRange.end);
+    }
+
+    return value.copyWith(text: newText, selection: selection, composing: composing);
+  }
 }
 
 /// {@macro flutter.services.TextEditingDeltaReplacement}
 class TextEditingDeltaReplacement extends TextEditingDelta {
+  /// Creates a replacement delta for a given change to the editing state.
+  ///
+  /// {@macro flutter.services.TextEditingDelta}
   const TextEditingDeltaReplacement({
     required String oldText,
     required String deltaText,
@@ -977,18 +999,6 @@ class TextEditingDeltaReplacement extends TextEditingDelta {
     selection: selection,
     composing:composing,
   );
-
-  /// {@macro flutter.services.TextEditingDelta.deltaType}
-  @override
-  TextEditingDeltaType get deltaType => TextEditingDeltaType.replacement;
-
-  /// {@macro flutter.services.TextEditingDelta.apply}
-  @override
-  TextEditingValue apply(TextEditingValue value) {
-    String newText = value.text;
-    newText = replace(newText, deltaText, deltaRange.start, deltaRange.end);
-    return value.copyWith(text: newText, selection: selection, composing: composing);
-  }
 
   /// Creates an instance of this class from a JSON object.
   factory TextEditingDeltaReplacement.fromJSON(Map<String, dynamic> encoded) {
@@ -1012,10 +1022,25 @@ class TextEditingDeltaReplacement extends TextEditingDelta {
       ),
     );
   }
+
+  /// {@macro flutter.services.TextEditingDelta.deltaType}
+  @override
+  TextEditingDeltaType get deltaType => TextEditingDeltaType.replacement;
+
+  /// {@macro flutter.services.TextEditingDelta.apply}
+  @override
+  TextEditingValue apply(TextEditingValue value) {
+    String newText = value.text;
+    newText = replace(newText, deltaText, deltaRange.start, deltaRange.end);
+    return value.copyWith(text: newText, selection: selection, composing: composing);
+  }
 }
 
 /// {@macro flutter.services.TextEditingDeltaEquality}
 class TextEditingDeltaEquality extends TextEditingDelta {
+  /// Creates an equality delta for a given change to the editing state.
+  ///
+  /// {@macro flutter.services.TextEditingDelta}
   const TextEditingDeltaEquality({
     required String oldText,
     required String deltaText,
@@ -1029,16 +1054,6 @@ class TextEditingDeltaEquality extends TextEditingDelta {
     selection: selection,
     composing:composing,
   );
-
-  /// {@macro flutter.services.TextEditingDelta.deltaType}
-  @override
-  TextEditingDeltaType get deltaType => TextEditingDeltaType.equality;
-
-  /// {@macro flutter.services.TextEditingDelta.deltaType}
-  @override
-  TextEditingValue apply(TextEditingValue value) {
-    return value.copyWith(selection: selection, composing: composing);
-  }
 
   /// Creates an instance of this class from a JSON object.
   factory TextEditingDeltaEquality.fromJSON(Map<String, dynamic> encoded) {
@@ -1061,6 +1076,16 @@ class TextEditingDeltaEquality extends TextEditingDelta {
         end: encoded['composingExtent'] as int? ?? -1,
       ),
     );
+  }
+
+  /// {@macro flutter.services.TextEditingDelta.deltaType}
+  @override
+  TextEditingDeltaType get deltaType => TextEditingDeltaType.equality;
+
+  /// {@macro flutter.services.TextEditingDelta.deltaType}
+  @override
+  TextEditingValue apply(TextEditingValue value) {
+    return value.copyWith(selection: selection, composing: composing);
   }
 }
 
