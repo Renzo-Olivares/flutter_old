@@ -6598,7 +6598,6 @@ void main() {
           ' "composingExtent": -1}';
 
       final Map<String, dynamic> test = jsonDecode(jsonDelta);
-      
       final TextEditingDelta delta = TextEditingDelta.fromJSON(test as Map<String, dynamic>);
 
       state.updateEditingValueWithDeltas([delta]);
