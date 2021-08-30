@@ -760,7 +760,7 @@ mixin TextEditingDeltaUtils {
 
   /// Replaces a range of text in the original string with the text given in the
   /// replacement string.
-  static String replace(String originalText, String replacementText, int start, int end) {
+  String replace(String originalText, String replacementText, int start, int end) {
     final String textStart = originalText.substring(0, start);
     final String textEnd = originalText.substring(end, originalText.length);
     final String newText = textStart + replacementText + textEnd;
@@ -773,7 +773,7 @@ mixin TextEditingDeltaUtils {
 ///
 /// This class should not be used directly, and should be extended for different
 /// types of deltas.
-abstract class TextEditingDelta with TextEditingDeltaUtils {
+abstract class TextEditingDelta {
   /// Creates a delta for a given change to the editing state.
   ///
   /// {@template flutter.services.TextEditingDelta}
@@ -870,7 +870,7 @@ abstract class TextEditingDelta with TextEditingDeltaUtils {
 }
 
 /// {@macro flutter.services.TextEditingDeltaInsertion}
-class TextEditingDeltaInsertion extends TextEditingDelta {
+class TextEditingDeltaInsertion extends TextEditingDelta with TextEditingDeltaUtils {
   /// Creates an insertion delta for a given change to the editing state.
   ///
   /// {@macro flutter.services.TextEditingDelta}
@@ -925,7 +925,7 @@ class TextEditingDeltaInsertion extends TextEditingDelta {
 }
 
 /// {@macro flutter.services.TextEditingDeltaDeletion}
-class TextEditingDeltaDeletion extends TextEditingDelta {
+class TextEditingDeltaDeletion extends TextEditingDelta with TextEditingDeltaUtils {
   /// Creates a deletion delta for a given change to the editing state.
   ///
   /// {@macro flutter.services.TextEditingDelta}
@@ -991,7 +991,7 @@ class TextEditingDeltaDeletion extends TextEditingDelta {
 }
 
 /// {@macro flutter.services.TextEditingDeltaReplacement}
-class TextEditingDeltaReplacement extends TextEditingDelta {
+class TextEditingDeltaReplacement extends TextEditingDelta with TextEditingDeltaUtils {
   /// Creates a replacement delta for a given change to the editing state.
   ///
   /// {@macro flutter.services.TextEditingDelta}

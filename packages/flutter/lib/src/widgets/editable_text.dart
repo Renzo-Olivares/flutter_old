@@ -2570,6 +2570,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       keyboardAppearance: widget.keyboardAppearance,
       autofillConfiguration: autofillConfiguration,
       enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
+      enableDeltaModel: true, //Proof of concept.
     );
   }
 
