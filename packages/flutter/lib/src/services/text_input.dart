@@ -757,7 +757,6 @@ enum TextEditingDeltaType {
 
 /// A mixin for manipulating a string of text.
 mixin TextEditingDeltaUtils {
-
   /// Replaces a range of text in the original string with the text given in the
   /// replacement string.
   String replace(String originalText, String replacementText, int start, int end) {
@@ -773,7 +772,7 @@ mixin TextEditingDeltaUtils {
 ///
 /// This class should not be used directly, and should be extended for different
 /// types of deltas.
-abstract class TextEditingDelta {
+abstract class TextEditingDelta with TextEditingDeltaUtils {
   /// Creates a delta for a given change to the editing state.
   ///
   /// {@template flutter.services.TextEditingDelta}
@@ -870,7 +869,7 @@ abstract class TextEditingDelta {
 }
 
 /// {@macro flutter.services.TextEditingDeltaInsertion}
-class TextEditingDeltaInsertion extends TextEditingDelta with TextEditingDeltaUtils {
+class TextEditingDeltaInsertion extends TextEditingDelta {
   /// Creates an insertion delta for a given change to the editing state.
   ///
   /// {@macro flutter.services.TextEditingDelta}
@@ -925,7 +924,7 @@ class TextEditingDeltaInsertion extends TextEditingDelta with TextEditingDeltaUt
 }
 
 /// {@macro flutter.services.TextEditingDeltaDeletion}
-class TextEditingDeltaDeletion extends TextEditingDelta with TextEditingDeltaUtils {
+class TextEditingDeltaDeletion extends TextEditingDelta {
   /// Creates a deletion delta for a given change to the editing state.
   ///
   /// {@macro flutter.services.TextEditingDelta}
@@ -991,7 +990,7 @@ class TextEditingDeltaDeletion extends TextEditingDelta with TextEditingDeltaUti
 }
 
 /// {@macro flutter.services.TextEditingDeltaReplacement}
-class TextEditingDeltaReplacement extends TextEditingDelta with TextEditingDeltaUtils {
+class TextEditingDeltaReplacement extends TextEditingDelta {
   /// Creates a replacement delta for a given change to the editing state.
   ///
   /// {@macro flutter.services.TextEditingDelta}
