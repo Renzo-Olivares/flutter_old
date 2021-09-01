@@ -973,11 +973,7 @@ class TextEditingDeltaDeletion extends TextEditingDelta {
   @override
   TextEditingValue apply(TextEditingValue value) {
     String newText = value.text;
-    
-    newText = replace(
-        newText, '', deltaRange.start,
-        deltaRange.end);
-
+    newText = replace(newText, '', deltaRange.start, deltaRange.end);
     return value.copyWith(text: newText, selection: selection, composing: composing);
   }
 }
