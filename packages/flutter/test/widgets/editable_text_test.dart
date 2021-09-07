@@ -6636,7 +6636,7 @@ void main() {
       final EditableTextState state = tester.firstState(find.byType(EditableText));
       const String jsonDelta = '{'
           '"oldText": "let there be text",'
-          ' "deltaText": "let there be text",'
+          ' "deltaText": "",'
           ' "deltaType" : "TextEditingDeltaType.deletion",'
           ' "deltaStart": 0,'
           ' "deltaEnd": 17,'
@@ -6802,7 +6802,7 @@ void main() {
 
       const String jsonDeletionDelta = '{'
           '"oldText": "let there be text",'
-          ' "deltaText": " text",'
+          ' "deltaText": "",'
           ' "deltaType" : "TextEditingDeltaType.deletion",'
           ' "deltaStart": 12,'
           ' "deltaEnd": 17,'
