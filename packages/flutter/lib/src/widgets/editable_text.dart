@@ -1539,7 +1539,7 @@ class EditableText extends StatefulWidget {
 }
 
 /// State for a [EditableText].
-class EditableTextState extends State<EditableText> with AutomaticKeepAliveClientMixin<EditableText>, WidgetsBindingObserver, TickerProviderStateMixin<EditableText>, TextSelectionDelegate implements TextInputClient, AutofillClient {
+class EditableTextState extends State<EditableText> with AutomaticKeepAliveClientMixin<EditableText>, WidgetsBindingObserver, TickerProviderStateMixin<EditableText>, TextSelectionDelegate implements DeltaTextInputClient, AutofillClient {
   Timer? _cursorTimer;
   bool _targetCursorVisibility = false;
   final ValueNotifier<bool> _cursorVisibilityNotifier = ValueNotifier<bool>(true);
@@ -1873,6 +1873,26 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
 
   @override
   TextEditingValue get currentTextEditingValue => _value;
+
+  @override
+  void updateEditingValueWithDeltas(List<TextEditingDelta> textEditingDeltas) {
+    TextEditingValue value = _value;
+
+    for (final TextEditingDelta delta in textEditingDeltas) {
+      value = delta.apply(value);
+    }
+
+    _lastKnownRemoteTextEditingValue = value;
+
+    if (value == _value) {
+      // This is possible, for example, when the numeric keyboard is input,
+      // the engine will notify twice for the same value.
+      // Track at https://github.com/flutter/flutter/issues/65811
+      return;
+    }
+
+    _value = value;
+  }
 
   @override
   void updateEditingValue(TextEditingValue value) {
@@ -2849,6 +2869,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       keyboardAppearance: widget.keyboardAppearance,
       autofillConfiguration: autofillConfiguration,
       enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
+      enableDeltaModel: true,
     );
   }
 
