@@ -1879,6 +1879,40 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     TextEditingValue value = _value;
 
     for (final TextEditingDelta delta in textEditingDeltas) {
+      print('\n');
+      print('-------------------------------');
+      if (delta is TextEditingDeltaInsertion){
+        print('insertion delta');
+        print('delta textInsert: ' + delta.textInserted);
+        print('delta insertionOffset: ' + delta.insertionOffset.toString());
+        print('delta oldText: ' + delta.oldText);
+        print('delta selection baseOffset: ' + delta.selection.baseOffset.toString());
+        print('delta selection extentOffset: ' + delta.selection.extentOffset.toString());
+      } else if (delta is TextEditingDeltaDeletion){
+        print('deletion delta');
+        print('delta textDeleted: ' + delta.textDeleted);
+        print('delta deletedRange start: ' + delta.deletedRange.start.toString());
+        print('delta deletedRange end: ' + delta.deletedRange.end.toString());
+        print('delta oldText: ' + delta.oldText);
+        print('delta selection baseOffset: ' + delta.selection.baseOffset.toString());
+        print('delta selection extentOffset: ' + delta.selection.extentOffset.toString());
+      } else if (delta is TextEditingDeltaReplacement) {
+        print('replacement delta');
+        print('delta newText: ' + delta.replacementText);
+        print('delta replacedText: ' + delta.textReplaced);
+        print('delta replacedRange start: ' + delta.replacedRange.start.toString());
+        print('delta replacedRange end: ' + delta.replacedRange.end.toString());
+        print('delta oldText: ' + delta.oldText);
+        print('delta selection baseOffset: ' + delta.selection.baseOffset.toString());
+        print('delta selection extentOffset: ' + delta.selection.extentOffset.toString());
+      } else if (delta is TextEditingDeltaNonTextUpdate) {
+        print('Non text update delta');
+        print('delta oldText: ' + delta.oldText);
+        print('delta selection baseOffset: ' + delta.selection.baseOffset.toString());
+        print('delta selection extentOffset: ' + delta.selection.extentOffset.toString());
+      }
+      print('-------------------------------');
+      print('\n');
       value = delta.apply(value);
     }
 
