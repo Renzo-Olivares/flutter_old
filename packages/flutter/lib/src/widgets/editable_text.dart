@@ -2738,8 +2738,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   void _onCursorColorTick() {
     print('from _onCursorColorTick');
     print(describeIdentity(_scrollController.position));
-    renderEditable.cursorColor = widget.cursorColor.withOpacity(_cursorBlinkOpacityController!.value);
-    _cursorVisibilityNotifier.value = widget.showCursor && _cursorBlinkOpacityController!.value > 0;
+    // renderEditable.cursorColor = widget.cursorColor.withOpacity(_cursorBlinkOpacityController!.value);
+    // _cursorVisibilityNotifier.value = widget.showCursor && _cursorBlinkOpacityController!.value > 0;
   }
 
   /// Whether the blinking cursor is actually visible at this precise moment
@@ -2822,19 +2822,19 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   void _stopCursorTimer({ bool resetCharTicks = true }) {
     print('from _stopCursorTimer');
     print(describeIdentity(_scrollController.position));
-    _cursorActive = false;
-    _cursorTimer?.cancel();
-    _cursorTimer = null;
-    _targetCursorVisibility = false;
-    _cursorBlinkOpacityController!.value = 0.0;
-    if (EditableText.debugDeterministicCursor)
-      return;
-    if (resetCharTicks)
-      _obscureShowCharTicksPending = 0;
-    if (widget.cursorOpacityAnimates) {
-      _cursorBlinkOpacityController!.stop();
-      _cursorBlinkOpacityController!.value = 0.0;
-    }
+    // _cursorActive = false;
+    // _cursorTimer?.cancel();
+    // _cursorTimer = null;
+    // _targetCursorVisibility = false;
+    // _cursorBlinkOpacityController!.value = 0.0;
+    // if (EditableText.debugDeterministicCursor)
+    //   return;
+    // if (resetCharTicks)
+    //   _obscureShowCharTicksPending = 0;
+    // if (widget.cursorOpacityAnimates) {
+    //   _cursorBlinkOpacityController!.stop();
+    //   _cursorBlinkOpacityController!.value = 0.0;
+    // }
   }
 
   void _startOrStopCursorTimerIfNeeded() {
