@@ -171,6 +171,17 @@ class TextEditingController extends ValueNotifier<TextEditingValue> {
     if (!value.isComposingRangeValid || !withComposing) {
       return TextSpan(style: style, text: text);
     }
+
+    switch (Theme.of(context).platform) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        break;
+    }
+
     final TextStyle composingStyle = style?.merge(const TextStyle(decoration: TextDecoration.underline))
         ?? const TextStyle(decoration: TextDecoration.underline);
     return TextSpan(
