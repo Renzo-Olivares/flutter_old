@@ -708,7 +708,7 @@ class ColorScheme with Diagnosticable {
 
   final Color? _shadow;
   /// A color use to paint the drop shadows of elevated components.
-  Color get shadow => _shadow ?? onBackground;
+  Color get shadow => _shadow ?? const Color(0xff000000);
 
   final Color? _inverseSurface;
   /// A surface color used for displaying the reverse of what’s seen in the
@@ -900,27 +900,27 @@ class ColorScheme with Diagnosticable {
   }
 
   @override
-  int get hashCode {
-    return hashList(<Object?>[
-      brightness,
-      primary,
-      onPrimary,
-      primaryContainer,
-      onPrimaryContainer,
-      secondary,
-      onSecondary,
-      secondaryContainer,
-      onSecondaryContainer,
-      tertiary,
-      onTertiary,
-      tertiaryContainer,
-      onTertiaryContainer,
-      error,
-      onError,
-      errorContainer,
-      onErrorContainer,
-      background,
-      onBackground,
+  int get hashCode => Object.hash(
+    brightness,
+    primary,
+    onPrimary,
+    primaryContainer,
+    onPrimaryContainer,
+    secondary,
+    onSecondary,
+    secondaryContainer,
+    onSecondaryContainer,
+    tertiary,
+    onTertiary,
+    tertiaryContainer,
+    onTertiaryContainer,
+    error,
+    onError,
+    errorContainer,
+    onErrorContainer,
+    background,
+    onBackground,
+    Object.hash(
       surface,
       onSurface,
       surfaceVariant,
@@ -932,8 +932,8 @@ class ColorScheme with Diagnosticable {
       inversePrimary,
       primaryVariant,
       secondaryVariant,
-    ]);
-  }
+    ),
+  );
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
