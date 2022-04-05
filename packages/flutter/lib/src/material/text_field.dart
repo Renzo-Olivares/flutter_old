@@ -47,6 +47,7 @@ class _TextFieldSelectionGestureDetectorBuilder extends TextSelectionGestureDete
 
   @override
   void onForcePressStart(ForcePressDetails details) {
+    print('on force press start - textfield');
     super.onForcePressStart(details);
     if (delegate.selectionEnabled && shouldShowSelectionToolbar) {
       editableText.showToolbar();
@@ -55,11 +56,13 @@ class _TextFieldSelectionGestureDetectorBuilder extends TextSelectionGestureDete
 
   @override
   void onForcePressEnd(ForcePressDetails details) {
+    print('on force press end - textfield');
     // Not required.
   }
 
   @override
   void onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
+    print('on single long tap move update - textfie;d');
     if (delegate.selectionEnabled) {
       switch (Theme.of(_state.context).platform) {
         case TargetPlatform.iOS:
@@ -85,6 +88,7 @@ class _TextFieldSelectionGestureDetectorBuilder extends TextSelectionGestureDete
 
   @override
   void onSingleTapUp(TapUpDetails details) {
+    print('on single tap up - textfield');
     editableText.hideToolbar();
     super.onSingleTapUp(details);
     _state._requestKeyboard();
@@ -93,6 +97,7 @@ class _TextFieldSelectionGestureDetectorBuilder extends TextSelectionGestureDete
 
   @override
   void onSingleLongTapStart(LongPressStartDetails details) {
+    print('on single long tap start - textfield');
     if (delegate.selectionEnabled) {
       switch (Theme.of(_state.context).platform) {
         case TargetPlatform.iOS:

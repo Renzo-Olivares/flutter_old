@@ -1422,6 +1422,7 @@ class TextSelectionGestureDetectorBuilder {
   ///  * [TextSelectionGestureDetector.onTapDown], which triggers this callback.
   @protected
   void onTapDown(TapDownDetails details) {
+    print('on tap down - text selection');
     renderEditable.handleTapDown(details);
     // The selection overlay should only be shown when the user is interacting
     // through a touch screen (via either a finger or a stylus). A mouse shouldn't
@@ -1472,6 +1473,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    callback.
   @protected
   void onForcePressStart(ForcePressDetails details) {
+    print('on force press start - text selection');
     assert(delegate.forcePressEnabled);
     _shouldShowSelectionToolbar = true;
     if (delegate.selectionEnabled) {
@@ -1495,6 +1497,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    callback.
   @protected
   void onForcePressEnd(ForcePressDetails details) {
+    print('on force press end - text selection');
     assert(delegate.forcePressEnabled);
     renderEditable.selectWordsInRange(
       from: details.globalPosition,
@@ -1514,6 +1517,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    this callback.
   @protected
   void onSingleTapUp(TapUpDetails details) {
+    print('on single tap up - text selection');
     if (_isShiftTapping) {
       _isShiftTapping = false;
       return;
@@ -1572,6 +1576,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    this callback.
   @protected
   void onSingleLongTapStart(LongPressStartDetails details) {
+    print('on single long tap start - text selection');
     if (delegate.selectionEnabled) {
       renderEditable.selectPositionAt(
         from: details.globalPosition,
@@ -1591,6 +1596,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    triggers this callback.
   @protected
   void onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
+    print('on single long tap move update - text selection');
     if (delegate.selectionEnabled) {
       renderEditable.selectPositionAt(
         from: details.globalPosition,
@@ -1609,6 +1615,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    callback.
   @protected
   void onSingleLongTapEnd(LongPressEndDetails details) {
+    print('on single long tap end - text selection');
     if (shouldShowSelectionToolbar)
       editableText.showToolbar();
   }
@@ -1618,6 +1625,7 @@ class TextSelectionGestureDetectorBuilder {
   /// By default, selects the word if possible and shows the toolbar.
   @protected
   void onSecondaryTap() {
+    print('on secondary tap - text selection');
     if (delegate.selectionEnabled) {
       if (!_lastSecondaryTapWasOnSelection) {
         renderEditable.selectWord(cause: SelectionChangedCause.tap);
@@ -1638,6 +1646,7 @@ class TextSelectionGestureDetectorBuilder {
   ///  * [onSecondaryTap], which is typically called after this.
   @protected
   void onSecondaryTapDown(TapDownDetails details) {
+    print('on secondary tap down - textselection');
     renderEditable.handleSecondaryTapDown(details);
     _shouldShowSelectionToolbar = true;
   }
@@ -1653,6 +1662,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    callback.
   @protected
   void onDoubleTapDown(TapDownDetails details) {
+    print('on double tap down - text selection');
     if (delegate.selectionEnabled) {
       renderEditable.selectWord(cause: SelectionChangedCause.tap);
       if (shouldShowSelectionToolbar)
@@ -1670,6 +1680,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    this callback.
   @protected
   void onDragSelectionStart(DragStartDetails details) {
+    print('on drag selection start - text selection');
     if (!delegate.selectionEnabled)
       return;
     final PointerDeviceKind? kind = details.kind;
@@ -1713,6 +1724,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    this callback./lib/src/material/text_field.dart
   @protected
   void onDragSelectionUpdate(DragStartDetails startDetails, DragUpdateDetails updateDetails) {
+    print('on drag selection update - text selection');
     if (!delegate.selectionEnabled)
       return;
 
@@ -1782,6 +1794,7 @@ class TextSelectionGestureDetectorBuilder {
   ///    callback.
   @protected
   void onDragSelectionEnd(DragEndDetails details) {
+    print('on drag selection end - text selection');
     if (_isShiftTapping) {
       _isShiftTapping = false;
       _shiftTapDragSelection = null;
