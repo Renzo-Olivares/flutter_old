@@ -14,6 +14,7 @@ import 'debug.dart';
 import 'focus_manager.dart';
 import 'inherited_model.dart';
 import 'notification_listener.dart';
+import 'widget_inspector.dart';
 
 export 'package:flutter/foundation.dart' show
   factory,
@@ -2562,11 +2563,10 @@ class BuildOwner {
       return true;
     }());
     if (!kReleaseMode) {
-      Map<String, String> debugTimelineArguments = timelineArgumentsIndicatingLandmarkEvent;
+      Map<String, String>? debugTimelineArguments;
       assert(() {
-        if (debugProfileBuildsEnabled) {
+        if (debugEnhanceBuildTimelineArguments) {
           debugTimelineArguments = <String, String>{
-            ...debugTimelineArguments,
             'dirty count': '${_dirtyElements.length}',
             'dirty list': '$_dirtyElements',
             'lock level': '$_debugStateLockLevel',
@@ -2640,10 +2640,13 @@ class BuildOwner {
           }
           return true;
         }());
-        if (!kReleaseMode && debugProfileBuildsEnabled) {
-          Map<String, String> debugTimelineArguments = timelineArgumentsIndicatingLandmarkEvent;
+        final bool isTimelineTracked = !kReleaseMode && _isProfileBuildsEnabledFor(element.widget);
+        if (isTimelineTracked) {
+          Map<String, String>? debugTimelineArguments;
           assert(() {
-            debugTimelineArguments = element.widget.toDiagnosticsNode().toTimelineArguments();
+            if (kDebugMode && debugEnhanceBuildTimelineArguments) {
+              debugTimelineArguments = element.widget.toDiagnosticsNode().toTimelineArguments();
+            }
             return true;
           }());
           Timeline.startSync(
@@ -2668,7 +2671,7 @@ class BuildOwner {
             ],
           );
         }
-        if (!kReleaseMode && debugProfileBuildsEnabled)
+        if (isTimelineTracked)
           Timeline.finishSync();
         index += 1;
         if (dirtyCount < _dirtyElements.length || _dirtyElementsNeedsResorting!) {
@@ -2922,7 +2925,7 @@ class BuildOwner {
   @pragma('vm:notify-debugger-on-exception')
   void finalizeTree() {
     if (!kReleaseMode) {
-      Timeline.startSync('FINALIZE TREE', arguments: timelineArgumentsIndicatingLandmarkEvent);
+      Timeline.startSync('FINALIZE TREE');
     }
     try {
       lockState(_inactiveElements._unmountAll); // this unregisters the GlobalKeys
@@ -3076,6 +3079,12 @@ class _NotificationNode {
     }
     parent?.dispatchNotification(notification);
   }
+}
+
+bool _isProfileBuildsEnabledFor(Widget widget) {
+  return debugProfileBuildsEnabled ||
+      (debugProfileBuildsEnabledUserWidgets &&
+          debugIsWidgetLocalCreation(widget));
 }
 
 /// An instantiation of a [Widget] at a particular location in the tree.
@@ -3503,10 +3512,13 @@ abstract class Element extends DiagnosticableTree implements BuildContext {
       } else if (hasSameSuperclass && Widget.canUpdate(child.widget, newWidget)) {
         if (child.slot != newSlot)
           updateSlotForChild(child, newSlot);
-        if (!kReleaseMode && debugProfileBuildsEnabled) {
-          Map<String, String> debugTimelineArguments = timelineArgumentsIndicatingLandmarkEvent;
+        final bool isTimelineTracked = !kReleaseMode && _isProfileBuildsEnabledFor(newWidget);
+        if (isTimelineTracked) {
+          Map<String, String>? debugTimelineArguments;
           assert(() {
-            debugTimelineArguments = newWidget.toDiagnosticsNode().toTimelineArguments();
+            if (kDebugMode && debugEnhanceBuildTimelineArguments) {
+              debugTimelineArguments = newWidget.toDiagnosticsNode().toTimelineArguments();
+            }
             return true;
           }());
           Timeline.startSync(
@@ -3515,7 +3527,7 @@ abstract class Element extends DiagnosticableTree implements BuildContext {
           );
         }
         child.update(newWidget);
-        if (!kReleaseMode && debugProfileBuildsEnabled)
+        if (isTimelineTracked)
           Timeline.finishSync();
         assert(child.widget == newWidget);
         assert(() {
@@ -3765,10 +3777,13 @@ abstract class Element extends DiagnosticableTree implements BuildContext {
   Element inflateWidget(Widget newWidget, Object? newSlot) {
     assert(newWidget != null);
 
-    if (!kReleaseMode && debugProfileBuildsEnabled) {
-      Map<String, String> debugTimelineArguments = timelineArgumentsIndicatingLandmarkEvent;
+    final bool isTimelineTracked = !kReleaseMode && _isProfileBuildsEnabledFor(newWidget);
+    if (isTimelineTracked) {
+      Map<String, String>? debugTimelineArguments;
       assert(() {
-        debugTimelineArguments = newWidget.toDiagnosticsNode().toTimelineArguments();
+        if (kDebugMode && debugEnhanceBuildTimelineArguments) {
+          debugTimelineArguments = newWidget.toDiagnosticsNode().toTimelineArguments();
+        }
         return true;
       }());
       Timeline.startSync(
@@ -3777,33 +3792,35 @@ abstract class Element extends DiagnosticableTree implements BuildContext {
       );
     }
 
-    final Key? key = newWidget.key;
-    if (key is GlobalKey) {
-      final Element? newChild = _retakeInactiveElement(key, newWidget);
-      if (newChild != null) {
-        assert(newChild._parent == null);
-        assert(() {
-          _debugCheckForCycles(newChild);
-          return true;
-        }());
-        newChild._activateWithParent(this, newSlot);
-        final Element? updatedChild = updateChild(newChild, newWidget, newSlot);
-        assert(newChild == updatedChild);
-        return updatedChild!;
+    try {
+      final Key? key = newWidget.key;
+      if (key is GlobalKey) {
+        final Element? newChild = _retakeInactiveElement(key, newWidget);
+        if (newChild != null) {
+          assert(newChild._parent == null);
+          assert(() {
+            _debugCheckForCycles(newChild);
+            return true;
+          }());
+          newChild._activateWithParent(this, newSlot);
+          final Element? updatedChild = updateChild(newChild, newWidget, newSlot);
+          assert(newChild == updatedChild);
+          return updatedChild!;
+        }
       }
+      final Element newChild = newWidget.createElement();
+      assert(() {
+        _debugCheckForCycles(newChild);
+        return true;
+      }());
+      newChild.mount(this, newSlot);
+      assert(newChild._lifecycleState == _ElementLifecycle.active);
+
+      return newChild;
+    } finally {
+      if (isTimelineTracked)
+        Timeline.finishSync();
     }
-    final Element newChild = newWidget.createElement();
-    assert(() {
-      _debugCheckForCycles(newChild);
-      return true;
-    }());
-    newChild.mount(this, newSlot);
-    assert(newChild._lifecycleState == _ElementLifecycle.active);
-
-    if (!kReleaseMode && debugProfileBuildsEnabled)
-      Timeline.finishSync();
-
-    return newChild;
   }
 
   void _debugCheckForCycles(Element newChild) {
