@@ -1322,7 +1322,12 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
             return widget.selectionEnabled && _effectiveController.value.selection.isValid;
           }
 
-      )
+      ),
+      ActivateIntent : CallbackAction<ActivateIntent>(
+        onInvoke: (ActivateIntent intent) {
+          print('callback action');
+        }
+      ),
     };
 
     return FocusTrapArea(
@@ -1350,7 +1355,9 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
                   child: child,
                 );
               },
-              child: child,
+              child: TextSelectionGesturesDetector(
+                child: child,
+              ),
               // child: _selectionGestureDetectorBuilder.buildGestureDetector(
               //   behavior: HitTestBehavior.translucent,
               //   child: child,
