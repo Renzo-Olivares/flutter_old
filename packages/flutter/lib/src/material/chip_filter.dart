@@ -8,7 +8,7 @@ import 'chip.dart';
 import 'debug.dart';
 import 'theme_data.dart';
 
-/// A material design filter chip.
+/// A Material Design filter chip.
 ///
 /// Filter chips use tags or descriptive words as a way to filter content.
 ///
@@ -108,7 +108,7 @@ class FilterChip extends StatelessWidget
   /// not be null. The [pressElevation] and [elevation] must be null or
   /// non-negative. Typically, [pressElevation] is greater than [elevation].
   const FilterChip({
-    Key? key,
+    super.key,
     this.avatar,
     required this.label,
     this.labelStyle,
@@ -139,8 +139,7 @@ class FilterChip extends StatelessWidget
        assert(clipBehavior != null),
        assert(autofocus != null),
        assert(pressElevation == null || pressElevation >= 0.0),
-       assert(elevation == null || elevation >= 0.0),
-       super(key: key);
+       assert(elevation == null || elevation >= 0.0);
 
   @override
   final Widget? avatar;

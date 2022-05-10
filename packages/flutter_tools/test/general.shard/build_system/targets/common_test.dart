@@ -369,7 +369,7 @@ void main() {
         '--no-sim-use-hardfp',
         '--no-use-integer-division',
         '$build/app.dill',
-      ])
+      ]),
     ]);
     androidEnvironment.buildDir.childFile('app.dill').createSync(recursive: true);
 
@@ -397,7 +397,7 @@ void main() {
         '--no-sim-use-hardfp',
         '--no-use-integer-division',
         '$build/app.dill',
-      ])
+      ]),
     ]);
     androidEnvironment.buildDir.childFile('app.dill').createSync(recursive: true);
 
@@ -471,7 +471,7 @@ void main() {
         'cc',
         '-arch',
         'arm64',
-        '-miphoneos-version-min=9.0',
+        '-miphoneos-version-min=11.0',
         '-isysroot',
         'path/to/iPhoneOS.sdk',
         // Contains bitcode flag.
@@ -486,7 +486,7 @@ void main() {
         'clang',
         '-arch',
         'arm64',
-        '-miphoneos-version-min=9.0',
+        '-miphoneos-version-min=11.0',
         '-isysroot',
         'path/to/iPhoneOS.sdk',
         '-dynamiclib',
@@ -547,7 +547,7 @@ void main() {
         'cc',
         '-arch',
         'arm64',
-        '-miphoneos-version-min=9.0',
+        '-miphoneos-version-min=11.0',
         '-isysroot',
         'path/to/iPhoneOS.sdk',
         // Contains bitcode flag.
@@ -562,7 +562,7 @@ void main() {
         'clang',
         '-arch',
         'arm64',
-        '-miphoneos-version-min=9.0',
+        '-miphoneos-version-min=11.0',
         '-isysroot',
         'path/to/iPhoneOS.sdk',
         '-dynamiclib',

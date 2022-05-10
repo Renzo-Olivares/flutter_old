@@ -845,6 +845,13 @@ class RenderOpacity extends RenderProxyBox {
   @override
   bool get alwaysNeedsCompositing => child != null && (_alpha > 0);
 
+  @override
+  OffsetLayer updateCompositedLayer({required covariant OpacityLayer? oldLayer}) {
+    final OpacityLayer updatedLayer = oldLayer ?? OpacityLayer();
+    updatedLayer.alpha = _alpha;
+    return updatedLayer;
+  }
+
   int _alpha;
 
   /// The fraction to scale the child's alpha value.
@@ -899,6 +906,10 @@ class RenderOpacity extends RenderProxyBox {
       }
       assert(needsCompositing);
       layer = context.pushOpacity(offset, _alpha, super.paint, oldLayer: layer as OpacityLayer?);
+      assert(() {
+        layer!.debugCreator = debugCreator;
+        return true;
+      }());
     }
   }
 
@@ -925,8 +936,15 @@ mixin RenderAnimatedOpacityMixin<T extends RenderObject> on RenderObjectWithChil
   int? _alpha;
 
   @override
-  bool get alwaysNeedsCompositing => child != null && _currentlyNeedsCompositing!;
-  bool? _currentlyNeedsCompositing;
+  bool get isRepaintBoundary => child != null && _currentlyIsRepaintBoundary!;
+  bool? _currentlyIsRepaintBoundary;
+
+  @override
+  OffsetLayer updateCompositedLayer({required covariant OpacityLayer? oldLayer}) {
+    final OpacityLayer updatedLayer = oldLayer ?? OpacityLayer();
+    updatedLayer.alpha = _alpha;
+    return updatedLayer;
+  }
 
   /// The animation that drives this render object's opacity.
   ///
@@ -986,11 +1004,11 @@ mixin RenderAnimatedOpacityMixin<T extends RenderObject> on RenderObjectWithChil
     final int? oldAlpha = _alpha;
     _alpha = ui.Color.getAlphaFromOpacity(opacity.value);
     if (oldAlpha != _alpha) {
-      final bool? didNeedCompositing = _currentlyNeedsCompositing;
-      _currentlyNeedsCompositing = _alpha! > 0;
-      if (child != null && didNeedCompositing != _currentlyNeedsCompositing)
+      final bool? wasRepaintBoundary = _currentlyIsRepaintBoundary;
+      _currentlyIsRepaintBoundary = _alpha! > 0;
+      if (child != null && wasRepaintBoundary != _currentlyIsRepaintBoundary)
         markNeedsCompositingBitsUpdate();
-      markNeedsPaint();
+      markNeedsCompositedLayerUpdate();
       if (oldAlpha == 0 || _alpha == 0)
         markNeedsSemanticsUpdate();
     }
@@ -998,15 +1016,10 @@ mixin RenderAnimatedOpacityMixin<T extends RenderObject> on RenderObjectWithChil
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (child != null) {
-      if (_alpha == 0) {
-        // No need to keep the layer. We'll create a new one if necessary.
-        layer = null;
-        return;
-      }
-      assert(needsCompositing);
-      layer = context.pushOpacity(offset, _alpha!, super.paint, oldLayer: layer as OpacityLayer?);
+    if (_alpha == 0) {
+      return;
     }
+    super.paint(context, offset);
   }
 
   @override
@@ -1115,6 +1128,10 @@ class RenderShaderMask extends RenderProxyBox {
         ..maskRect = offset & size
         ..blendMode = _blendMode;
       context.pushLayer(layer!, super.paint, offset);
+      assert(() {
+        layer!.debugCreator = debugCreator;
+        return true;
+      }());
     } else {
       layer = null;
     }
@@ -1181,6 +1198,10 @@ class RenderBackdropFilter extends RenderProxyBox {
       layer!.filter = _filter;
       layer!.blendMode = _blendMode;
       context.pushLayer(layer!, super.paint, offset);
+      assert(() {
+        layer!.debugCreator = debugCreator;
+        return true;
+      }());
     } else {
       layer = null;
     }
@@ -1432,11 +1453,10 @@ class RenderClipRect extends _RenderCustomClip<Rect> {
   /// The [clipBehavior] must not be null. If [clipBehavior] is
   /// [Clip.none], no clipping will be applied.
   RenderClipRect({
-    RenderBox? child,
-    CustomClipper<Rect>? clipper,
-    Clip clipBehavior = Clip.antiAlias,
-  }) : assert(clipBehavior != null),
-       super(child: child, clipper: clipper, clipBehavior: clipBehavior);
+    super.child,
+    super.clipper,
+    super.clipBehavior,
+  }) : assert(clipBehavior != null);
 
   @override
   Rect get _defaultClip => Offset.zero & size;
@@ -1503,15 +1523,15 @@ class RenderClipRRect extends _RenderCustomClip<RRect> {
   /// The [clipBehavior] argument must not be null. If [clipBehavior] is
   /// [Clip.none], no clipping will be applied.
   RenderClipRRect({
-    RenderBox? child,
+    super.child,
     BorderRadiusGeometry borderRadius = BorderRadius.zero,
     CustomClipper<RRect>? clipper,
-    Clip clipBehavior = Clip.antiAlias,
+    super.clipBehavior,
     TextDirection? textDirection,
   }) : assert(clipBehavior != null),
        _borderRadius = borderRadius,
        _textDirection = textDirection,
-       super(child: child, clipper: clipper, clipBehavior: clipBehavior) {
+       super(clipper: clipper) {
     assert(_borderRadius != null || clipper != null);
   }
 
@@ -1605,11 +1625,10 @@ class RenderClipOval extends _RenderCustomClip<Rect> {
   /// The [clipBehavior] argument must not be null. If [clipBehavior] is
   /// [Clip.none], no clipping will be applied.
   RenderClipOval({
-    RenderBox? child,
-    CustomClipper<Rect>? clipper,
-    Clip clipBehavior = Clip.antiAlias,
-  }) : assert(clipBehavior != null),
-       super(child: child, clipper: clipper, clipBehavior: clipBehavior);
+    super.child,
+    super.clipper,
+    super.clipBehavior,
+  }) : assert(clipBehavior != null);
 
   Rect? _cachedRect;
   late Path _cachedPath;
@@ -1699,11 +1718,10 @@ class RenderClipPath extends _RenderCustomClip<Path> {
   /// The [clipBehavior] argument must not be null. If [clipBehavior] is
   /// [Clip.none], no clipping will be applied.
   RenderClipPath({
-    RenderBox? child,
-    CustomClipper<Path>? clipper,
-    Clip clipBehavior = Clip.antiAlias,
-  }) : assert(clipBehavior != null),
-       super(child: child, clipper: clipper, clipBehavior: clipBehavior);
+    super.child,
+    super.clipper,
+    super.clipBehavior,
+  }) : assert(clipBehavior != null);
 
   @override
   Path get _defaultClip => Path()..addRect(Offset.zero & size);
@@ -1763,20 +1781,19 @@ abstract class _RenderPhysicalModelBase<T> extends _RenderCustomClip<T> {
   /// The [shape], [elevation], [color], and [shadowColor] must not be null.
   /// Additionally, the [elevation] must be non-negative.
   _RenderPhysicalModelBase({
-    required RenderBox? child,
+    required super.child,
     required double elevation,
     required Color color,
     required Color shadowColor,
-    Clip clipBehavior = Clip.none,
-    CustomClipper<T>? clipper,
+    super.clipBehavior = Clip.none,
+    super.clipper,
   }) : assert(elevation != null && elevation >= 0.0),
        assert(color != null),
        assert(shadowColor != null),
        assert(clipBehavior != null),
        _elevation = elevation,
        _color = color,
-       _shadowColor = shadowColor,
-       super(child: child, clipBehavior: clipBehavior, clipper: clipper);
+       _shadowColor = shadowColor;
 
   /// The z-coordinate relative to the parent at which to place this material.
   ///
@@ -1820,9 +1837,6 @@ abstract class _RenderPhysicalModelBase<T> extends _RenderCustomClip<T> {
   }
 
   @override
-  bool get alwaysNeedsCompositing => true;
-
-  @override
   void describeSemanticsConfiguration(SemanticsConfiguration config) {
     super.describeSemanticsConfiguration(config);
     config.elevation = elevation;
@@ -1837,6 +1851,8 @@ abstract class _RenderPhysicalModelBase<T> extends _RenderCustomClip<T> {
   }
 }
 
+final Paint _transparentPaint = Paint()..color = const Color(0x00000000);
+
 /// Creates a physical model layer that clips its child to a rounded
 /// rectangle.
 ///
@@ -1850,30 +1866,20 @@ class RenderPhysicalModel extends _RenderPhysicalModelBase<RRect> {
   /// arguments must not be null. Additionally, the [elevation] must be
   /// non-negative.
   RenderPhysicalModel({
-    RenderBox? child,
+    super.child,
     BoxShape shape = BoxShape.rectangle,
-    Clip clipBehavior = Clip.none,
+    super.clipBehavior,
     BorderRadius? borderRadius,
-    double elevation = 0.0,
-    required Color color,
-    Color shadowColor = const Color(0xFF000000),
+    super.elevation = 0.0,
+    required super.color,
+    super.shadowColor = const Color(0xFF000000),
   }) : assert(shape != null),
        assert(clipBehavior != null),
        assert(elevation != null && elevation >= 0.0),
        assert(color != null),
        assert(shadowColor != null),
        _shape = shape,
-       _borderRadius = borderRadius,
-       super(
-         clipBehavior: clipBehavior,
-         child: child,
-         elevation: elevation,
-         color: color,
-         shadowColor: shadowColor,
-       );
-
-  @override
-  PhysicalModelLayer? get layer => super.layer as PhysicalModelLayer?;
+       _borderRadius = borderRadius;
 
   /// The shape of the layer.
   ///
@@ -1932,42 +1938,79 @@ class RenderPhysicalModel extends _RenderPhysicalModelBase<RRect> {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (child != null) {
-      _updateClip();
-      final RRect offsetRRect = _clip!.shift(offset);
-      final Rect offsetBounds = offsetRRect.outerRect;
-      final Path offsetRRectAsPath = Path()..addRRect(offsetRRect);
-      bool paintShadows = true;
-      assert(() {
-        if (debugDisableShadows) {
-          if (elevation > 0.0) {
-            context.canvas.drawRRect(
-              offsetRRect,
-              Paint()
-                ..color = shadowColor
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = elevation * 2.0,
-            );
-          }
-          paintShadows = false;
-        }
-        return true;
-      }());
-      layer ??= PhysicalModelLayer();
-      layer!
-        ..clipPath = offsetRRectAsPath
-        ..clipBehavior = clipBehavior
-        ..elevation = paintShadows ? elevation : 0.0
-        ..color = color
-        ..shadowColor = shadowColor;
-      context.pushLayer(layer!, super.paint, offset, childPaintBounds: offsetBounds);
-      assert(() {
-        layer!.debugCreator = debugCreator;
-        return true;
-      }());
-    } else {
+    if (child == null) {
       layer = null;
+      return;
     }
+
+    _updateClip();
+    final RRect offsetRRect = _clip!.shift(offset);
+    final Rect offsetBounds = offsetRRect.outerRect;
+    final Path offsetRRectAsPath = Path()..addRRect(offsetRRect);
+    bool paintShadows = true;
+    assert(() {
+      if (debugDisableShadows) {
+        if (elevation > 0.0) {
+          context.canvas.drawRRect(
+            offsetRRect,
+            Paint()
+              ..color = shadowColor
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = elevation * 2.0,
+          );
+        }
+        paintShadows = false;
+      }
+      return true;
+    }());
+
+    final Canvas canvas = context.canvas;
+    if (elevation != 0.0 && paintShadows) {
+      // The drawShadow call doesn't add the region of the shadow to the
+      // picture's bounds, so we draw a hardcoded amount of extra space to
+      // account for the maximum potential area of the shadow.
+      // TODO(jsimmons): remove this when Skia does it for us.
+      canvas.drawRect(
+        offsetBounds.inflate(20.0),
+        _transparentPaint,
+      );
+      canvas.drawShadow(
+        offsetRRectAsPath,
+        shadowColor,
+        elevation,
+        color.alpha != 0xFF,
+      );
+    }
+    final bool usesSaveLayer = clipBehavior == Clip.antiAliasWithSaveLayer;
+    if (!usesSaveLayer) {
+      canvas.drawRRect(
+        offsetRRect,
+        Paint()..color = color
+      );
+    }
+    layer = context.pushClipRRect(
+      needsCompositing,
+      offset,
+      Offset.zero & size,
+      _clip!,
+      (PaintingContext context, Offset offset) {
+        if (usesSaveLayer) {
+          // If we want to avoid the bleeding edge artifact
+          // (https://github.com/flutter/flutter/issues/18057#issue-328003931)
+          // using saveLayer, we have to call drawPaint instead of drawPath as
+          // anti-aliased drawPath will always have such artifacts.
+          context.canvas.drawPaint( Paint()..color = color);
+        }
+        super.paint(context, offset);
+      },
+      oldLayer: layer as ClipRRectLayer?,
+      clipBehavior: clipBehavior,
+    );
+
+    assert(() {
+      layer?.debugCreator = debugCreator;
+      return true;
+    }());
   }
 
   @override
@@ -1994,27 +2037,16 @@ class RenderPhysicalShape extends _RenderPhysicalModelBase<Path> {
   /// The [clipper], [elevation], [color] and [shadowColor] must not be null.
   /// Additionally, the [elevation] must be non-negative.
   RenderPhysicalShape({
-    RenderBox? child,
-    required CustomClipper<Path> clipper,
-    Clip clipBehavior = Clip.none,
-    double elevation = 0.0,
-    required Color color,
-    Color shadowColor = const Color(0xFF000000),
+    super.child,
+    required CustomClipper<Path> super.clipper,
+    super.clipBehavior,
+    super.elevation = 0.0,
+    required super.color,
+    super.shadowColor = const Color(0xFF000000),
   }) : assert(clipper != null),
        assert(elevation != null && elevation >= 0.0),
        assert(color != null),
-       assert(shadowColor != null),
-       super(
-         child: child,
-         elevation: elevation,
-         color: color,
-         shadowColor: shadowColor,
-         clipper: clipper,
-         clipBehavior: clipBehavior,
-       );
-
-  @override
-  PhysicalModelLayer? get layer => super.layer as PhysicalModelLayer?;
+       assert(shadowColor != null);
 
   @override
   Path get _defaultClip => Path()..addRect(Offset.zero & size);
@@ -2032,41 +2064,78 @@ class RenderPhysicalShape extends _RenderPhysicalModelBase<Path> {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (child != null) {
-      _updateClip();
-      final Rect offsetBounds = offset & size;
-      final Path offsetPath = _clip!.shift(offset);
-      bool paintShadows = true;
-      assert(() {
-        if (debugDisableShadows) {
-          if (elevation > 0.0) {
-            context.canvas.drawPath(
-              offsetPath,
-              Paint()
-                ..color = shadowColor
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = elevation * 2.0,
-            );
-          }
-          paintShadows = false;
-        }
-        return true;
-      }());
-      layer ??= PhysicalModelLayer();
-      layer!
-        ..clipPath = offsetPath
-        ..clipBehavior = clipBehavior
-        ..elevation = paintShadows ? elevation : 0.0
-        ..color = color
-        ..shadowColor = shadowColor;
-      context.pushLayer(layer!, super.paint, offset, childPaintBounds: offsetBounds);
-      assert(() {
-        layer!.debugCreator = debugCreator;
-        return true;
-      }());
-    } else {
+    if (child == null) {
       layer = null;
+      return;
     }
+
+    _updateClip();
+    final Rect offsetBounds = offset & size;
+    final Path offsetPath = _clip!.shift(offset);
+    bool paintShadows = true;
+    assert(() {
+      if (debugDisableShadows) {
+        if (elevation > 0.0) {
+          context.canvas.drawPath(
+            offsetPath,
+            Paint()
+              ..color = shadowColor
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = elevation * 2.0,
+          );
+        }
+        paintShadows = false;
+      }
+      return true;
+    }());
+
+    final Canvas canvas = context.canvas;
+    if (elevation != 0.0 && paintShadows) {
+      // The drawShadow call doesn't add the region of the shadow to the
+      // picture's bounds, so we draw a hardcoded amount of extra space to
+      // account for the maximum potential area of the shadow.
+      // TODO(jsimmons): remove this when Skia does it for us.
+      canvas.drawRect(
+        offsetBounds.inflate(20.0),
+        _transparentPaint,
+      );
+      canvas.drawShadow(
+        offsetPath,
+        shadowColor,
+        elevation,
+        color.alpha != 0xFF,
+      );
+    }
+    final bool usesSaveLayer = clipBehavior == Clip.antiAliasWithSaveLayer;
+    if (!usesSaveLayer) {
+      canvas.drawPath(
+        offsetPath,
+        Paint()..color = color
+      );
+    }
+    layer = context.pushClipPath(
+      needsCompositing,
+      offset,
+      Offset.zero & size,
+      _clip!,
+      (PaintingContext context, Offset offset) {
+        if (usesSaveLayer) {
+          // If we want to avoid the bleeding edge artifact
+          // (https://github.com/flutter/flutter/issues/18057#issue-328003931)
+          // using saveLayer, we have to call drawPaint instead of drawPath as
+          // anti-aliased drawPath will always have such artifacts.
+          context.canvas.drawPaint( Paint()..color = color);
+        }
+        super.paint(context, offset);
+      },
+      oldLayer: layer as ClipPathLayer?,
+      clipBehavior: clipBehavior,
+    );
+
+    assert(() {
+      layer?.debugCreator = debugCreator;
+      return true;
+    }());
   }
 
   @override
@@ -2445,6 +2514,10 @@ class RenderTransform extends RenderProxyBox {
           layer = ImageFilterLayer(imageFilter: filter);
         }
         context.pushLayer(layer!, super.paint, offset);
+        assert(() {
+          layer!.debugCreator = debugCreator;
+          return true;
+        }());
       }
     }
   }
@@ -2904,9 +2977,9 @@ class RenderPointerListener extends RenderProxyBoxWithHitTestBehavior {
     this.onPointerPanZoomUpdate,
     this.onPointerPanZoomEnd,
     this.onPointerSignal,
-    HitTestBehavior behavior = HitTestBehavior.deferToChild,
-    RenderBox? child,
-  }) : super(behavior: behavior, child: child);
+    super.behavior,
+    super.child,
+  });
 
   /// Called when a pointer comes into contact with the screen (for touch
   /// pointers), or has its button pressed (for mouse pointers) at this widget's
@@ -3019,14 +3092,14 @@ class RenderMouseRegion extends RenderProxyBoxWithHitTestBehavior implements Mou
     MouseCursor cursor = MouseCursor.defer,
     bool validForMouseTracker = true,
     bool opaque = true,
-    RenderBox? child,
+    super.child,
     HitTestBehavior? hitTestBehavior = HitTestBehavior.opaque,
   }) : assert(opaque != null),
        assert(cursor != null),
        _cursor = cursor,
        _validForMouseTracker = validForMouseTracker,
        _opaque = opaque,
-       super(behavior: hitTestBehavior ?? HitTestBehavior.opaque, child: child);
+       super(behavior: hitTestBehavior ?? HitTestBehavior.opaque);
 
   @override
   bool hitTest(BoxHitTestResult result, { required Offset position }) {
@@ -3646,9 +3719,9 @@ class RenderMetaData extends RenderProxyBoxWithHitTestBehavior {
   /// The [behavior] argument defaults to [HitTestBehavior.deferToChild].
   RenderMetaData({
     this.metaData,
-    HitTestBehavior behavior = HitTestBehavior.deferToChild,
-    RenderBox? child,
-  }) : super(behavior: behavior, child: child);
+    super.behavior,
+    super.child,
+  });
 
   /// Opaque meta data ignored by the render tree.
   dynamic metaData;
@@ -3667,19 +3740,18 @@ class RenderSemanticsGestureHandler extends RenderProxyBoxWithHitTestBehavior {
   ///
   /// The [scrollFactor] and [behavior] arguments must not be null.
   RenderSemanticsGestureHandler({
-    RenderBox? child,
+    super.child,
     GestureTapCallback? onTap,
     GestureLongPressCallback? onLongPress,
     GestureDragUpdateCallback? onHorizontalDragUpdate,
     GestureDragUpdateCallback? onVerticalDragUpdate,
     this.scrollFactor = 0.8,
-    HitTestBehavior behavior = HitTestBehavior.deferToChild,
+    super.behavior,
   }) : assert(scrollFactor != null),
        _onTap = onTap,
        _onLongPress = onLongPress,
        _onHorizontalDragUpdate = onHorizontalDragUpdate,
-       _onVerticalDragUpdate = onVerticalDragUpdate,
-       super(behavior: behavior, child: child);
+       _onVerticalDragUpdate = onVerticalDragUpdate;
 
   /// If non-null, the set of actions to allow. Other actions will be omitted,
   /// even if their callback is provided.
@@ -3879,6 +3951,7 @@ class RenderSemanticsAnnotations extends RenderProxyBox {
     AttributedString? attributedIncreasedValue,
     AttributedString? attributedDecreasedValue,
     AttributedString? attributedHint,
+    String? tooltip,
     SemanticsHintOverrides? hintOverrides,
     TextDirection? textDirection,
     SemanticsSortKey? sortKey,
@@ -3937,6 +4010,7 @@ class RenderSemanticsAnnotations extends RenderProxyBox {
        _attributedIncreasedValue = attributedIncreasedValue,
        _attributedDecreasedValue = attributedDecreasedValue,
        _attributedHint = attributedHint,
+       _tooltip = tooltip,
        _hintOverrides = hintOverrides,
        _textDirection = textDirection,
        _sortKey = sortKey,
@@ -4328,6 +4402,18 @@ class RenderSemanticsAnnotations extends RenderProxyBox {
     if (_attributedHint == value)
       return;
     _attributedHint = value;
+    markNeedsSemanticsUpdate();
+  }
+
+  /// If non-null, sets the [SemanticsNode.tooltip] semantic to the given value.
+  ///
+  /// The reading direction is given by [textDirection].
+  String? get tooltip => _tooltip;
+  String? _tooltip;
+  set tooltip(String? value) {
+    if (_tooltip == value)
+      return;
+    _tooltip = value;
     markNeedsSemanticsUpdate();
   }
 
@@ -4863,6 +4949,8 @@ class RenderSemanticsAnnotations extends RenderProxyBox {
       config.attributedDecreasedValue = attributedDecreasedValue!;
     if (attributedHint != null)
       config.attributedHint = attributedHint!;
+    if (tooltip != null)
+      config.tooltip = tooltip!;
     if (hintOverrides != null && hintOverrides!.isNotEmpty)
       config.hintOverrides = hintOverrides;
     if (scopesRoute != null)
@@ -5216,7 +5304,10 @@ class RenderLeaderLayer extends RenderProxyBox {
         ..offset = offset;
     }
     context.pushLayer(layer!, super.paint, Offset.zero);
-    assert(layer != null);
+    assert(() {
+      layer!.debugCreator = debugCreator;
+      return true;
+    }());
   }
 
   @override
@@ -5428,6 +5519,10 @@ class RenderFollowerLayer extends RenderProxyBox {
         double.infinity,
       ),
     );
+    assert(() {
+      layer!.debugCreator = debugCreator;
+      return true;
+    }());
   }
 
   @override

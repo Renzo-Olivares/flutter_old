@@ -50,10 +50,10 @@ enum ThemeMode {
   dark,
 }
 
-/// An application that uses material design.
+/// An application that uses Material Design.
 ///
 /// A convenience widget that wraps a number of widgets that are commonly
-/// required for material design applications. It builds upon a [WidgetsApp] by
+/// required for Material Design applications. It builds upon a [WidgetsApp] by
 /// adding material-design specific functionality, such as [AnimatedTheme] and
 /// [GridPaper].
 ///
@@ -201,7 +201,7 @@ class MaterialApp extends StatefulWidget {
   ///
   /// The boolean arguments, [routes], and [navigatorObservers], must not be null.
   const MaterialApp({
-    Key? key,
+    super.key,
     this.navigatorKey,
     this.scaffoldMessengerKey,
     this.home,
@@ -249,15 +249,18 @@ class MaterialApp extends StatefulWidget {
        routeInformationParser = null,
        routerDelegate = null,
        backButtonDispatcher = null,
-       super(key: key);
+       routerConfig = null;
 
   /// Creates a [MaterialApp] that uses the [Router] instead of a [Navigator].
+  ///
+  /// {@macro flutter.widgets.WidgetsApp.router}
   const MaterialApp.router({
-    Key? key,
+    super.key,
     this.scaffoldMessengerKey,
     this.routeInformationProvider,
-    required RouteInformationParser<Object> this.routeInformationParser,
-    required RouterDelegate<Object> this.routerDelegate,
+    this.routeInformationParser,
+    this.routerDelegate,
+    this.routerConfig,
     this.backButtonDispatcher,
     this.builder,
     this.title = '',
@@ -284,8 +287,7 @@ class MaterialApp extends StatefulWidget {
     this.restorationScopeId,
     this.scrollBehavior,
     this.useInheritedMediaQuery = false,
-  }) : assert(routeInformationParser != null),
-       assert(routerDelegate != null),
+  }) : assert(routerDelegate != null || routerConfig != null),
        assert(title != null),
        assert(debugShowMaterialGrid != null),
        assert(showPerformanceOverlay != null),
@@ -300,8 +302,7 @@ class MaterialApp extends StatefulWidget {
        onGenerateInitialRoutes = null,
        onUnknownRoute = null,
        routes = null,
-       initialRoute = null,
-       super(key: key);
+       initialRoute = null;
 
   /// {@macro flutter.widgets.widgetsApp.navigatorKey}
   final GlobalKey<NavigatorState>? navigatorKey;
@@ -354,6 +355,9 @@ class MaterialApp extends StatefulWidget {
 
   /// {@macro flutter.widgets.widgetsApp.backButtonDispatcher}
   final BackButtonDispatcher? backButtonDispatcher;
+
+  /// {@macro flutter.widgets.widgetsApp.routerConfig}
+  final RouterConfig<Object>? routerConfig;
 
   /// {@macro flutter.widgets.widgetsApp.builder}
   ///
@@ -760,9 +764,8 @@ class MaterialScrollBehavior extends ScrollBehavior {
       'Use ThemeData.useMaterial3 or override ScrollBehavior.buildOverscrollIndicator. '
       'This feature was deprecated after v2.13.0-0.0.pre.'
     )
-    AndroidOverscrollIndicator? androidOverscrollIndicator,
-  }) : _androidOverscrollIndicator = androidOverscrollIndicator,
-       super(androidOverscrollIndicator: androidOverscrollIndicator);
+    super.androidOverscrollIndicator,
+  }) : _androidOverscrollIndicator = androidOverscrollIndicator;
 
   final AndroidOverscrollIndicator? _androidOverscrollIndicator;
 
@@ -835,7 +838,7 @@ class MaterialScrollBehavior extends ScrollBehavior {
 class _MaterialAppState extends State<MaterialApp> {
   late HeroController _heroController;
 
-  bool get _usesRouter => widget.routerDelegate != null;
+  bool get _usesRouter => widget.routerDelegate != null || widget.routerConfig != null;
 
   @override
   void initState() {
@@ -928,8 +931,9 @@ class _MaterialAppState extends State<MaterialApp> {
       return WidgetsApp.router(
         key: GlobalObjectKey(this),
         routeInformationProvider: widget.routeInformationProvider,
-        routeInformationParser: widget.routeInformationParser!,
-        routerDelegate: widget.routerDelegate!,
+        routeInformationParser: widget.routeInformationParser,
+        routerDelegate: widget.routerDelegate,
+        routerConfig: widget.routerConfig,
         backButtonDispatcher: widget.backButtonDispatcher,
         builder: _materialBuilder,
         title: widget.title,

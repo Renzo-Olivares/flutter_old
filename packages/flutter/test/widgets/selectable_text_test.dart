@@ -2197,7 +2197,7 @@ void main() {
           actions: <SemanticsAction>[SemanticsAction.longPress],
           label: 'German greeting for good day',
           textDirection: TextDirection.ltr,
-        )
+        ),
       ],
     ), ignoreTransform: true, ignoreRect: true));
   });
@@ -2398,7 +2398,7 @@ void main() {
                                 TestSemantics(
                                   flags: <SemanticsFlag>[
                                     SemanticsFlag.isHidden,
-                                    SemanticsFlag.isLink
+                                    SemanticsFlag.isLink,
                                   ],
                                   actions: <SemanticsAction>[SemanticsAction.tap],
                                   label: 'off screen',
@@ -4634,8 +4634,8 @@ void main() {
     await tester.pump();
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(newSelection!.baseOffset, 4);
-    expect(newSelection!.extentOffset, 7);
+    expect(newSelection!.isCollapsed, isTrue);
+    expect(newSelection!.baseOffset, 5);
     newSelection = null;
 
     await tester.tap(find.text('Select all'));

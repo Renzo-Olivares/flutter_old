@@ -39,7 +39,7 @@ const Duration _kDisableDuration = Duration(milliseconds: 75);
 const Color _kSelectScrimColor = Color(0x60191919);
 const Icon _kDefaultDeleteIcon = Icon(Icons.cancel, size: _kDeleteIconSize);
 
-/// An interface defining the base attributes for a material design chip.
+/// An interface defining the base attributes for a Material Design chip.
 ///
 /// Chips are compact elements that represent an attribute, text, entity, or
 /// action.
@@ -187,7 +187,7 @@ abstract class ChipAttributes {
   Color? get shadowColor;
 }
 
-/// An interface for material design chips that can be deleted.
+/// An interface for Material Design chips that can be deleted.
 ///
 /// The defaults mentioned in the documentation for each attribute are what
 /// the implementing classes typically use for defaults (but this class doesn't
@@ -257,7 +257,7 @@ abstract class DeletableChipAttributes {
   bool get useDeleteButtonTooltip;
 }
 
-/// An interface for material design chips that can have check marks.
+/// An interface for Material Design chips that can have check marks.
 ///
 /// The defaults mentioned in the documentation for each attribute are what
 /// the implementing classes typically use for defaults (but this class doesn't
@@ -290,7 +290,7 @@ abstract class CheckmarkableChipAttributes {
   Color? get checkmarkColor;
 }
 
-/// An interface for material design chips that can be selected.
+/// An interface for Material Design chips that can be selected.
 ///
 /// The defaults mentioned in the documentation for each attribute are what
 /// the implementing classes typically use for defaults (but this class doesn't
@@ -400,7 +400,7 @@ abstract class SelectableChipAttributes {
   ShapeBorder get avatarBorder;
 }
 
-/// An interface for material design chips that can be enabled and disabled.
+/// An interface for Material Design chips that can be enabled and disabled.
 ///
 /// The defaults mentioned in the documentation for each attribute are what
 /// the implementing classes typically use for defaults (but this class doesn't
@@ -447,7 +447,7 @@ abstract class DisabledChipAttributes {
   Color? get disabledColor;
 }
 
-/// An interface for material design chips that can be tapped.
+/// An interface for Material Design chips that can be tapped.
 ///
 /// The defaults mentioned in the documentation for each attribute are what
 /// the implementing classes typically use for defaults (but this class doesn't
@@ -509,7 +509,7 @@ abstract class TappableChipAttributes {
   String? get tooltip;
 }
 
-/// A material design chip.
+/// A Material Design chip.
 ///
 /// Chips are compact elements that represent an attribute, text, entity, or
 /// action.
@@ -549,12 +549,12 @@ abstract class TappableChipAttributes {
 ///    vertical runs.
 ///  * <https://material.io/design/components/chips.html>
 class Chip extends StatelessWidget implements ChipAttributes, DeletableChipAttributes {
-  /// Creates a material design chip.
+  /// Creates a Material Design chip.
   ///
   /// The [label], [autofocus], and [clipBehavior] arguments must not be null.
   /// The [elevation] must be null or non-negative.
   const Chip({
-    Key? key,
+    super.key,
     this.avatar,
     required this.label,
     this.labelStyle,
@@ -582,8 +582,7 @@ class Chip extends StatelessWidget implements ChipAttributes, DeletableChipAttri
   }) : assert(label != null),
        assert(autofocus != null),
        assert(clipBehavior != null),
-       assert(elevation == null || elevation >= 0.0),
-       super(key: key);
+       assert(elevation == null || elevation >= 0.0);
 
   @override
   final Widget? avatar;
@@ -659,7 +658,7 @@ class Chip extends StatelessWidget implements ChipAttributes, DeletableChipAttri
   }
 }
 
-/// A raw material design chip.
+/// A raw Material Design chip.
 ///
 /// This serves as the basis for all of the chip widget types to aggregate.
 /// It is typically not created directly, one of the other chip types
@@ -707,7 +706,7 @@ class RawChip extends StatefulWidget
   /// null or non-negative. Typically, [pressElevation] is greater than
   /// [elevation].
   const RawChip({
-    Key? key,
+    super.key,
     this.avatar,
     required this.label,
     this.labelStyle,
@@ -752,8 +751,7 @@ class RawChip extends StatefulWidget
        assert(autofocus != null),
        assert(pressElevation == null || pressElevation >= 0.0),
        assert(elevation == null || elevation >= 0.0),
-       deleteIcon = deleteIcon ?? _kDefaultDeleteIcon,
-       super(key: key);
+       deleteIcon = deleteIcon ?? _kDefaultDeleteIcon;
 
   @override
   final Widget? avatar;
@@ -1275,10 +1273,9 @@ class _RawChipState extends State<RawChip> with MaterialStateMixin, TickerProvid
 /// to trigger the child ink feature without increasing the size of the material.
 class _ChipRedirectingHitDetectionWidget extends SingleChildRenderObjectWidget {
   const _ChipRedirectingHitDetectionWidget({
-    Key? key,
-    Widget? child,
+    super.child,
     required this.constraints,
-  }) : super(key: key, child: child);
+  });
 
   final BoxConstraints constraints;
 
@@ -1317,7 +1314,6 @@ class _RenderChipRedirectingHitDetection extends RenderConstrainedBox {
 
 class _ChipRenderWidget extends RenderObjectWidget with SlottedMultiChildRenderObjectWidgetMixin<_ChipSlot> {
   const _ChipRenderWidget({
-    Key? key,
     required this.theme,
     this.value,
     this.isEnabled,
@@ -1326,8 +1322,7 @@ class _ChipRenderWidget extends RenderObjectWidget with SlottedMultiChildRenderO
     required this.deleteDrawerAnimation,
     required this.enableAnimation,
     this.avatarBorder,
-  }) : assert(theme != null),
-       super(key: key);
+  }) : assert(theme != null);
 
   final _ChipRenderTheme theme;
   final bool? value;

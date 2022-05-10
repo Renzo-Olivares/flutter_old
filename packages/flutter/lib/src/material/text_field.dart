@@ -113,7 +113,7 @@ typedef InputCounterWidgetBuilder = Widget? Function(
 //   }
 // }
 
-/// A material design text field.
+/// A Material Design text field.
 ///
 /// A text field lets the user enter text, either with hardware keyboard or with
 /// an onscreen keyboard.
@@ -273,7 +273,7 @@ class TextField extends StatefulWidget {
   ///  * [maxLength], which discusses the precise meaning of "number of
   ///    characters" and how it may differ from the intuitive meaning.
   const TextField({
-    Key? key,
+    super.key,
     this.controller,
     this.focusNode,
     this.decoration = const InputDecoration(),
@@ -387,8 +387,7 @@ class TextField extends StatefulWidget {
                        cut: true,
                        selectAll: true,
                        paste: true,
-                     ))),
-       super(key: key);
+                     )));
 
   /// Controls the text being edited.
   ///

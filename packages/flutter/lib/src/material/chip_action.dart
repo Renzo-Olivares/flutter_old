@@ -8,7 +8,7 @@ import 'chip.dart';
 import 'debug.dart';
 import 'theme_data.dart';
 
-/// A material design action chip.
+/// A Material Design action chip.
 ///
 /// Action chips are a set of options which trigger an action related to primary
 /// content. Action chips should appear dynamically and contextually in a UI.
@@ -62,7 +62,7 @@ class ActionChip extends StatelessWidget implements ChipAttributes, TappableChip
   /// not be null. The [pressElevation] and [elevation] must be null or
   /// non-negative. Typically, [pressElevation] is greater than [elevation].
   const ActionChip({
-    Key? key,
+    super.key,
     this.avatar,
     required this.label,
     this.labelStyle,
@@ -90,8 +90,7 @@ class ActionChip extends StatelessWidget implements ChipAttributes, TappableChip
          'remove it from the interface entirely.',
        ),
        assert(pressElevation == null || pressElevation >= 0.0),
-       assert(elevation == null || elevation >= 0.0),
-       super(key: key);
+       assert(elevation == null || elevation >= 0.0);
 
   @override
   final Widget? avatar;

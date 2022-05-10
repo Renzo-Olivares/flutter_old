@@ -447,7 +447,7 @@ void main() {
               ),
               MyThemeExtensionB(
                 textStyle: TextStyle(fontSize: 50),
-              )
+              ),
             },
           ),
           home: Container(key: containerKey),
@@ -687,7 +687,6 @@ void main() {
       drawerTheme: const DrawerThemeData(),
       listTileTheme: const ListTileThemeData(),
       fixTextFieldOutlineLabel: false,
-      androidOverscrollIndicator: null,
       extensions: const <Object, ThemeExtension<dynamic>>{},
     );
 

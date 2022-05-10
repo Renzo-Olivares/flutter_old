@@ -8,7 +8,7 @@ import 'chip.dart';
 import 'debug.dart';
 import 'theme_data.dart';
 
-/// A material design input chip.
+/// A Material Design input chip.
 ///
 /// Input chips represent a complex piece of information, such as an entity
 /// (person, place, or thing) or conversational text, in a compact form.
@@ -71,7 +71,7 @@ class InputChip extends StatelessWidget
   /// null or non-negative. Typically, [pressElevation] is greater than
   /// [elevation].
   const InputChip({
-    Key? key,
+    super.key,
     this.avatar,
     required this.label,
     this.labelStyle,
@@ -114,8 +114,7 @@ class InputChip extends StatelessWidget
        assert(clipBehavior != null),
        assert(autofocus != null),
        assert(pressElevation == null || pressElevation >= 0.0),
-       assert(elevation == null || elevation >= 0.0),
-       super(key: key);
+       assert(elevation == null || elevation >= 0.0);
 
   @override
   final Widget? avatar;

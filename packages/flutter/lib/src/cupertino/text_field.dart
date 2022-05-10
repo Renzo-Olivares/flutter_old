@@ -168,6 +168,7 @@ class _CupertinoTextFieldSelectionGestureDetectorBuilder extends TextSelectionGe
 ///  * [EditableText], which is the raw text editing control at the heart of a
 ///    [TextField].
 ///  * Learn how to use a [TextEditingController] in one of our [cookbook recipes](https://flutter.dev/docs/cookbook/forms/text-field-changes#2-use-a-texteditingcontroller).
+///  * <https://developer.apple.com/design/human-interface-guidelines/ios/controls/text-fields/>
 class CupertinoTextField extends StatefulWidget {
   /// Creates an iOS-style text field.
   ///
@@ -207,7 +208,7 @@ class CupertinoTextField extends StatefulWidget {
   ///  * [maxLength], which discusses the precise meaning of "number of
   ///    characters" and how it may differ from the intuitive meaning.
   const CupertinoTextField({
-    Key? key,
+    super.key,
     this.controller,
     this.focusNode,
     this.decoration = _kDefaultRoundedBorderDecoration,
@@ -331,8 +332,7 @@ class CupertinoTextField extends StatefulWidget {
                        cut: true,
                        selectAll: true,
                        paste: true,
-                     ))),
-       super(key: key);
+                     )));
 
   /// Creates a borderless iOS-style text field.
   ///
@@ -371,7 +371,7 @@ class CupertinoTextField extends StatefulWidget {
   ///  * [maxLength], which discusses the precise meaning of "number of
   ///    characters" and how it may differ from the intuitive meaning.
   const CupertinoTextField.borderless({
-    Key? key,
+    super.key,
     this.controller,
     this.focusNode,
     this.decoration,
@@ -493,8 +493,7 @@ class CupertinoTextField extends StatefulWidget {
                        cut: true,
                        selectAll: true,
                        paste: true,
-                     ))),
-       super(key: key);
+                     )));
 
   /// Controls the text being edited.
   ///

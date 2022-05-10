@@ -62,6 +62,8 @@ enum _ScaffoldSlot {
 
 /// Manages [SnackBar]s and [MaterialBanner]s for descendant [Scaffold]s.
 ///
+/// {@youtube 560 315 https://www.youtube.com/watch?v=lytQi-slT5Y}
+///
 /// This class provides APIs for showing snack bars and material banners at the
 /// bottom and top of the screen, respectively.
 ///
@@ -94,10 +96,9 @@ enum _ScaffoldSlot {
 class ScaffoldMessenger extends StatefulWidget {
   /// Creates a widget that manages [SnackBar]s for [Scaffold] descendants.
   const ScaffoldMessenger({
-    Key? key,
+    super.key,
     required this.child,
-  }) : assert(child != null),
-       super(key: key);
+  }) : assert(child != null);
 
   /// The widget below this widget in the tree.
   ///
@@ -475,8 +476,8 @@ class ScaffoldMessengerState extends State<ScaffoldMessenger> with TickerProvide
     }
   }
 
-  /// Removes all the materialBanners currently in queue by clearing the queue
-  /// and running normal exit animation on the current materialBanner.
+  /// Removes all the [MaterialBanner]s currently in queue by clearing the queue
+  /// and running normal exit animation on the current [MaterialBanner].
   void clearMaterialBanners() {
     if (_materialBanners.isEmpty || _materialBannerController!.status == AnimationStatus.dismissed)
       return;
@@ -529,11 +530,9 @@ class ScaffoldMessengerState extends State<ScaffoldMessenger> with TickerProvide
 
 class _ScaffoldMessengerScope extends InheritedWidget {
   const _ScaffoldMessengerScope({
-    Key? key,
-    required Widget child,
+    required super.child,
     required ScaffoldMessengerState scaffoldMessengerState,
-  }) : _scaffoldMessengerState = scaffoldMessengerState,
-      super(key: key, child: child);
+  }) : _scaffoldMessengerState = scaffoldMessengerState;
 
   final ScaffoldMessengerState _scaffoldMessengerState;
 
@@ -797,10 +796,8 @@ class _ScaffoldGeometryNotifier extends ChangeNotifier implements ValueListenabl
 // then _BodyBuilder will assert.
 class _BodyBoxConstraints extends BoxConstraints {
   const _BodyBoxConstraints({
-    double minWidth = 0.0,
-    double maxWidth = double.infinity,
-    double minHeight = 0.0,
-    double maxHeight = double.infinity,
+    super.maxWidth,
+    super.maxHeight,
     required this.bottomWidgetsHeight,
     required this.appBarHeight,
     required this.materialBannerHeight,
@@ -809,8 +806,7 @@ class _BodyBoxConstraints extends BoxConstraints {
        assert(appBarHeight != null),
        assert(appBarHeight >= 0),
        assert(materialBannerHeight != null),
-       assert(materialBannerHeight >= 0),
-       super(minWidth: minWidth, maxWidth: maxWidth, minHeight: minHeight, maxHeight: maxHeight);
+       assert(materialBannerHeight >= 0);
 
   final double bottomWidgetsHeight;
   final double appBarHeight;
@@ -842,14 +838,12 @@ class _BodyBoxConstraints extends BoxConstraints {
 // The constraints parameter is constructed in_ScaffoldLayout.performLayout().
 class _BodyBuilder extends StatelessWidget {
   const _BodyBuilder({
-    Key? key,
     required this.extendBody,
     required this.extendBodyBehindAppBar,
     required this.body,
   }) : assert(extendBody != null),
        assert(extendBodyBehindAppBar != null),
-       assert(body != null),
-       super(key: key);
+       assert(body != null);
 
   final Widget body;
   final bool extendBody;
@@ -1144,7 +1138,6 @@ class _ScaffoldLayout extends MultiChildLayoutDelegate {
 ///   when its [FloatingActionButtonLocation] is updated.
 class _FloatingActionButtonTransition extends StatefulWidget {
   const _FloatingActionButtonTransition({
-    Key? key,
     required this.child,
     required this.fabMoveAnimation,
     required this.fabMotionAnimator,
@@ -1152,8 +1145,7 @@ class _FloatingActionButtonTransition extends StatefulWidget {
     required this.currentController,
   }) : assert(fabMoveAnimation != null),
        assert(fabMotionAnimator != null),
-       assert(currentController != null),
-       super(key: key);
+       assert(currentController != null);
 
   final Widget? child;
   final Animation<double> fabMoveAnimation;
@@ -1343,7 +1335,7 @@ class _FloatingActionButtonTransitionState extends State<_FloatingActionButtonTr
   }
 }
 
-/// Implements the basic material design visual layout structure.
+/// Implements the basic Material Design visual layout structure.
 ///
 /// This class provides APIs for showing drawers and bottom sheets.
 ///
@@ -1464,15 +1456,16 @@ class _FloatingActionButtonTransitionState extends State<_FloatingActionButtonTr
 ///  * <https://material.io/design/layout/responsive-layout-grid.html>
 ///  * Cookbook: [Add a Drawer to a screen](https://flutter.dev/docs/cookbook/design/drawer)
 class Scaffold extends StatefulWidget {
-  /// Creates a visual scaffold for material design widgets.
+  /// Creates a visual scaffold for Material Design widgets.
   const Scaffold({
-    Key? key,
+    super.key,
     this.appBar,
     this.body,
     this.floatingActionButton,
     this.floatingActionButtonLocation,
     this.floatingActionButtonAnimator,
     this.persistentFooterButtons,
+    this.persistentFooterAlignment = AlignmentDirectional.centerEnd,
     this.drawer,
     this.onDrawerChanged,
     this.endDrawer,
@@ -1493,8 +1486,7 @@ class Scaffold extends StatefulWidget {
   }) : assert(primary != null),
        assert(extendBody != null),
        assert(extendBodyBehindAppBar != null),
-       assert(drawerDragStartBehavior != null),
-       super(key: key);
+       assert(drawerDragStartBehavior != null);
 
   /// If true, and [bottomNavigationBar] or [persistentFooterButtons]
   /// is specified, then the [body] extends to the bottom of the Scaffold,
@@ -1579,6 +1571,11 @@ class Scaffold extends StatefulWidget {
   /// The [persistentFooterButtons] are rendered above the
   /// [bottomNavigationBar] but below the [body].
   final List<Widget>? persistentFooterButtons;
+
+  /// The alignment of the [persistentFooterButtons] inside the [OverflowBar].
+  ///
+  /// Defaults to [AlignmentDirectional.centerEnd].
+  final AlignmentDirectional persistentFooterAlignment;
 
   /// A panel displayed to the side of the [body], often hidden on mobile
   /// devices. Swipes in from either left-to-right ([TextDirection.ltr]) or
@@ -2069,7 +2066,7 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
       // support drag or swipe to dismiss.
       final AnimationController animationController = BottomSheet.createAnimationController(this)..value = 1.0;
       LocalHistoryEntry? persistentSheetHistoryEntry;
-      bool _persistentBottomSheetExtentChanged(DraggableScrollableNotification notification) {
+      bool persistentBottomSheetExtentChanged(DraggableScrollableNotification notification) {
         if (notification.extent > notification.initialExtent) {
           if (persistentSheetHistoryEntry == null) {
             persistentSheetHistoryEntry = LocalHistoryEntry(onRemove: () {
@@ -2091,7 +2088,7 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
       _currentBottomSheet = _buildBottomSheet<void>(
         (BuildContext context) {
           return NotificationListener<DraggableScrollableNotification>(
-            onNotification: _persistentBottomSheetExtentChanged,
+            onNotification: persistentBottomSheetExtentChanged,
             child: DraggableScrollableActuator(
               child: StatefulBuilder(
                 key: _currentBottomSheetKey,
@@ -2171,7 +2168,7 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
 
     bool removedEntry = false;
     bool doingDispose = false;
-    void _removeCurrentBottomSheet() {
+    void removeCurrentBottomSheet() {
       removedEntry = true;
       if (_currentBottomSheet == null) {
         return;
@@ -2195,11 +2192,11 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
       ? null
       : LocalHistoryEntry(onRemove: () {
           if (!removedEntry && _currentBottomSheet?._widget == bottomSheet && !doingDispose) {
-            _removeCurrentBottomSheet();
+            removeCurrentBottomSheet();
           }
         });
 
-    void _removeEntryIfNeeded() {
+    void removeEntryIfNeeded() {
       if (!isPersistent && !removedEntry) {
         assert(entry != null);
         entry!.remove();
@@ -2216,7 +2213,7 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
           return;
         }
         assert(_currentBottomSheet!._widget == bottomSheet);
-        _removeEntryIfNeeded();
+        removeEntryIfNeeded();
       },
       onDismissed: () {
         if (_dismissedBottomSheets.contains(bottomSheet)) {
@@ -2227,7 +2224,7 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
       },
       onDispose: () {
         doingDispose = true;
-        _removeEntryIfNeeded();
+        removeEntryIfNeeded();
         if (shouldDisposeAnimationController) {
           animationController.dispose();
         }
@@ -2249,13 +2246,13 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
       completer,
       entry != null
         ? entry.remove
-        : _removeCurrentBottomSheet,
+        : removeCurrentBottomSheet,
       (VoidCallback fn) { bottomSheetKey.currentState?.setState(fn); },
       !isPersistent,
     );
   }
 
-  /// Shows a material design bottom sheet in the nearest [Scaffold]. To show
+  /// Shows a Material Design bottom sheet in the nearest [Scaffold]. To show
   /// a persistent bottom sheet, use the [Scaffold.bottomSheet].
   ///
   /// Returns a controller that can be used to close and otherwise manipulate the
@@ -2736,7 +2733,7 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
             top: false,
             child: IntrinsicHeight(
               child: Container(
-                alignment: AlignmentDirectional.centerEnd,
+                alignment: widget.persistentFooterAlignment,
                 padding: const EdgeInsets.all(8),
                 child: OverflowBar(
                   spacing: 8,
@@ -2835,7 +2832,7 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
     return _ScaffoldScope(
       hasDrawer: hasDrawer,
       geometryNotifier: _geometryNotifier,
-      child: ScrollMetricsNotificationObserver(
+      child: ScrollNotificationObserver(
         child: Material(
           color: widget.backgroundColor ?? themeData.scaffoldBackgroundColor,
           child: AnimatedBuilder(animation: _floatingActionButtonMoveController, builder: (BuildContext context, Widget? child) {
@@ -2943,7 +2940,7 @@ class _BottomSheetSuspendedCurve extends ParametricCurve<double> {
 
 class _StandardBottomSheet extends StatefulWidget {
   const _StandardBottomSheet({
-    Key? key,
+    super.key,
     required this.animationController,
     this.enableDrag = true,
     required this.onClosing,
@@ -2956,7 +2953,7 @@ class _StandardBottomSheet extends StatefulWidget {
     this.clipBehavior,
     this.constraints,
     this.onDispose,
-  }) : super(key: key);
+  });
 
   final AnimationController animationController; // we control it, but it must be disposed by whoever created it.
   final bool enableDrag;
@@ -3097,24 +3094,22 @@ class _StandardBottomSheetState extends State<_StandardBottomSheet> {
 /// [Scaffold.bottomSheet].
 class PersistentBottomSheetController<T> extends ScaffoldFeatureController<_StandardBottomSheet, T> {
   const PersistentBottomSheetController._(
-    _StandardBottomSheet widget,
-    Completer<T> completer,
-    VoidCallback close,
-    StateSetter setState,
+    super.widget,
+    super.completer,
+    super.close,
+    StateSetter super.setState,
     this._isLocalHistoryEntry,
-  ) : super._(widget, completer, close, setState);
+  ) : super._();
 
   final bool _isLocalHistoryEntry;
 }
 
 class _ScaffoldScope extends InheritedWidget {
   const _ScaffoldScope({
-    Key? key,
     required this.hasDrawer,
     required this.geometryNotifier,
-    required Widget child,
-  }) : assert(hasDrawer != null),
-       super(key: key, child: child);
+    required super.child,
+  }) : assert(hasDrawer != null);
 
   final bool hasDrawer;
   final _ScaffoldGeometryNotifier geometryNotifier;

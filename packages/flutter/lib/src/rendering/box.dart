@@ -16,7 +16,7 @@ import 'object.dart';
 
 // This class should only be used in debug builds.
 class _DebugSize extends Size {
-  _DebugSize(Size source, this._owner, this._canBeUsedByParent) : super.copy(source);
+  _DebugSize(super.source, this._owner, this._canBeUsedByParent) : super.copy();
   final RenderBox _owner;
   final bool _canBeUsedByParent;
 }
@@ -670,7 +670,7 @@ class BoxHitTestResult extends HitTestResult {
   ///    generic [HitTestResult].
   ///  * [SliverHitTestResult.wrap], which turns a [BoxHitTestResult] into a
   ///    [SliverHitTestResult] for hit testing on [RenderSliver] children.
-  BoxHitTestResult.wrap(HitTestResult result) : super.wrap(result);
+  BoxHitTestResult.wrap(super.result) : super.wrap();
 
   /// Transforms `position` to the local coordinate system of a child for
   /// hit-testing the child.
@@ -890,9 +890,8 @@ class BoxHitTestEntry extends HitTestEntry<RenderBox> {
   /// Creates a box hit test entry.
   ///
   /// The [localPosition] argument must not be null.
-  BoxHitTestEntry(RenderBox target, this.localPosition)
-    : assert(localPosition != null),
-      super(target);
+  BoxHitTestEntry(super.target, this.localPosition)
+    : assert(localPosition != null);
 
   /// The position of the hit test in the local coordinates of [target].
   final Offset localPosition;
@@ -1976,7 +1975,7 @@ abstract class RenderBox extends RenderObject {
   /// of those functions, call [markNeedsLayout] instead to schedule a layout of
   /// the box.
   Size get size {
-    assert(hasSize, 'RenderBox was not laid out: ${toString()}');
+    assert(hasSize, 'RenderBox was not laid out: $this');
     assert(() {
       final Size? size = _size;
       if (size is _DebugSize) {
@@ -2349,8 +2348,7 @@ abstract class RenderBox extends RenderObject {
     }());
   }
 
-  @override
-  void markNeedsLayout() {
+  bool _clearCachedData() {
     if ((_cachedBaselines != null && _cachedBaselines!.isNotEmpty) ||
         (_cachedIntrinsicDimensions != null && _cachedIntrinsicDimensions!.isNotEmpty) ||
         (_cachedDryLayoutSizes != null && _cachedDryLayoutSizes!.isNotEmpty)) {
@@ -2362,12 +2360,28 @@ abstract class RenderBox extends RenderObject {
       _cachedBaselines?.clear();
       _cachedIntrinsicDimensions?.clear();
       _cachedDryLayoutSizes?.clear();
-      if (parent is RenderObject) {
-        markParentNeedsLayout();
-        return;
-      }
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  void markNeedsLayout() {
+    if (_clearCachedData() && parent is RenderObject) {
+      markParentNeedsLayout();
+      return;
     }
     super.markNeedsLayout();
+  }
+
+  @override
+  void layout(Constraints constraints, {bool parentUsesSize = false}) {
+    if (hasSize && constraints != this.constraints &&
+        _cachedBaselines != null && _cachedBaselines!.isNotEmpty) {
+      // The cached baselines data may need update if the constraints change.
+      _cachedBaselines?.clear();
+    }
+    super.layout(constraints, parentUsesSize: parentUsesSize);
   }
 
   /// {@macro flutter.rendering.RenderObject.performResize}
