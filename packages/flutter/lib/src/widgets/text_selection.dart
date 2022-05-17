@@ -1337,8 +1337,8 @@ class TextSelectionGestureDetectorBuilder {
       extentOffset: tappedPosition.offset,
     );
 
-    editableText.userUpdateTextEditingValue(
-      editableText.textEditingValue.copyWith(
+    textSelectionDelegate.userUpdateTextEditingValue(
+      textSelectionDelegate.textEditingValue.copyWith(
         selection: nextSelection,
       ),
       cause,
@@ -1364,8 +1364,8 @@ class TextSelectionGestureDetectorBuilder {
       extentOffset: tappedPosition.offset,
     );
 
-    editableText.userUpdateTextEditingValue(
-      editableText.textEditingValue.copyWith(
+    textSelectionDelegate.userUpdateTextEditingValue(
+      textSelectionDelegate.textEditingValue.copyWith(
         selection: nextSelection,
       ),
       cause,
@@ -1384,6 +1384,9 @@ class TextSelectionGestureDetectorBuilder {
   /// [TextSelectionGestureDetector].
   @protected
   EditableTextState get editableText => delegate.editableTextKey.currentState!;
+
+  @protected
+  TextSelectionDelegate get textSelectionDelegate => delegate.editableTextKey.currentState!;
 
   /// The [RenderObject] of the [EditableText] for which the builder will
   /// provide a [TextSelectionGestureDetector].
@@ -1438,7 +1441,7 @@ class TextSelectionGestureDetectorBuilder {
         case TargetPlatform.macOS:
           // On these platforms, a shift-tapped unfocused field expands from 0,
           // not from the previous selection.
-          final TextSelection? fromSelection = renderEditable.hasFocus
+          final TextSelection? fromSelection = editableText.hasFocus
               ? null
               : const TextSelection.collapsed(offset: 0);
           _expandSelection(
@@ -1499,7 +1502,7 @@ class TextSelectionGestureDetectorBuilder {
       cause: SelectionChangedCause.forcePress,
     );
     if (shouldShowSelectionToolbar)
-      editableText.showToolbar();
+      textSelectionDelegate.showToolbar();
   }
 
   /// Handler for [TextSelectionGestureDetector.onSingleTapUp].
@@ -1607,7 +1610,7 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleLongTapEnd(LongPressEndDetails details) {
     if (shouldShowSelectionToolbar)
-      editableText.showToolbar();
+      textSelectionDelegate.showToolbar();
   }
 
   /// Handler for [TextSelectionGestureDetector.onSecondaryTap].
@@ -1625,18 +1628,18 @@ class TextSelectionGestureDetectorBuilder {
           renderEditable.selectWord(cause: SelectionChangedCause.tap);
         }
         if (shouldShowSelectionToolbar) {
-          editableText.hideToolbar();
-          editableText.showToolbar();
+          textSelectionDelegate.hideToolbar();
+          textSelectionDelegate.showToolbar();
         }
         break;
       case TargetPlatform.android:
       case TargetPlatform.fuchsia:
       case TargetPlatform.linux:
       case TargetPlatform.windows:
-        if (!renderEditable.hasFocus) {
+        if (!editableText.hasFocus) {
           renderEditable.selectPosition(cause: SelectionChangedCause.tap);
         }
-        editableText.toggleToolbar();
+        textSelectionDelegate.toggleToolbar();
         break;
     }
   }
@@ -1668,7 +1671,7 @@ class TextSelectionGestureDetectorBuilder {
     if (delegate.selectionEnabled) {
       renderEditable.selectWord(cause: SelectionChangedCause.tap);
       if (shouldShowSelectionToolbar)
-        editableText.showToolbar();
+        textSelectionDelegate.showToolbar();
     }
   }
 
@@ -1749,7 +1752,7 @@ class TextSelectionGestureDetectorBuilder {
 
     // If the drag inverts the selection, Mac and iOS revert to the initial
     // selection.
-    final TextSelection selection = editableText.textEditingValue.selection;
+    final TextSelection selection = textSelectionDelegate.textEditingValue.selection;
     final TextPosition nextExtent = renderEditable.getPositionForPoint(updateDetails.globalPosition);
     final bool isShiftTapDragSelectionForward =
         _shiftTapDragSelection!.baseOffset < _shiftTapDragSelection!.extentOffset;
@@ -1757,8 +1760,8 @@ class TextSelectionGestureDetectorBuilder {
         ? nextExtent.offset < _shiftTapDragSelection!.baseOffset
         : nextExtent.offset > _shiftTapDragSelection!.baseOffset;
     if (isInverted && selection.baseOffset == _shiftTapDragSelection!.baseOffset) {
-      editableText.userUpdateTextEditingValue(
-        editableText.textEditingValue.copyWith(
+      textSelectionDelegate.userUpdateTextEditingValue(
+        textSelectionDelegate.textEditingValue.copyWith(
           selection: TextSelection(
             baseOffset: _shiftTapDragSelection!.extentOffset,
             extentOffset: nextExtent.offset,
@@ -1769,8 +1772,8 @@ class TextSelectionGestureDetectorBuilder {
     } else if (!isInverted
         && nextExtent.offset != _shiftTapDragSelection!.baseOffset
         && selection.baseOffset != _shiftTapDragSelection!.baseOffset) {
-      editableText.userUpdateTextEditingValue(
-        editableText.textEditingValue.copyWith(
+      textSelectionDelegate.userUpdateTextEditingValue(
+        textSelectionDelegate.textEditingValue.copyWith(
           selection: TextSelection(
             baseOffset: _shiftTapDragSelection!.baseOffset,
             extentOffset: nextExtent.offset,

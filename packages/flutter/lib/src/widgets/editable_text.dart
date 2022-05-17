@@ -2989,6 +2989,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   }
 
   /// Toggles the visibility of the toolbar.
+  @override
   void toggleToolbar() {
     assert(_selectionOverlay != null);
     if (_selectionOverlay!.toolbarIsVisible) {
@@ -3101,6 +3102,25 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         && (_clipboardStatus == null || _clipboardStatus!.value == ClipboardStatus.pasteable)
       ? () => controls!.handlePaste(this)
       : null;
+  }
+
+  // --------------------------- Selection Gestures ---------------------------
+  bool get hasFocus => _hasFocus;
+
+  void selectWordsInRange() {
+    renderEditable.selectWordsInRange(from: from, cause: cause);
+  }
+
+  void selectPositionAt() {
+    renderEditable.selectPositionAt(from: from, cause: cause);
+  }
+
+  void selectWordEdge({required SelectionChangedCause cause}) {
+    renderEditable.selectWordEdge(cause: cause);
+  }
+
+  void selectWord({required SelectionChangedCause cause}) {
+    renderEditable.selectWord(cause: cause);
   }
 
 

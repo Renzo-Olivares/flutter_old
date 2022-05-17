@@ -998,6 +998,10 @@ mixin TextSelectionDelegate {
   /// but the handles will remain.
   void hideToolbar([bool hideHandles = true]);
 
+  void showToolbar();
+
+  void toggleToolbar();
+
   /// Brings the provided [TextPosition] into the visible area of the text
   /// input.
   void bringIntoView(TextPosition position);
