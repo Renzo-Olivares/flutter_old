@@ -1290,6 +1290,7 @@ class WidgetsApp extends StatefulWidget {
     DirectionalFocusIntent: DirectionalFocusAction(),
     ScrollIntent: ScrollAction(),
     PrioritizedIntents: PrioritizedAction(),
+    VoidCallbackIntent: VoidCallbackAction(),
   };
 
   @override
