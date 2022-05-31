@@ -1264,7 +1264,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
               (SelectionToolbarControlIntent intent) {
                 if (intent.showSelectionToolbar != null) {
                   if (intent.showSelectionToolbar!) {
-                    _editableText!.showToolbar();
+                    _editableText!.showToolbar(intent.positionToDisplay);
                   } else {
                     _editableText!.hideToolbar();
                   }
