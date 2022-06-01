@@ -332,6 +332,13 @@ class UpdateSelectionIntent extends Intent {
   final SelectionChangedCause cause;
 }
 
+/// An [Intent] that represents a user interaction that attempts to swap the
+/// characters immediately around the cursor.
+class TransposeCharactersIntent extends Intent {
+  /// Creates a [TransposeCharactersIntent].
+  const TransposeCharactersIntent();
+}
+
 // ---------- Gesture Intents ----------
 class ExpandSelectionToPositionIntent extends Intent {
   const ExpandSelectionToPositionIntent({required this.cause, this.fromSelection, required this.position, required this.shiftPressed});
