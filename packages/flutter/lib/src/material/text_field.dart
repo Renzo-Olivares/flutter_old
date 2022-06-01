@@ -48,7 +48,7 @@ class _TextFieldSelectionGestureDetectorBuilder extends TextSelectionGestureDete
   void onForcePressStart(ForcePressDetails details) {
     super.onForcePressStart(details);
     if (delegate.selectionEnabled && shouldShowSelectionToolbar) {
-      editableText.showToolbar();
+      editableText.showToolbar(details.globalPosition);
     }
   }
 
