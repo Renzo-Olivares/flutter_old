@@ -3119,10 +3119,11 @@ class _CompositeRenderEditablePainter extends RenderEditablePainter {
 
     final Iterator<RenderEditablePainter> oldPainters = oldDelegate.painters.iterator;
     final Iterator<RenderEditablePainter> newPainters = painters.iterator;
-    while (oldPainters.moveNext() && newPainters.moveNext())
+    while (oldPainters.moveNext() && newPainters.moveNext()) {
       if (newPainters.current.shouldRepaint(oldPainters.current)) {
         return true;
       }
+    }
 
     return false;
   }
