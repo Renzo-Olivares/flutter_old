@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:typed_data';
 import 'dart:ui' as ui show Gradient, Image, ImageFilter;
 
 import 'package:flutter/foundation.dart';
@@ -197,7 +196,7 @@ void main() {
 
     expect(data.lengthInBytes, equals(20 * 20 * 4));
     expect(data.elementSizeInBytes, equals(1));
-    expect(getPixel(0, 0), equals(0x0000007F));
+    expect(getPixel(0, 0), equals(0x00000080));
     expect(getPixel(image.width - 1, 0 ), equals(0xffffffff));
 
     final OffsetLayer layer = boundary.debugLayer! as OffsetLayer;
@@ -206,7 +205,7 @@ void main() {
     expect(image.width, equals(20));
     expect(image.height, equals(20));
     data = (await image.toByteData())!;
-    expect(getPixel(0, 0), equals(0x0000007F));
+    expect(getPixel(0, 0), equals(0x00000080));
     expect(getPixel(image.width - 1, 0 ), equals(0xffffffff));
 
     // non-zero offsets.
@@ -215,7 +214,7 @@ void main() {
     expect(image.height, equals(30));
     data = (await image.toByteData())!;
     expect(getPixel(0, 0), equals(0x00000000));
-    expect(getPixel(10, 10), equals(0x0000007F));
+    expect(getPixel(10, 10), equals(0x00000080));
     expect(getPixel(image.width - 1, 0), equals(0x00000000));
     expect(getPixel(image.width - 1, 10), equals(0xffffffff));
 
@@ -225,7 +224,7 @@ void main() {
     expect(image.height, equals(60));
     data = (await image.toByteData())!;
     expect(getPixel(0, 0), equals(0x00000000));
-    expect(getPixel(20, 20), equals(0x0000007F));
+    expect(getPixel(20, 20), equals(0x00000080));
     expect(getPixel(image.width - 1, 0), equals(0x00000000));
     expect(getPixel(image.width - 1, 20), equals(0xffffffff));
   }, skip: isBrowser); // https://github.com/flutter/flutter/issues/49857
@@ -240,13 +239,13 @@ void main() {
     expect(renderOpacity.needsCompositing, false);
   });
 
-  test('RenderOpacity does not composite if it is opaque', () {
+  test('RenderOpacity does composite if it is opaque', () {
     final RenderOpacity renderOpacity = RenderOpacity(
       child: RenderSizedBox(const Size(1.0, 1.0)), // size doesn't matter
     );
 
     layout(renderOpacity, phase: EnginePhase.composite);
-    expect(renderOpacity.needsCompositing, false);
+    expect(renderOpacity.needsCompositing, true);
   });
 
   test('RenderOpacity reuses its layer', () {
