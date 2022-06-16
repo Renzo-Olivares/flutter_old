@@ -77,6 +77,7 @@ class OutlinedButton extends ButtonStyleButton {
     super.focusNode,
     super.autofocus = false,
     super.clipBehavior = Clip.none,
+    super.statesController,
     required Widget super.child,
   });
 
@@ -424,7 +425,7 @@ class _OutlinedButtonWithIconChild extends StatelessWidget {
 // These defaults are generated from the Material Design Token
 // database by the script dev/tools/gen_defaults/bin/gen_defaults.dart.
 
-// Generated version v0_99
+// Generated version v0_101
 class _TokenDefaultsM3 extends ButtonStyle {
   _TokenDefaultsM3(this.context)
    : super(
