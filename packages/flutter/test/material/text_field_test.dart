@@ -11032,7 +11032,7 @@ void main() {
 
     // Expand the selection a bit.
     if (isTargetPlatformMobile) {
-      await gesture.down(textOffsetToPosition(tester, 23));
+      await gesture.down(textOffsetToPosition(tester, 24));
     }
     await tester.pumpAndSettle();
     await gesture.moveTo(textOffsetToPosition(tester, 28));
@@ -11240,7 +11240,7 @@ void main() {
 
     // Expand the selection a bit.
     if (isTargetPlatformMobile) {
-      await gesture.down(textOffsetToPosition(tester, 8));
+      await gesture.down(textOffsetToPosition(tester, 7));
     }
     await gesture.moveTo(textOffsetToPosition(tester, 5));
     await tester.pumpAndSettle();
