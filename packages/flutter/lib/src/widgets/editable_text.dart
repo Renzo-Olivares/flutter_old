@@ -562,8 +562,8 @@ class EditableText extends StatefulWidget {
   /// The text cursor is not shown if [showCursor] is false or if [showCursor]
   /// is null (the default) and [readOnly] is true.
   ///
-  /// The [controller], [focusNode], [obscureText], [autocorrect], [autofocus],
-  /// [showSelectionHandles], [enableInteractiveSelection], [forceLine],
+  /// The [controller], [enableDeltaModel], [focusNode], [obscureText], [autocorrect],
+  /// [autofocus], [showSelectionHandles], [enableInteractiveSelection], [forceLine],
   /// [style], [cursorColor], [cursorOpacityAnimates],[backgroundCursorColor],
   /// [enableSuggestions], [paintCursorAboveText], [selectionHeightStyle],
   /// [selectionWidthStyle], [textAlign], [dragStartBehavior], [scrollPadding],
@@ -572,6 +572,7 @@ class EditableText extends StatefulWidget {
   EditableText({
     super.key,
     required this.controller,
+    this.enableDeltaModel = false,
     required this.focusNode,
     this.readOnly = false,
     this.obscuringCharacter = '•',
@@ -635,6 +636,7 @@ class EditableText extends StatefulWidget {
     this.scribbleEnabled = true,
     this.enableIMEPersonalizedLearning = true,
   }) : assert(controller != null),
+       assert(enableDeltaModel != null),
        assert(focusNode != null),
        assert(obscuringCharacter != null && obscuringCharacter.length == 1),
        assert(obscureText != null),
@@ -708,6 +710,9 @@ class EditableText extends StatefulWidget {
 
   /// Controls the text being edited.
   final TextEditingController controller;
+
+  /// {@macro flutter.services.TextInputConfiguration.enableDeltaModel}
+  final bool enableDeltaModel;
 
   /// Controls whether this widget has keyboard focus.
   final FocusNode focusNode;
@@ -1657,6 +1662,7 @@ class EditableText extends StatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(DiagnosticsProperty<TextEditingController>('controller', controller));
+    properties.add(DiagnosticsProperty<bool>('enableDeltaModel', enableDeltaModel, defaultValue: false));
     properties.add(DiagnosticsProperty<FocusNode>('focusNode', focusNode));
     properties.add(DiagnosticsProperty<bool>('obscureText', obscureText, defaultValue: false));
     properties.add(DiagnosticsProperty<bool>('readOnly', readOnly, defaultValue: false));
@@ -1685,7 +1691,7 @@ class EditableText extends StatefulWidget {
 }
 
 /// State for a [EditableText].
-class EditableTextState extends State<EditableText> with AutomaticKeepAliveClientMixin<EditableText>, WidgetsBindingObserver, TickerProviderStateMixin<EditableText>, TextSelectionDelegate, TextInputClient implements AutofillClient {
+class EditableTextState extends State<EditableText> with AutomaticKeepAliveClientMixin<EditableText>, WidgetsBindingObserver, TickerProviderStateMixin<EditableText>, TextSelectionDelegate, TextInputClient, DeltaTextInputClient implements AutofillClient {
   Timer? _cursorTimer;
   AnimationController get _cursorBlinkOpacityController {
     return _backingCursorBlinkOpacityController ??= AnimationController(
@@ -2116,6 +2122,11 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       _stopCursorBlink(resetCharTicks: false);
       _startCursorBlink();
     }
+  }
+
+  @override
+  void updateEditingValueWithDeltas(List<TextEditingDelta> textEditingDeltas) {
+
   }
 
   @override
@@ -3196,6 +3207,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       keyboardAppearance: widget.keyboardAppearance,
       autofillConfiguration: autofillConfiguration,
       enableIMEPersonalizedLearning: widget.enableIMEPersonalizedLearning,
+      enableDeltaModel: widget.enableDeltaModel,
     );
   }
 

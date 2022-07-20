@@ -664,6 +664,7 @@ class TextInputConfiguration {
     );
   }
 
+  /// {@template flutter.services.TextInputConfiguration.enableDeltaModel}
   /// Whether to enable that the engine sends text input updates to the
   /// framework as [TextEditingDelta]'s or as one [TextEditingValue].
   ///
@@ -671,22 +672,23 @@ class TextInputConfiguration {
   /// platform's text input control.
   ///
   /// When this is enabled:
-  ///  * You must implement [DeltaTextInputClient] and not [TextInputClient] to
-  ///    receive granular updates from the platform's text input.
+  ///  * You must mixin [DeltaTextInputClient] to receive granular updates from the
+  ///    platform's text input.
   ///  * Platform text input updates will come through
   ///    [DeltaTextInputClient.updateEditingValueWithDeltas].
-  ///  * If [TextInputClient] is implemented with this property enabled then
-  ///    you will experience unexpected behavior as [TextInputClient] does not implement
-  ///    a delta channel.
+  ///  * If [TextInputClient] is mixed in, without [DeltaTextInputClient], and this
+  ///    property is enabled then you will experience unexpected behavior as
+  ///    [TextInputClient] does not implement a delta channel.
   ///
   /// When this is disabled:
-  ///  * If [DeltaTextInputClient] is implemented then updates for the
+  ///  * If [DeltaTextInputClient] is mixed in then updates for the
   ///    editing state will continue to come through the
-  ///    [DeltaTextInputClient.updateEditingValue] channel.
-  ///  * If [TextInputClient] is implemented then updates for the editing
+  ///    [TextInputClient.updateEditingValue] channel.
+  ///  * If [TextInputClient] is mixed in then updates for the editing
   ///    state will come through [TextInputClient.updateEditingValue].
   ///
   /// Defaults to false. Cannot be null.
+  /// {@endtemplate}
   final bool enableDeltaModel;
 
   /// Returns a representation of this object as a JSON object.

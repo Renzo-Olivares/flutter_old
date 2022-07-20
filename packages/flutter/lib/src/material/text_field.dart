@@ -277,6 +277,7 @@ class TextField extends StatefulWidget {
   const TextField({
     super.key,
     this.controller,
+    this.enableDeltaModel = false,
     this.focusNode,
     this.decoration = const InputDecoration(),
     TextInputType? keyboardType,
@@ -364,6 +365,7 @@ class TextField extends StatefulWidget {
        ),
        assert(clipBehavior != null),
        assert(enableIMEPersonalizedLearning != null),
+       assert(enableDeltaModel != null),
        keyboardType = keyboardType ?? (maxLines == 1 ? TextInputType.text : TextInputType.multiline),
        enableInteractiveSelection = enableInteractiveSelection ?? (!readOnly || !obscureText),
        toolbarOptions = toolbarOptions ??
@@ -395,6 +397,9 @@ class TextField extends StatefulWidget {
   ///
   /// If null, this widget will create its own [TextEditingController].
   final TextEditingController? controller;
+
+  /// {@macro flutter.services.TextInputConfiguration.enableDeltaModel}
+  final bool enableDeltaModel;
 
   /// Defines the keyboard focus for this widget.
   ///
@@ -773,6 +778,7 @@ class TextField extends StatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(DiagnosticsProperty<TextEditingController>('controller', controller, defaultValue: null));
+    properties.add(DiagnosticsProperty<bool>('enableDeltaModel', enableDeltaModel, defaultValue: false));
     properties.add(DiagnosticsProperty<FocusNode>('focusNode', focusNode, defaultValue: null));
     properties.add(DiagnosticsProperty<bool>('enabled', enabled, defaultValue: null));
     properties.add(DiagnosticsProperty<InputDecoration>('decoration', decoration, defaultValue: const InputDecoration()));
@@ -1240,6 +1246,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
           showCursor: widget.showCursor,
           showSelectionHandles: _showSelectionHandles,
           controller: controller,
+          enableDeltaModel: widget.enableDeltaModel,
           focusNode: focusNode,
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
