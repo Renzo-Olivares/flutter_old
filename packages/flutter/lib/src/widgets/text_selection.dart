@@ -2226,7 +2226,11 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
 class SelectionGesturesDetector extends StatefulWidget {
   /// Creates a [SelectionGesturesDetector] widget that provides that listens to
   /// [PointerEvent]s.
-  const SelectionGesturesDetector({super.key, required this.child});
+  const SelectionGesturesDetector({super.key, this.behavior, required this.gestures, required this.child});
+
+  final HitTestBehavior? behavior;
+
+  final <Type, ContextGestureRecognizerFactory> gestures;
 
   /// {@macro flutter.widgets.ProxyWidget.child}
   final Widget child;
@@ -2236,15 +2240,15 @@ class SelectionGesturesDetector extends StatefulWidget {
 }
 
 class _SelectionGesturesDetectorState extends State<SelectionGesturesDetector> {
-  late SelectionGesturesManager manager;
+  // late SelectionGesturesManager manager;
 
   Map<Type, GestureRecognizer>? _recognizers = const <Type, GestureRecognizer>{};
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    manager = SelectionGestures.of(context);
-    syncAllGestures(context, manager.gestures);
+    // manager = SelectionGestures.of(context);
+    syncAllGestures(context, widget.gestures);
   }
 
   @override
@@ -2257,13 +2261,13 @@ class _SelectionGesturesDetectorState extends State<SelectionGesturesDetector> {
   }
 
   void syncAllGestures(BuildContext context, Map<Type, ContextGestureRecognizerFactory> gestures) {
-    final Map<Type, ContextGestureRecognizerFactory> mergedGestures = manager.findNonConflictingAncestorGestures(context, gestures);
+    // final Map<Type, ContextGestureRecognizerFactory> mergedGestures = manager.findNonConflictingAncestorGestures(context, gestures);
 
     final Map<Type, GestureRecognizer> oldRecognizers = _recognizers!;
     _recognizers = <Type, GestureRecognizer>{};
-    for (final Type type in mergedGestures.keys) {
-      _recognizers![type] = oldRecognizers[type] ?? mergedGestures[type]!.constructor(context);
-      mergedGestures[type]!.initializer(_recognizers![type]!, context);
+    for (final Type type in gestures.keys) {
+      _recognizers![type] = oldRecognizers[type] ?? gestures[type]!.constructor(context);
+      gestures[type]!.initializer(_recognizers![type]!, context);
     }
     for (final Type type in oldRecognizers.keys) {
       if (!_recognizers!.containsKey(type)) {
@@ -2273,14 +2277,21 @@ class _SelectionGesturesDetectorState extends State<SelectionGesturesDetector> {
   }
 
   void _handlePointerDown(BuildContext context, PointerDownEvent event) {
-    manager.handlePointerDown(context, event, _recognizers!);
+    // manager.handlePointerDown(context, event, _recognizers!);
+    for (final GestureRecognizer recognizer in _recognizers!.values) {
+      recognizer.addPointer(event);
+    }
+  }
+
+  HitTestBehavior get _defaultBehavior {
+    return widget.child == null ? HitTestBehavior.translucent : HitTestBehavior.deferToChild;
   }
 
   @override
   Widget build(BuildContext context) {
     return Listener(
       onPointerDown: (PointerDownEvent event) => _handlePointerDown(context, event),
-      behavior: HitTestBehavior.translucent,
+      behavior: widget.behavior ?? _defaultBehavior,
       child: widget.child,
     );
   }

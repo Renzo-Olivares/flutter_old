@@ -19,6 +19,7 @@ import 'gesture_detector.dart';
 import 'media_query.dart';
 import 'overlay.dart';
 import 'selection_container.dart';
+import 'selection_gestures.dart';
 import 'text_editing_intents.dart';
 import 'text_selection.dart';
 
@@ -144,7 +145,7 @@ const Set<PointerDeviceKind> _kLongPressSelectionDevices = <PointerDeviceKind>{
 /// {@end-tool}
 ///
 /// In the case where a group of widgets should be excluded from selection under
-/// a [SelectableRegion], consider wrapping that group of widgets using
+/// a [SelectableRegion], considr wrapping that group of widgets using
 /// [SelectionContainer.disabled].
 ///
 /// {@tool dartpad}
@@ -197,11 +198,89 @@ class SelectableRegion extends StatefulWidget {
 }
 
 class _SelectableRegionState extends State<SelectableRegion> with TextSelectionDelegate implements SelectionRegistrar {
+  late SelectionGesturesManager manager;
   late final Map<Type, Action<Intent>> _actions = <Type, Action<Intent>>{
+    SecondaryTapUpIntent : _makeOverridable(ListedAction<SecondaryTapUpIntent>()),
+    SecondaryTapIntent : _makeOverridable(ListedAction<SecondaryTapIntent>()),
+    SecondaryTapDownIntent : _makeOverridable(ListedAction<SecondaryTapDownIntent>()),
+    ShiftTapDownIntent : _makeOverridable(ListedAction<ShiftTapDownIntent>()),
+    TapDownIntent : _makeOverridable(ListedAction<TapDownIntent>()),
+    DoubleTapDownIntent : _makeOverridable(ListedAction<DoubleTapDownIntent>()),
+    TripleTapDownIntent : _makeOverridable(ListedAction<TripleTapDownIntent>()),
+    TapUpIntent : _makeOverridable(ListedAction<TapUpIntent>()),
+    TapCancelIntent : _makeOverridable(ListedAction<TapUpIntent>()),
+    DragTapDownIntent : _makeOverridable(ListedAction<DragTapDownIntent>()),
+    DragStartIntent : _makeOverridable(ListedAction<DragStartIntent>()),
+    ShiftTappingOnDragStartIntent : _makeOverridable(ListedAction<ShiftTappingOnDragStartIntent>()),
+    DragUpdateIntent : _makeOverridable(ListedAction<DragUpdateIntent>()),
+    ShiftTappingOnDragUpdateIntent : _makeOverridable(ListedAction<ShiftTappingOnDragUpdateIntent>()),
+    DragEndIntent : _makeOverridable(ListedAction<DragEndIntent>()),
+    ShiftTappingOnDragEndIntent : _makeOverridable(ListedAction<ShiftTappingOnDragEndIntent>()),
+    LongPressStartIntent : _makeOverridable(ListedAction<LongPressStartIntent>()),
+    LongPressMoveUpdateIntent : _makeOverridable(ListedAction<LongPressMoveUpdateIntent>()),
+    LongPressEndIntent : _makeOverridable(ListedAction<LongPressEndIntent>()),
+    ForcePressStartIntent : _makeOverridable(MaterialForcePressStartAction()),
+    ForcePressEndIntent : _makeOverridable(DoNothingAction()),
+
+    ExpandSelectionToPositionIntent : SelectionGestureCallbackAction<ExpandSelectionToPositionIntent>(
+        onInvoke: (ExpandSelectionToPositionIntent intent) => _editableText!.expandSelection(intent),
+        enabledPredicate: (ExpandSelectionToPositionIntent intent) {
+          return widget.selectionEnabled && _effectiveController.value.selection.isValid;
+        },
+    ),
+    ExtendSelectionToPositionIntent : SelectionGestureCallbackAction<ExtendSelectionToPositionIntent>(
+        onInvoke: (ExtendSelectionToPositionIntent intent) => _editableText!.extendSelection(intent),
+        enabledPredicate: (ExtendSelectionToPositionIntent intent) {
+          return widget.selectionEnabled && _effectiveController.value.selection.isValid;
+        }
+    ),
+    // KeyboardRequestIntent : _makeOverridable(
+    //   SelectionGestureCallbackAction<KeyboardRequestIntent>(
+    //     onInvoke: (KeyboardRequestIntent intent) => _requestKeyboard(),
+    //     enabledPredicate: (KeyboardRequestIntent intent) => widget.selectionEnabled,
+    //   ),
+    // ),
+    SelectWordsInRangeIntent : SelectionGestureCallbackAction<SelectWordsInRangeIntent>(
+        onInvoke: (SelectWordsInRangeIntent intent) => _editableText!.dispatchSelectionEvent(SelectWordsInRangeSelectionEvent(from: intent.from, to: intent.to, cause: intent.cause)),
+        enabledPredicate: (SelectWordsInRangeIntent intent) => widget.selectionEnabled,
+    ),
+    SelectWordIntent : SelectionGestureCallbackAction<SelectWordIntent>(
+        onInvoke: (SelectWordIntent intent) => _selectWordAt(offset: intent.globalPosition),
+        // onInvoke: (SelectWordIntent intent) => _editableText!.dispatchSelectionEvent(SelectWordSelectionEvent(globalPosition: intent.globalPosition, cause: intent.cause)),
+        enabledPredicate: (SelectWordIntent intent) => widget.selectionEnabled,
+    ),
+    SelectWordEdgeIntent : SelectionGestureCallbackAction<SelectWordEdgeIntent>(
+        onInvoke: (SelectWordEdgeIntent intent) => _editableText!.dispatchSelectionEvent(SelectWordEdgeSelectionEvent(globalPosition: intent.position, cause: intent.cause)),
+        enabledPredicate: (SelectWordEdgeIntent intent) => widget.selectionEnabled,
+    ),
+    SelectPositionIntent : SelectionGestureCallbackAction<SelectPositionIntent>(
+        onInvoke: (SelectPositionIntent intent) => _editableText!.dispatchSelectionEvent(SelectPositionSelectionEvent(globalPosition: intent.from, cause: intent.cause)),
+        enabledPredicate: (SelectPositionIntent intent) => widget.selectionEnabled,
+    ),
+    SelectionToolbarControlIntent : _makeOverridable(
+      SelectionGestureCallbackAction<SelectionToolbarControlIntent>(
+        onInvoke: (SelectionToolbarControlIntent intent) {
+          if (intent.showSelectionToolbar != null) {
+            if (intent.showSelectionToolbar!) {
+              _editableText!.showToolbar(intent.positionToDisplay);
+            } else {
+              _editableText!.hideToolbar();
+            }
+          }
+
+          if (intent.toggleSelectionToolbar != null) {
+            if (intent.toggleSelectionToolbar!) {
+              _editableText!.toggleToolbar(intent.positionToDisplay);
+            }
+          }
+        },
+        enabledPredicate: (SelectionToolbarControlIntent intent) => widget.selectionEnabled,
+      ),
+    ),
     SelectAllTextIntent: _makeOverridable(_SelectAllAction(this)),
     CopySelectionTextIntent: _makeOverridable(_CopySelectionAction(this)),
   };
-  final Map<Type, GestureRecognizerFactory> _gestureRecognizers = <Type, GestureRecognizerFactory>{};
+  final Map<Type, ContextGestureRecognizerFactory> _gestureRecognizers = <Type, ContextGestureRecognizerFactory>{};
   SelectionOverlay? _selectionOverlay;
   final LayerLink _startHandleLayerLink = LayerLink();
   final LayerLink _endHandleLayerLink = LayerLink();
@@ -218,17 +297,19 @@ class _SelectableRegionState extends State<SelectableRegion> with TextSelectionD
   @override
   void initState() {
     super.initState();
+    manager = SelectionGestures.of(context);
     widget.focusNode.addListener(_handleFocusChanged);
-    _initMouseGestureRecognizer();
-    _initTouchGestureRecognizer();
-    // Taps and right clicks.
-    _gestureRecognizers[TapGestureRecognizer] = GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-          () => TapGestureRecognizer(debugOwner: this),
-          (TapGestureRecognizer instance) {
-        instance.onTap = _clearSelection;
-        instance.onSecondaryTapDown = _handleRightClickDown;
-      },
-    );
+    _gestureRecognizers = manager.findNonConflictingAncestorGestures(context, manager.gestures);
+    // _initMouseGestureRecognizer();
+    // _initTouchGestureRecognizer();
+    // // Taps and right clicks.
+    // _gestureRecognizers[TapGestureRecognizer] = GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+    //       () => TapGestureRecognizer(debugOwner: this),
+    //       (TapGestureRecognizer instance) {
+    //     instance.onTap = _clearSelection;
+    //     instance.onSecondaryTapDown = _handleRightClickDown;
+    //   },
+    // );
   }
 
   @override
@@ -303,33 +384,33 @@ class _SelectableRegionState extends State<SelectableRegion> with TextSelectionD
 
   // gestures.
 
-  void _initMouseGestureRecognizer() {
-    _gestureRecognizers[PanGestureRecognizer] = GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-          () => PanGestureRecognizer(debugOwner:this, supportedDevices: <PointerDeviceKind>{ PointerDeviceKind.mouse }),
-          (PanGestureRecognizer instance) {
-        instance
-          ..onDown = _startNewMouseSelectionGesture
-          ..onStart = _handleMouseDragStart
-          ..onUpdate = _handleMouseDragUpdate
-          ..onEnd = _handleMouseDragEnd
-          ..onCancel = _clearSelection
-          ..dragStartBehavior = DragStartBehavior.down;
-      },
-    );
-  }
+  // void _initMouseGestureRecognizer() {
+  //   _gestureRecognizers[PanGestureRecognizer] = GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+  //         () => PanGestureRecognizer(debugOwner:this, supportedDevices: <PointerDeviceKind>{ PointerDeviceKind.mouse }),
+  //         (PanGestureRecognizer instance) {
+  //       instance
+  //         ..onDown = _startNewMouseSelectionGesture
+  //         ..onStart = _handleMouseDragStart
+  //         ..onUpdate = _handleMouseDragUpdate
+  //         ..onEnd = _handleMouseDragEnd
+  //         ..onCancel = _clearSelection
+  //         ..dragStartBehavior = DragStartBehavior.down;
+  //     },
+  //   );
+  // }
 
-  void _initTouchGestureRecognizer() {
-    _gestureRecognizers[LongPressGestureRecognizer] = GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-          () => LongPressGestureRecognizer(debugOwner: this, supportedDevices: _kLongPressSelectionDevices),
-          (LongPressGestureRecognizer instance) {
-        instance
-          ..onLongPressStart = _handleTouchLongPressStart
-          ..onLongPressMoveUpdate = _handleTouchLongPressMoveUpdate
-          ..onLongPressEnd = _handleTouchLongPressEnd
-          ..onLongPressCancel = _clearSelection;
-      },
-    );
-  }
+  // void _initTouchGestureRecognizer() {
+  //   _gestureRecognizers[LongPressGestureRecognizer] = GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+  //         () => LongPressGestureRecognizer(debugOwner: this, supportedDevices: _kLongPressSelectionDevices),
+  //         (LongPressGestureRecognizer instance) {
+  //       instance
+  //         ..onLongPressStart = _handleTouchLongPressStart
+  //         ..onLongPressMoveUpdate = _handleTouchLongPressMoveUpdate
+  //         ..onLongPressEnd = _handleTouchLongPressEnd
+  //         ..onLongPressCancel = _clearSelection;
+  //     },
+  //   );
+  // }
 
   void _startNewMouseSelectionGesture(DragDownDetails details) {
     widget.focusNode.requestFocus();
@@ -805,15 +886,14 @@ class _SelectableRegionState extends State<SelectableRegion> with TextSelectionD
   @override
   Widget build(BuildContext context) {
     assert(Overlay.of(context, debugRequiredFor: widget) != null);
-    return CompositedTransformTarget(
+    return Actions(
+      actions: _actions,
+      child: CompositedTransformTarget(
       link: _toolbarLayerLink,
-      child: RawGestureDetector(
+      child: SelectionGesturesDetector(
         gestures: _gestureRecognizers,
         behavior: HitTestBehavior.translucent,
-        excludeFromSemantics: true,
-        child: Actions(
-          actions: _actions,
-          child: Focus(
+        child: Focus(
             includeSemantics: false,
             focusNode: widget.focusNode,
             child: SelectionContainer(
@@ -1675,4 +1755,23 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     }
     return finalResult!;
   }
+}
+
+/// An [Action] that takes a callback and conditions required to enable the
+/// [Action].
+class SelectionGestureCallbackAction<T extends Intent> extends Action<T> {
+  /// A constructor for a [SelectionGestureCallbackAction].
+  SelectionGestureCallbackAction({ required this.onInvoke, this.enabledPredicate });
+
+  /// The callback to be called when invoked by a gesture.
+  final void Function(T intent) onInvoke;
+
+  /// A method defining the conditions required to enable this [Action].
+  final bool Function(T)? enabledPredicate;
+
+  @override
+  void invoke(T intent) => onInvoke(intent);
+
+  @override
+  bool isEnabled(T intent) => enabledPredicate?.call(intent) ?? true;
 }
