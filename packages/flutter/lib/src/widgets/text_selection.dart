@@ -2382,12 +2382,14 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   Timer? _dragUpdateThrottleTimer;
 
   void _handleDragStart(DragStartDetails details) {
+    print('drag start');
     assert(_lastDragStartDetails == null);
     _lastDragStartDetails = details;
     widget.onDragSelectionStart?.call(details);
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
+    print('drag update');
     _lastDragUpdateDetails = details;
     // Only schedule a new timer if there's no one pending.
     _dragUpdateThrottleTimer ??= Timer(_kDragSelectionUpdateThrottle, _handleDragUpdateThrottled);
@@ -2408,6 +2410,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   }
 
   void _handleDragEnd(DragEndDetails details) {
+    print('drag end');
     assert(_lastDragStartDetails != null);
     if (_dragUpdateThrottleTimer != null) {
       // If there's already an update scheduled, trigger it immediately and
@@ -2432,18 +2435,21 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   }
 
   void _handleLongPressStart(LongPressStartDetails details) {
+    print('long press start');
     if (!_isDoubleTap && widget.onSingleLongTapStart != null) {
       widget.onSingleLongTapStart!(details);
     }
   }
 
   void _handleLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
+    print('long press move update');
     if (!_isDoubleTap && widget.onSingleLongTapMoveUpdate != null) {
       widget.onSingleLongTapMoveUpdate!(details);
     }
   }
 
   void _handleLongPressEnd(LongPressEndDetails details) {
+    print('long press end');
     if (!_isDoubleTap && widget.onSingleLongTapEnd != null) {
       widget.onSingleLongTapEnd!(details);
     }
@@ -2488,6 +2494,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
         () => LongPressGestureRecognizer(debugOwner: this, kind: PointerDeviceKind.touch),
         (LongPressGestureRecognizer instance) {
           instance
+            ..onLongPressDown = (LongPressDownDetails details) {print('long pressdown');}
             ..onLongPressStart = _handleLongPressStart
             ..onLongPressMoveUpdate = _handleLongPressMoveUpdate
             ..onLongPressEnd = _handleLongPressEnd;
@@ -2499,12 +2506,13 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
         widget.onDragSelectionUpdate != null ||
         widget.onDragSelectionEnd != null) {
       gestures[PanGestureRecognizer] = GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-        () => PanGestureRecognizer(debugOwner: this, supportedDevices: <PointerDeviceKind>{ PointerDeviceKind.mouse }),
+        () => PanGestureRecognizer(debugOwner: this, supportedDevices: <PointerDeviceKind>{ PointerDeviceKind.mouse, PointerDeviceKind.touch }),
         (PanGestureRecognizer instance) {
           instance
             // Text selection should start from the position of the first pointer
             // down event.
             ..dragStartBehavior = DragStartBehavior.down
+            ..onDown = (DragDownDetails details){print('drag down');}
             ..onStart = _handleDragStart
             ..onUpdate = _handleDragUpdate
             ..onEnd = _handleDragEnd;
