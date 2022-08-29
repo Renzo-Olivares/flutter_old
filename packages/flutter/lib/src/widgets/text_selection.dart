@@ -2348,6 +2348,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   // The down handler is force-run on success of a single tap and optimistically
   // run before a long press success.
   void _handleTapDown(TapDownDetails details) {
+    print('tap down');
     widget.onTapDown?.call(details);
     // This isn't detected as a double tap gesture in the gesture recognizer
     // because it's 2 single taps, each of which may do different things depending
@@ -2356,6 +2357,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
     if (_doubleTapTimer != null && _isWithinDoubleTapTolerance(details.globalPosition)) {
       // If there was already a previous tap, the second down hold/tap is a
       // double tap down.
+      print('double tap down');
       widget.onDoubleTapDown?.call(details);
 
       _doubleTapTimer!.cancel();
@@ -2365,6 +2367,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   }
 
   void _handleTapUp(TapUpDetails details) {
+    print('tap up');
     if (!_isDoubleTap) {
       widget.onSingleTapUp?.call(details);
       _lastTapOffset = details.globalPosition;
@@ -2374,6 +2377,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   }
 
   void _handleTapCancel() {
+    print('tap cancel');
     widget.onSingleTapCancel?.call();
   }
 
