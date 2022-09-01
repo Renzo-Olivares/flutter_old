@@ -198,6 +198,7 @@ abstract class BaseTapGestureRecognizer extends PrimaryPointerGestureRecognizer 
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
+    print('add allowed pointer $event $this');
     assert(event != null);
     if (state == GestureRecognizerState.ready) {
       // If there is no result in the previous gesture arena,
@@ -228,22 +229,27 @@ abstract class BaseTapGestureRecognizer extends PrimaryPointerGestureRecognizer 
   void startTrackingPointer(int pointer, [Matrix4? transform]) {
     // The recognizer should never track any pointers when `_down` is null,
     // because calling `_checkDown` in this state will throw exception.
+    print('start tracking pointer $pointer $this');
     assert(_down != null);
     super.startTrackingPointer(pointer, transform);
   }
 
   @override
   void handlePrimaryPointer(PointerEvent event) {
+    print('handle primary pointer $event $this');
     if (event is PointerUpEvent) {
+      print('handle pointerup $this');
       _up = event;
       _checkUp();
     } else if (event is PointerCancelEvent) {
+      print('handle pointercancel $this');
       resolve(GestureDisposition.rejected);
       if (_sentTapDown) {
         _checkCancel(event, '');
       }
       _reset();
     } else if (event.buttons != _down!.buttons) {
+      print('handle different buttons $this');
       resolve(GestureDisposition.rejected);
       stopTrackingPointer(primaryPointer!);
     }
@@ -251,6 +257,7 @@ abstract class BaseTapGestureRecognizer extends PrimaryPointerGestureRecognizer 
 
   @override
   void resolve(GestureDisposition disposition) {
+    print('resolve $disposition $this');
     if (_wonArenaForPrimaryPointer && disposition == GestureDisposition.rejected) {
       // This can happen if the gesture has been canceled. For example, when
       // the pointer has exceeded the touch slop, the buttons have been changed,
@@ -264,13 +271,16 @@ abstract class BaseTapGestureRecognizer extends PrimaryPointerGestureRecognizer 
 
   @override
   void didExceedDeadline() {
+    print('did exceed deadline $this');
     _checkDown();
   }
 
   @override
   void acceptGesture(int pointer) {
+    print('accept gesture $pointer $this');
     super.acceptGesture(pointer);
     if (pointer == primaryPointer) {
+      print('pointer $pointer equal primarypointer $primaryPointer $this');
       _checkDown();
       _wonArenaForPrimaryPointer = true;
       _checkUp();
@@ -279,6 +289,7 @@ abstract class BaseTapGestureRecognizer extends PrimaryPointerGestureRecognizer 
 
   @override
   void rejectGesture(int pointer) {
+    print('reject gesture $pointer $this');
     super.rejectGesture(pointer);
     if (pointer == primaryPointer) {
       // Another gesture won the arena.
@@ -295,6 +306,7 @@ abstract class BaseTapGestureRecognizer extends PrimaryPointerGestureRecognizer 
       return;
     }
     handleTapDown(down: _down!);
+    print('sent handle tap down $this');
     _sentTapDown = true;
   }
 
@@ -585,6 +597,7 @@ class TapGestureRecognizer extends BaseTapGestureRecognizer {
   @protected
   @override
   void handleTapDown({required PointerDownEvent down}) {
+    print('handle tap down $this');
     final TapDownDetails details = TapDownDetails(
       globalPosition: down.position,
       localPosition: down.localPosition,
@@ -593,6 +606,7 @@ class TapGestureRecognizer extends BaseTapGestureRecognizer {
     switch (down.buttons) {
       case kPrimaryButton:
         if (onTapDown != null) {
+          print('sent');
           invokeCallback<void>('onTapDown', () => onTapDown!(details));
         }
         break;
@@ -613,6 +627,7 @@ class TapGestureRecognizer extends BaseTapGestureRecognizer {
   @protected
   @override
   void handleTapUp({ required PointerDownEvent down, required PointerUpEvent up}) {
+    print('handle tap up $this');
     final TapUpDetails details = TapUpDetails(
       kind: up.kind,
       globalPosition: up.position,
@@ -647,6 +662,7 @@ class TapGestureRecognizer extends BaseTapGestureRecognizer {
   @protected
   @override
   void handleTapCancel({ required PointerDownEvent down, PointerCancelEvent? cancel, required String reason }) {
+    print('handle tap cancel');
     final String note = reason == '' ? reason : '$reason ';
     switch (down.buttons) {
       case kPrimaryButton:

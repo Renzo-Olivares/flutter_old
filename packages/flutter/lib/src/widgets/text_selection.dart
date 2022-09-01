@@ -2306,6 +2306,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   // The down handler is force-run on success of a single tap and optimistically
   // run before a long press success.
   void _handleTapDown(TapDownDetails details) {
+    print('tap down');
     widget.onTapDown?.call(details);
     // This isn't detected as a double tap gesture in the gesture recognizer
     // because it's 2 single taps, each of which may do different things depending
@@ -2314,6 +2315,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
     if (_doubleTapTimer != null && _isWithinDoubleTapTolerance(details.globalPosition)) {
       // If there was already a previous tap, the second down hold/tap is a
       // double tap down.
+      print('double tap down');
       widget.onDoubleTapDown?.call(details);
 
       _doubleTapTimer!.cancel();
@@ -2323,7 +2325,9 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   }
 
   void _handleTapUp(TapUpDetails details) {
+    print('tap up');
     if (!_isDoubleTap) {
+      print('running tap up');
       widget.onSingleTapUp?.call(details);
       _lastTapOffset = details.globalPosition;
       _doubleTapTimer = Timer(kDoubleTapTimeout, _doubleTapTimeout);
@@ -2332,6 +2336,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   }
 
   void _handleTapCancel() {
+    print('tap cancel');
     widget.onSingleTapCancel?.call();
   }
 
@@ -2340,12 +2345,14 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   Timer? _dragUpdateThrottleTimer;
 
   void _handleDragStart(DragStartDetails details) {
+    print('drag start');
     assert(_lastDragStartDetails == null);
     _lastDragStartDetails = details;
     widget.onDragSelectionStart?.call(details);
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
+    print('drag update');
     _lastDragUpdateDetails = details;
     // Only schedule a new timer if there's no one pending.
     _dragUpdateThrottleTimer ??= Timer(_kDragSelectionUpdateThrottle, _handleDragUpdateThrottled);
@@ -2358,6 +2365,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   /// Once the drag gesture ends, any pending drag update will be fired
   /// immediately. See [_handleDragEnd].
   void _handleDragUpdateThrottled() {
+    print('drag update throttled');
     assert(_lastDragStartDetails != null);
     assert(_lastDragUpdateDetails != null);
     widget.onDragSelectionUpdate?.call(_lastDragStartDetails!, _lastDragUpdateDetails!);
@@ -2366,6 +2374,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   }
 
   void _handleDragEnd(DragEndDetails details) {
+    print('drag end');
     assert(_lastDragStartDetails != null);
     if (_dragUpdateThrottleTimer != null) {
       // If there's already an update scheduled, trigger it immediately and
@@ -2380,28 +2389,33 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   }
 
   void _forcePressStarted(ForcePressDetails details) {
+    print('force press started');
     _doubleTapTimer?.cancel();
     _doubleTapTimer = null;
     widget.onForcePressStart?.call(details);
   }
 
   void _forcePressEnded(ForcePressDetails details) {
+    print('force press ended');
     widget.onForcePressEnd?.call(details);
   }
 
   void _handleLongPressStart(LongPressStartDetails details) {
+    print('long press start');
     if (!_isDoubleTap && widget.onSingleLongTapStart != null) {
       widget.onSingleLongTapStart!(details);
     }
   }
 
   void _handleLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
+    print('long press move update');
     if (!_isDoubleTap && widget.onSingleLongTapMoveUpdate != null) {
       widget.onSingleLongTapMoveUpdate!(details);
     }
   }
 
   void _handleLongPressEnd(LongPressEndDetails details) {
+    print('handle long press end');
     if (!_isDoubleTap && widget.onSingleLongTapEnd != null) {
       widget.onSingleLongTapEnd!(details);
     }
@@ -2463,6 +2477,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
             // Text selection should start from the position of the first pointer
             // down event.
             ..dragStartBehavior = DragStartBehavior.down
+            ..onDown =(DragDownDetails details) {print('on drag down');}
             ..onStart = _handleDragStart
             ..onUpdate = _handleDragUpdate
             ..onEnd = _handleDragEnd;
