@@ -2403,6 +2403,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   void _handleLongPressStart(LongPressStartDetails details) {
     print('long press start');
     if (!_isDoubleTap && widget.onSingleLongTapStart != null) {
+      print('actually long press start');
       widget.onSingleLongTapStart!(details);
     }
   }
@@ -2410,6 +2411,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   void _handleLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
     print('long press move update');
     if (!_isDoubleTap && widget.onSingleLongTapMoveUpdate != null) {
+      print('actually long press move');
       widget.onSingleLongTapMoveUpdate!(details);
     }
   }
@@ -2417,6 +2419,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   void _handleLongPressEnd(LongPressEndDetails details) {
     print('handle long press end');
     if (!_isDoubleTap && widget.onSingleLongTapEnd != null) {
+      print('actual long press end');
       widget.onSingleLongTapEnd!(details);
     }
     _isDoubleTap = false;
