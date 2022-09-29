@@ -48,48 +48,6 @@ typedef GestureDragUpdateWithTapStatusCallback = void Function(DragUpdateDetails
 /// Used by [TapAndDragGestureRecognizer.onEnd].
 typedef GestureDragEndWithTapStatusCallback = void Function(DragEndDetails endDetails, TapStatus status);
 
-mixin _ConsecutiveTapMixin {
-  // For consecutive tap
-  Timer? consecutiveTapTimer;
-  Offset? lastTapOffset;
-  int consecutiveTapCount = 0;
-
-  bool isWithinConsecutiveTapTolerance(Offset secondTapOffset) {
-    assert(secondTapOffset != null);
-    if (lastTapOffset == null) {
-      return false;
-    }
-
-    final Offset difference = secondTapOffset - lastTapOffset!;
-    return difference.distance <= kDoubleTapSlop;
-  }
-
-  void incrementConsecutiveTapCountOnDown(Offset tapGlobalPosition) {
-    if (lastTapOffset == null) {
-      // If last tap offset is null then we have not started our consecutive tap count,
-      // so the consecutiveTapTimer should be null.
-      assert(consecutiveTapTimer == null);
-      consecutiveTapCount += 1;
-      lastTapOffset = tapGlobalPosition;
-    } else if (consecutiveTapTimer != null && isWithinConsecutiveTapTolerance(tapGlobalPosition)) {
-      consecutiveTapCount += 1;
-      consecutiveTapTimerStop();
-    }
-  }
-
-  void consecutiveTapReset() {
-    consecutiveTapTimer?.cancel();
-    consecutiveTapTimer = null;
-    lastTapOffset = null;
-    consecutiveTapCount = 0;
-  }
-
-  void consecutiveTapTimerStop() {
-    consecutiveTapTimer?.cancel();
-    consecutiveTapTimer = null;
-  }
-}
-
 /// An object that includes supplementary details of a tap event, such as
 /// the keys that were pressed when tap down occured, and what the tap count
 /// is.
@@ -111,7 +69,7 @@ class TapStatus {
 /// Recognizes taps and movements.
 ///
 /// Takes on the responsibilities of [TapGestureRecognizer] and [DragGestureRecognizer] in one [GestureRecognizer].
-class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _ConsecutiveTapMixin {
+class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer {
   /// Initialize the object.
   ///
   /// [dragStartBehavior] must not be null.
@@ -445,6 +403,7 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Con
 
   @override
   void handleEvent(PointerEvent event) {
+    super.handleEvent(event);
     if (event is PointerMoveEvent) {
       // Receiving a `PointerMoveEvent`, does not automatically mean the pointer
       // being tracked is doing a drag gesture. There is some drift that can happen
@@ -523,7 +482,6 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Con
     // This prevents an erroneous _up being sent when this recognizer is
     // accepted for a drag, following a previous rejection.
     _resetTaps();
-    consecutiveTapReset();
     _resetDragUpdateThrottle();
     _initialButtons = null;
   }
@@ -531,7 +489,6 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Con
   @override
   void dispose() {
     _stopDeadlineTimer();
-    consecutiveTapReset();
     _resetDragUpdateThrottle();
     super.dispose();
   }
@@ -590,11 +547,10 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Con
       kind: getKindForPointer(event.pointer),
     );
 
-    incrementConsecutiveTapCountOnDown(details.globalPosition);
-    _consecutiveTapCountWhileDragging = consecutiveTapCount;
+    _consecutiveTapCountWhileDragging = tapCount;
 
     final TapStatus status = TapStatus(
-      consecutiveTapCount: consecutiveTapCount,
+      consecutiveTapCount: tapCount,
       keysPressedOnDown: _keysPressedOnTapDown
     );
 
@@ -620,8 +576,6 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Con
       return;
     }
 
-    consecutiveTapTimer ??= Timer(kDoubleTapTimeout, consecutiveTapReset);
-
     final TapUpDetails upDetails = TapUpDetails(
       kind: event.kind,
       globalPosition: event.position,
@@ -629,7 +583,7 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Con
     );
 
     final TapStatus status = TapStatus(
-      consecutiveTapCount: consecutiveTapCount,
+      consecutiveTapCount: tapCount,
       keysPressedOnDown: _keysPressedOnTapDown,
     );
 
@@ -723,7 +677,6 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Con
     invokeCallback<void>('onEnd', () => onEnd!(endDetails, status));
 
     _resetTaps();
-    consecutiveTapReset();
     _keysPressedOnTapDown.clear();
     _resetDragUpdateThrottle();
   }
@@ -732,7 +685,6 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Con
     _checkTapCancel();
     _checkDragCancel();
     _resetTaps();
-    consecutiveTapReset();
   }
 
   void _checkTapCancel() {
@@ -756,7 +708,7 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Con
     if (_down != null) {
       _checkTapDown(_down!);
 
-      if (consecutiveTapCount > 1) {
+      if (tapCount > 1) {
         // If our consecutive tap count is greater than 1, i.e. is a double tap or greater,
         // then this recognizer should declare itself the winner to avoid the `LongPressGestureRecognizer`
         // from declaring itself the winner if a double tap is held for to long.

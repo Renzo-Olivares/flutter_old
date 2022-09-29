@@ -278,6 +278,48 @@ abstract class GestureRecognizer extends GestureArenaMember with DiagnosticableT
   }
 }
 
+mixin _ConsecutiveTapMixin {
+  // For consecutive tap
+  Timer? consecutiveTapTimer;
+  Offset? lastTapOffset;
+  int consecutiveTapCount = 0;
+
+  bool isWithinConsecutiveTapTolerance(Offset secondTapOffset) {
+    assert(secondTapOffset != null);
+    if (lastTapOffset == null) {
+      return false;
+    }
+
+    final Offset difference = secondTapOffset - lastTapOffset!;
+    return difference.distance <= kDoubleTapSlop;
+  }
+
+  void incrementConsecutiveTapCountOnDown(Offset tapGlobalPosition) {
+    if (lastTapOffset == null) {
+      // If last tap offset is null then we have not started our consecutive tap count,
+      // so the consecutiveTapTimer should be null.
+      assert(consecutiveTapTimer == null);
+      consecutiveTapCount += 1;
+      lastTapOffset = tapGlobalPosition;
+    } else if (consecutiveTapTimer != null && isWithinConsecutiveTapTolerance(tapGlobalPosition)) {
+      consecutiveTapCount += 1;
+      consecutiveTapTimerStop();
+    }
+  }
+
+  void consecutiveTapReset() {
+    consecutiveTapTimer?.cancel();
+    consecutiveTapTimer = null;
+    lastTapOffset = null;
+    consecutiveTapCount = 0;
+  }
+
+  void consecutiveTapTimerStop() {
+    consecutiveTapTimer?.cancel();
+    consecutiveTapTimer = null;
+  }
+}
+
 /// Base class for gesture recognizers that can only recognize one
 /// gesture at a time. For example, a single [TapGestureRecognizer]
 /// can never recognize two taps happening simultaneously, even if
@@ -286,7 +328,7 @@ abstract class GestureRecognizer extends GestureArenaMember with DiagnosticableT
 /// This is in contrast to, for instance, [MultiTapGestureRecognizer],
 /// which manages each pointer independently and can consider multiple
 /// simultaneous touches to each result in a separate tap.
-abstract class OneSequenceGestureRecognizer extends GestureRecognizer {
+abstract class OneSequenceGestureRecognizer extends GestureRecognizer with _ConsecutiveTapMixin {
   /// Initialize the object.
   ///
   /// {@macro flutter.gestures.GestureRecognizer.supportedDevices}
@@ -303,10 +345,13 @@ abstract class OneSequenceGestureRecognizer extends GestureRecognizer {
   final Map<int, GestureArenaEntry> _entries = <int, GestureArenaEntry>{};
   final Set<int> _trackedPointers = HashSet<int>();
 
+  int get tapCount => consecutiveTapCount;
+
   @override
   @protected
   void addAllowedPointer(PointerDownEvent event) {
     startTrackingPointer(event.pointer, event.transform);
+    incrementConsecutiveTapCountOnDown(event.position);
   }
 
   @override
@@ -331,13 +376,19 @@ abstract class OneSequenceGestureRecognizer extends GestureRecognizer {
   ///  * [stopTrackingIfPointerNoLongerDown], which conditionally stops events
   ///    from being routed to this recognizer.
   @protected
-  void handleEvent(PointerEvent event);
+  void handleEvent(PointerEvent event) {
+    if (event is PointerUpEvent) {
+      consecutiveTapTimer ??= Timer(kDoubleTapTimeout, consecutiveTapReset);
+    }
+  }
 
   @override
   void acceptGesture(int pointer) { }
 
   @override
-  void rejectGesture(int pointer) { }
+  void rejectGesture(int pointer) {
+    consecutiveTapReset();
+  }
 
   /// Called when the number of pointers this recognizer is tracking changes from one to zero.
   ///
@@ -376,6 +427,7 @@ abstract class OneSequenceGestureRecognizer extends GestureRecognizer {
     for (final int pointer in _trackedPointers) {
       GestureBinding.instance.pointerRouter.removeRoute(pointer, handleEvent);
     }
+    consecutiveTapReset();
     _trackedPointers.clear();
     assert(_entries.isEmpty);
     super.dispose();
