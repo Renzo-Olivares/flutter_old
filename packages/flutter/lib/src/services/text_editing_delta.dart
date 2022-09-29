@@ -324,6 +324,9 @@ class TextEditingDeltaDeletion extends TextEditingDelta {
     assert(_debugTextRangeIsValid(composing, newText), 'Applying TextEditingDeltaDeletion failed, the composing range: $composing is not within the bounds of $newText of length: ${newText.length}');
     return value.copyWith(text: newText, selection: selection, composing: composing);
   }
+
+  @override
+  String toString() => '${objectRuntimeType(this, 'TextEditingDeltaDeletion')}(oldText: \u2524$oldText\u251C, deletedRange: $deletedRange, textDeleted: $textDeleted, selection: $selection, composing: $composing)';
 }
 
 /// A structure representing a replacement of a range of characters with a
