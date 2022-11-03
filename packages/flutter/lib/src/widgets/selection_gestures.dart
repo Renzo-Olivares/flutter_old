@@ -124,16 +124,18 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
     super.addAllowedPointer(event);
     print('add allowed pointer - mixin');
     // We want to make sure to reset the previously tracked `_up` and `_down`.
-    _consecutiveTapDurationExceeded = false;
     _resetTapState();
-    // _previousButtons = null;
+    _consecutiveTapDurationExceeded = false;
     _incrementConsecutiveTapCountOnDown(event);
     _startTrackingTap(event);
   }
 
   void _startTrackingTap(PointerDownEvent event) {
+    _consecutiveTapTimerStop();
+    _lastTapOffset = event.position;
     _down = event;
     _keysPressedOnDown = HardwareKeyboard.instance.logicalKeysPressed;
+    _previousButtons = event.buttons;
   }
 
   @override
@@ -161,7 +163,9 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
   @override
   void handleEvent(PointerEvent event) {
     print('handle event - mixin');
-    if (event is PointerUpEvent) {
+    if (event is PointerMoveEvent) {
+
+    } else if (event is PointerUpEvent) {
       // This could be the end of a drag or a tap up. For the end of a drag
       // we should reset the tracker. For a tap up we should reset the timer.
       _up = event;
@@ -194,8 +198,10 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
 
   void _consecutiveTapTimerStop() {
     print('stopping timer');
-    _consecutiveTapTimer?.cancel();
-    _consecutiveTapTimer = null;
+    if (_consecutiveTapTimer != null) {
+      _consecutiveTapTimer!.cancel();
+      _consecutiveTapTimer = null;
+    }
   }
 
   void _consecutiveTapTimerStart() {
@@ -204,38 +210,43 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
     _consecutiveTapTimer ??= Timer(kDoubleTapTimeout, _consecutiveTapTimerTimeout);
   }
 
-  bool _hasSameButton(PointerDownEvent event) {
+  void _incrementConsecutiveTapCountOnDown(PointerDownEvent event) {
+    // final Offset tapGlobalPosition = event.position;
+    // print('increment on tap down');
+    // if (_lastTapOffset == null && _previousButtons == null) {
+    //   print('last tap is null');
+    //   // If last tap offset is null then we have not started our consecutive tap count,
+    //   // so the consecutiveTapTimer should be null.
+    //   assert(_consecutiveTapTimer == null);
+    //   _consecutiveTapCount += 1;
+    //   _lastTapOffset = tapGlobalPosition;
+    //   _previousButtons = event.buttons;
+    // } else if (_consecutiveTapTimer != null && _isWithinConsecutiveTapTolerance(tapGlobalPosition) && _hasSameButton(event)) {
+    //   print('counting taps');
+    //   _consecutiveTapCount += 1;
+    //   _consecutiveTapTimerStop();
+    //   _previousButtons = event.buttons;
+    // } else {
+    //   _resetTracker();
+    //   _consecutiveTapCount += 1;
+    // }
+
+    if (!_representsSameSeries(event)) {
+      _resetTracker();
+    }
+    _consecutiveTapCount += 1;
+  }
+
+  bool _hasSameButton(int buttons) {
     print('has same button');
     assert(_previousButtons != null);
     print('past assert');
-    if (event.buttons == _previousButtons!) {
+    if (buttons == _previousButtons!) {
       return true;
     } else {
       return false;
     }
   }
-
-  void _incrementConsecutiveTapCountOnDown(PointerDownEvent event) {
-    final Offset tapGlobalPosition = event.position;
-    print('increment on tap down');
-    if (_lastTapOffset == null && _previousButtons == null) {
-      print('last tap is null');
-      // If last tap offset is null then we have not started our consecutive tap count,
-      // so the consecutiveTapTimer should be null.
-      assert(_consecutiveTapTimer == null);
-      _consecutiveTapCount += 1;
-      _lastTapOffset = tapGlobalPosition;
-      _previousButtons = event.buttons;
-    } else if (_consecutiveTapTimer != null && _isWithinConsecutiveTapTolerance(tapGlobalPosition) && _hasSameButton(event)) {
-      print('counting taps');
-      _consecutiveTapCount += 1;
-      _consecutiveTapTimerStop();
-      _previousButtons = event.buttons;
-    } else {
-      _resetTracker();
-      _consecutiveTapCount += 1;
-    }
-  }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 
   bool _isWithinConsecutiveTapTolerance(Offset secondTapOffset) {
     assert(secondTapOffset != null);
@@ -246,6 +257,12 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
 
     final Offset difference = secondTapOffset - _lastTapOffset!;
     return difference.distance <= kDoubleTapSlop;
+  }
+
+  bool _representsSameSeries(PointerDownEvent event) {
+    return _consecutiveTapTimer != null
+        && _isWithinConsecutiveTapTolerance(event.position)
+        && _hasSameButton(event.buttons);
   }
 
   void _resetTapState() {
