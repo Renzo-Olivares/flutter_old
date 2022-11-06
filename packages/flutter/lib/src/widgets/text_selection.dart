@@ -2554,14 +2554,17 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
     // on whether it's a single tap, the first tap of a double tap, the second
     // tap held down, a clean double tap etc.
     if (status.consecutiveTapCount.isEven) {
+      print('double tap');
       widget.onDoubleTapDown?.call(details);
     }
   }
 
   void _handleTapUp(TapUpDetails details, TapStatus status) {
     if (status.consecutiveTapCount.isOdd) {
+      print('lull');
       widget.onSingleTapUp?.call(details, status);
     }
+    print('cue');
   }
 
   void _handleTapCancel() {
@@ -2636,7 +2639,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
             // Text selection should start from the position of the first pointer
             // down event.
             ..dragStartBehavior = DragStartBehavior.down
-            ..dragUpdateThrottleFrequency = _kDragSelectionUpdateThrottle
+            // ..dragUpdateThrottleFrequency = _kDragSelectionUpdateThrottle
             ..onSecondaryTap = widget.onSecondaryTap
             ..onSecondaryTapDown = widget.onSecondaryTapDown
             ..onTapDown = _handleTapDown

@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart' show HardwareKeyboard, LogicalKeyboardKey;
 
@@ -83,164 +84,132 @@ class TapStatus {
 // a tap is tracked that does not meet any of the specifications stated above.
 mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
   // Public state available to [OneSequenceGestureRecognizer].
-  //
-  // The set of [LogicalKeyboardKey]'s that where pressed down on the most recent [PointerDownEvent]
-  // tracked in [GestureRecognizer.addAllowedPointer].
-  Set<LogicalKeyboardKey> get keysPressedOnTapDown => _keysPressedOnDown ?? <LogicalKeyboardKey>{};
-  // The number of consecutive taps that this tap represents.
-  //
-  // This value will be incremented when a [PointerDownEvent] is tracked when
-  // [OneSequenceGestureRecognizer.addAllowedPointer] is called. The count is only incremented
-  // if the [PointerDownEvent] belongs to the current series of taps, i.e. it was tracked before the
-  // `kDoubleTapTimeout` duration was exceeded after the preceding [PointerUpEvent] and the distance
-  // between the new tapped position and the previously tapped position is within the `kDoubleTapSlop`. 
-  int get consecutiveTapCount => _consecutiveTapCount;
-  // The most recent [PointerDownEvent] tracked in the latest call to [GestureRecognizer.addAllowedPointer].
   PointerDownEvent? get currentDown => _down;
-  // The most recent [PointerUpEvent] tracked in the latest call to [OneSequenceGestureRecognizer.handleEvent].
   PointerUpEvent? get currentUp => _up;
+  int get consecutiveTapCount => _consecutiveTapCount;
+  Set<LogicalKeyboardKey> get keysPressedOnDown => _keysPressedOnDown ?? <LogicalKeyboardKey>{};
+  bool get _pastTapTolerance => _pastTapTolerance;
 
-  // State of current tap being tracked.
-  Set<LogicalKeyboardKey>? _keysPressedOnDown;
+  // Private tap state tracked.
   PointerDownEvent? _down;
   PointerUpEvent? _up;
-  int? _previousButtons;
-  bool wonArena = false;
+  int _consecutiveTapCount = 0;
+  Set<LogicalKeyboardKey>? _keysPressedOnDown;
+  bool _pastTapTolerance = false;
 
-  // For tracking tap count.
+  // For timing taps.
   Timer? _consecutiveTapTimer;
   Offset? _lastTapOffset;
-  int _consecutiveTapCount = 0;
 
-  // Whether the consecutive tap timer exceeded its duration. This is used when
-  // a drag causes the timer to exceed `kDoubleTapTimeout`. In this case the
-  // [PointerUpEvent] that ended the drag should not restart the consecutive tap
-  // timer because the series of taps being tracked was reset when the timer
-  // timed out.
-  bool _consecutiveTapDurationExceeded = false;
+  int? _previousButtons;
+
+  bool _wonArena = false;
+
+  OffsetPair? _initialPosition;
 
   @override
-  void addAllowedPointer(PointerDownEvent event) {
-    super.addAllowedPointer(event);
-    print('add allowed pointer - mixin');
-    // We want to make sure to reset the previously tracked `_up` and `_down`.
-    _resetTapState();
-    _consecutiveTapDurationExceeded = false;
-    _incrementConsecutiveTapCountOnDown(event);
-    _startTrackingTap(event);
+  void didStopTrackingLastPointer(int pointer) {
+    _initialPosition = null;
   }
 
-  void _startTrackingTap(PointerDownEvent event) {
+  // When we start to track a tap, we can choose to increment the 
+  // `consecutiveTapCount` if the given tap falls under the tolerance specifications
+  // or we can reset the count to 1. 
+  //
+  // We should not reset the tap count due to a timeout because a drag may be occuring.
+  // Hmm, but technically the timer should not be active during a drag so a timeout
+  // should not be possible because the timer is cancelled on down and not resumed until
+  // a PointerUpEvent is received. make sure of this.
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    print('tracking from mixin');
+    _up = null;
+    _pastTapTolerance = false;
+    _initialPosition = OffsetPair(local: event.localPosition, global: event.position);
+    if (_down != null && !_representsSameSeries(event)) {
+      // The given tap does not match the specifications of the series of taps being tracked,
+      // reset the tap count and related state.
+      _consecutiveTapCount = 1;
+      print('reset');
+    } else {
+      _consecutiveTapCount += 1;
+      print('increment');
+    }
     _consecutiveTapTimerStop();
-    _lastTapOffset = event.position;
-    _down = event;
-    _keysPressedOnDown = HardwareKeyboard.instance.logicalKeysPressed;
-    _previousButtons = event.buttons;
+    _trackTrap(event);
+
+    // The super class is called once the `consecutiveTapCount` is updated,
+    // so the [OneSequenceGestureRecognizer] has an accurate count. In this case
+    // [BaseDragGestureRecognizer.addAllowedPointer] is called.
+    super.addAllowedPointer(event);
   }
 
   @override
   void acceptGesture(int pointer) {
-    print('accept gesture mixin');
-    if (_down != null) {
-      // Tap down callback is scheduled to run.
+    super.acceptGesture(pointer);
+    print('accept from mixin');
+    _wonArena = true;
+    if (_up != null && _down != null) {
+      print('up');
+      _consecutiveTapTimerStop();
+      _consecutiveTapTimerStart();
+      _wonArena = false;
     }
-    wonArena = true;
-    if (_up != null) {
-      // Tap up callback is scheduled to run. Set the timer.
-      print('accept gesture up');
-      if (!_consecutiveTapDurationExceeded) {
+  }
+
+  double _getGlobalDistance(PointerEvent event) {
+    assert(_initialPosition != null);
+    final Offset offset = event.position - _initialPosition!.global;
+    return offset.distance;
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    super.handleEvent(event);
+    print('handle event from mixin');
+    if (event is PointerMoveEvent) {
+      final bool isPreAcceptSlopPastTolerance =
+          !_wonArena &&
+          _getGlobalDistance(event) > kTouchSlop!;
+      final bool isPostAcceptSlopPastTolerance =
+          _wonArena &&
+          _getGlobalDistance(event) > kTouchSlop;
+      
+      if (isPreAcceptSlopPastTolerance || isPostAcceptSlopPastTolerance) {
+        _pastTapTolerance = true;
+      }
+    } else if (event is PointerUpEvent) {
+      _up = event;
+      if (_wonArena && _up != null && _down != null) {
+        print('up from handle event mixin');
+        _consecutiveTapTimerStop();
         _consecutiveTapTimerStart();
+        _wonArena = false;
       }
     }
   }
 
   @override
   void rejectGesture(int pointer) {
-    print('reject gesture - mixin');
-    _resetTracker();
-  }
-
-  @override
-  void handleEvent(PointerEvent event) {
-    print('handle event - mixin');
-    if (event is PointerMoveEvent) {
-
-    } else if (event is PointerUpEvent) {
-      // This could be the end of a drag or a tap up. For the end of a drag
-      // we should reset the tracker. For a tap up we should reset the timer.
-      _up = event;
-      if (wonArena) {
-        print('handle event up');
-        if (!_consecutiveTapDurationExceeded) {
-          _consecutiveTapTimerStart();
-        }
-        _consecutiveTapDurationExceeded = false;
-      }
-    } else if (event is PointerCancelEvent) {
-      _resetTracker();
-    }
+    super.rejectGesture(pointer);
+    _consecutiveTapTimerReset();
   }
 
   @override
   void dispose() {
-    print('dispose - mixin');
-    _resetTracker();
+    _consecutiveTapTimerReset();
     super.dispose();
   }
-
-  void _consecutiveTapTimerTimeout() {
-    _consecutiveTapTimerStop();
-    print('last nulled - timeout');
-    _lastTapOffset = null;
-    _consecutiveTapCount = 0;
-    _consecutiveTapDurationExceeded = true;
-  }
-
-  void _consecutiveTapTimerStop() {
-    print('stopping timer');
-    if (_consecutiveTapTimer != null) {
-      _consecutiveTapTimer!.cancel();
-      _consecutiveTapTimer = null;
-    }
-  }
-
-  void _consecutiveTapTimerStart() {
-    print('starting timer');
-    _consecutiveTapTimerStop();
-    _consecutiveTapTimer ??= Timer(kDoubleTapTimeout, _consecutiveTapTimerTimeout);
-  }
-
-  void _incrementConsecutiveTapCountOnDown(PointerDownEvent event) {
-    // final Offset tapGlobalPosition = event.position;
-    // print('increment on tap down');
-    // if (_lastTapOffset == null && _previousButtons == null) {
-    //   print('last tap is null');
-    //   // If last tap offset is null then we have not started our consecutive tap count,
-    //   // so the consecutiveTapTimer should be null.
-    //   assert(_consecutiveTapTimer == null);
-    //   _consecutiveTapCount += 1;
-    //   _lastTapOffset = tapGlobalPosition;
-    //   _previousButtons = event.buttons;
-    // } else if (_consecutiveTapTimer != null && _isWithinConsecutiveTapTolerance(tapGlobalPosition) && _hasSameButton(event)) {
-    //   print('counting taps');
-    //   _consecutiveTapCount += 1;
-    //   _consecutiveTapTimerStop();
-    //   _previousButtons = event.buttons;
-    // } else {
-    //   _resetTracker();
-    //   _consecutiveTapCount += 1;
-    // }
-
-    if (!_representsSameSeries(event)) {
-      _resetTracker();
-    }
-    _consecutiveTapCount += 1;
+ 
+  void _trackTrap(PointerDownEvent event) {
+    _down = event;
+    _keysPressedOnDown = HardwareKeyboard.instance.logicalKeysPressed;
+    _previousButtons = event.buttons;
+    _lastTapOffset = event.position;
   }
 
   bool _hasSameButton(int buttons) {
-    print('has same button');
     assert(_previousButtons != null);
-    print('past assert');
     if (buttons == _previousButtons!) {
       return true;
     } else {
@@ -250,7 +219,6 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
 
   bool _isWithinConsecutiveTapTolerance(Offset secondTapOffset) {
     assert(secondTapOffset != null);
-    print('is within tolerance');
     if (_lastTapOffset == null) {
       return false;
     }
@@ -265,238 +233,93 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
         && _hasSameButton(event.buttons);
   }
 
-  void _resetTapState() {
-    // We do not want to call this method before the [OneSequenceGestureRecognizer]
-    // has a chance to utilize `currentDown` and `currentUp`. For now this is called in
-    // `addAllowedPointer` where we begin to track a new tap. At that point the
-    // [OneSequenceGestureRecognizer] has had an ample opportunity to utilize
-    // the previously tracked tap. This is also called by `_resetTracker` when the recognizer
-    // has been rejected or a [PointerCancelEvent] has been received, in both cases the state
-    // is no longer needed.
-    print('reset tap state');
-    _down = null;
-    _up = null;
-    _keysPressedOnDown = null;
+  void _consecutiveTapTimerStart() {
+    print('start');
+    _consecutiveTapTimer ??= Timer(kDoubleTapTimeout, _consecutiveTapTimerReset);
   }
 
-  void _resetTracker() {
-    print('last nulled - resettracker');
+  void _consecutiveTapTimerStop() {
+    if (_consecutiveTapTimer != null) {
+      print('stop');
+      _consecutiveTapTimer!.cancel();
+      _consecutiveTapTimer = null;
+    } else {
+      print('tried to stop');
+    }
+  }
+
+  void _consecutiveTapTimerReset() {
+    // The timer has timed out, i.e. the time between a [PointerUpEvent] and the subsequent
+    // [PointerDownEvent] exceeded the duration of `kDoubleTapTimeout`, so the tap belonging
+    // to the [PointerDownEvent] cannot be considered part of the same tap series as the
+    // previous [PointerUpEvent].
+    _consecutiveTapTimerStop();
+    _previousButtons = null;
     _lastTapOffset = null;
     _consecutiveTapCount = 0;
-    _previousButtons = null;
-    _resetTapState();
-    _consecutiveTapTimerStop();
+    _keysPressedOnDown = null;
+    _down = null;
+    _up = null;
+    print('timeout');
   }
 }
 
 /// Recognizes taps and movements.
 ///
 /// Takes on the responsibilities of [TapGestureRecognizer] and [DragGestureRecognizer] in one [GestureRecognizer].
-class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _TapStatusTrackerMixin {
+class TapAndDragGestureRecognizer extends BaseDragGestureRecognizer with _TapStatusTrackerMixin {
   /// Initialize the object.
   ///
   /// [dragStartBehavior] must not be null.
   ///
   /// {@macro flutter.gestures.GestureRecognizer.supportedDevices}
   TapAndDragGestureRecognizer({
-    this.deadline = kPressTimeout,
-    this.dragStartBehavior = DragStartBehavior.start,
-    this.dragUpdateThrottleFrequency,
-    this.preAcceptSlopTolerance = kTouchSlop,
-    this.postAcceptSlopTolerance = kTouchSlop,
+    super.dragStartBehavior,
     super.debugOwner,
     super.kind,
     super.supportedDevices,
-  }) : assert(dragStartBehavior != null);
+  });
 
-  /// If non-null, the recognizer will call [onTapDown] after this
-  /// amount of time has elapsed since starting to track the primary pointer.
-  ///
-  /// [onTapDown] will not be called if the primary pointer is
-  /// accepted, rejected, or all pointers are up or canceled before [deadline].
-  final Duration? deadline;
-
-  /// {@macro flutter.gestures.monodrag.DragGestureRecognizer.dragStartBehavior}
-  DragStartBehavior dragStartBehavior;
-
-  /// The frequency at which the [onUpdate] callback is called.
-  ///
-  /// The value defaults to null, meaning there is no delay for [onUpdate] callback.
-  Duration? dragUpdateThrottleFrequency;
-
-  /// {@macro flutter.gestures.recognizer.PrimaryPointerGestureRecognizer.preAcceptSlopTolerance}
-  final double? preAcceptSlopTolerance;
-
-  /// {@macro flutter.gestures.recognizer.PrimaryPointerGestureRecognizer.postAcceptSlopTolerance}
-  final double? postAcceptSlopTolerance;
-
-  /// {@macro flutter.gestures.tap.TapGestureRecognizer.onTapDown}
-  ///
-  /// {@template flutter.gestures.selectionrecognizers.TapAndDragGestureRecognizer.tapStatus}
-  /// The number of consecutive taps, and the keys that were pressed on tap down
-  /// are provided in the callback's `status` argument, which is a [TapStatus] object.
-  /// {@endtemplate}
-  ///
-  /// See also:
-  ///
-  ///  * [kPrimaryButton], the button this callback responds to.
-  ///  * [onSecondaryTapDown], a similar callback but for a secondary button.
-  ///  * [TapDownDetails], which is passed as an argument to this callback.
-  ///  * [TapStatus], which is passed as an argument to this callback.
+  @override
   GestureTapDownWithTapStatusCallback? onTapDown;
 
-  /// {@macro flutter.gestures.tap.TapGestureRecognizer.onTapUp}
-  ///
-  /// {@macro flutter.gestures.selectionrecognizers.TapAndDragGestureRecognizer.tapStatus}
-  ///
-  /// See also:
-  ///
-  ///  * [kPrimaryButton], the button this callback responds to.
-  ///  * [onSecondaryTapUp], a similar callback but for a secondary button.
-  ///  * [TapUpDetails], which is passed as an argument to this callback.
-  ///  * [TapStatus], which is passed as an argument to this callback.
+  @override
   GestureTapUpWithTapStatusCallback? onTapUp;
 
-  /// {@macro flutter.gestures.tap.TapGestureRecognizer.onTapCancel}
-  ///
-  /// This is called if a `PointerMoveEvent` has moved a sufficient global distance
-  /// from the initial `PointerDownEvent` to be considered a drag.
-  ///
-  /// It may also be called if the pointer tracked is deemed neither a drag, nor a tap,
-  /// due to it not meeting the global distance necessary to be considered a drag, and drifting
-  /// too far from the initial `PointerDownEvent` to be considered a tap. In this case both [onTapCancel]
-  /// and [onDragCancel] will be called.
+  @override
   GestureTapCancelCallback? onTapCancel;
 
-  /// {@macro flutter.gestures.tap.TapGestureRecognizer.onSecondaryTap}
-  ///
-  /// See also:
-  ///
-  ///  * [kSecondaryButton], the button this callback responds to.
-  ///  * [onSecondaryTapUp], which has the same timing but with details.
-  GestureTapCallback? onSecondaryTap;
-
-  /// {@macro flutter.gestures.tap.TapGestureRecognizer.onSecondaryTapDown}
-  ///
-  /// See also:
-  ///
-  ///  * [kSecondaryButton], the button this callback responds to.
-  ///  * [onTapDown], a similar callback but for a primary button.
-  ///  * [TapDownDetails], which is passed as an argument to this callback.
+  @override
   GestureTapDownCallback? onSecondaryTapDown;
 
-  /// {@macro flutter.gestures.tap.TapGestureRecognizer.onSecondaryTapUp}
-  ///
-  /// See also:
-  ///
-  ///  * [onSecondaryTap], a handler triggered right after this one that doesn't
-  ///    pass any details about the tap.
-  ///  * [kSecondaryButton], the button this callback responds to.
-  ///  * [onTapUp], a similar callback but for a primary button.
-  ///  * [TapUpDetails], which is passed as an argument to this callback.
+  @override
+  GestureTapCallback? onSecondaryTap;
+
+  @override
   GestureTapUpCallback? onSecondaryTapUp;
 
-  /// {@macro flutter.gestures.monodrag.DragGestureRecognizer.onStart}
-  ///
-  /// {@macro flutter.gestures.selectionrecognizers.TapAndDragGestureRecognizer.tapStatus}
-  ///
-  /// See also:
-  ///
-  ///  * [kPrimaryButton], the button this callback responds to.
-  ///  * [DragStartDetails], which is passed as an argument to this callback.
-  ///  * [TapStatus], which is passed as an argument to this callback.
+  @override
+  GestureTapCancelCallback? onSecondaryTapCancel;
+
+  @override
   GestureDragStartWithTapStatusCallback? onStart;
 
-  /// {@macro flutter.gestures.monodrag.DragGestureRecognizer.onUpdate}
-  ///
-  /// {@macro flutter.gestures.selectionrecognizers.TapAndDragGestureRecognizer.tapStatus}
-  ///
-  /// See also:
-  ///
-  ///  * [kPrimaryButton], the button this callback responds to.
-  ///  * [DragUpdateDetails], which is passed as an argument to this callback.
-  ///  * [TapStatus], which is passed as an argument to this callback.
+  @override
   GestureDragUpdateWithTapStatusCallback? onUpdate;
 
-  /// {@macro flutter.gestures.monodrag.DragGestureRecognizer.onEnd}
-  ///
-  /// {@macro flutter.gestures.selectionrecognizers.TapAndDragGestureRecognizer.tapStatus}
-  ///
-  /// See also:
-  ///
-  ///  * [kPrimaryButton], the button this callback responds to.
-  ///  * [DragEndDetails], which is passed as an argument to this callback.
-  ///  * [TapStatus], which is passed as an argument to this callback.
+  @override
   GestureDragEndWithTapStatusCallback? onEnd;
 
-  /// The pointer that previously triggered [onTapDown] did not complete.
-  ///
-  /// This is called when we receive a `PointerUpEvent` before the recognizer has accepted
-  /// the gesture as a drag. This can happen if none of the `PointerMoveEvent`s received
-  /// drift far enough to exceed the tap tolerance, and do not meet the global distance specifications
-  /// to be considered a drag.
-  ///
-  /// It may also be called if the pointer tracked is deemed neither a drag, nor a tap,
-  /// due to it not meeting the global distance necessary to be considered a drag, and drifting
-  /// too far from the initial `PointerDownEvent` to be considered a tap. In this case both [onTapCancel]
-  /// and [onDragCancel] will be called.
-  ///
-  /// See also:
-  ///
-  ///  * [kPrimaryButton], the button this callback responds to.
+  @override
   GestureDragCancelCallback? onDragCancel;
 
-  // Tap related state.
-  bool _pastTapTolerance = false;
-  bool _sentTapDown = false;
-  bool _wonArenaForPrimaryPointer = false;
+  bool _declaredWinner = false;
 
-  /// Primary pointer being tracked by this recognizer.
-  int? get primaryPointer => _primaryPointer;
-  int? _primaryPointer;
-
-  Timer? _deadlineTimer;
-
-  // Drag related state.
-  _GestureState _dragState = _GestureState.ready;
-  PointerMoveEvent? _start;
-  late OffsetPair _initialPosition;
-  late double _globalDistanceMoved;
-  OffsetPair? _correctedPosition;
-  // For the local tap drag count.
-  int? _consecutiveTapCountWhileDragging;
-
-  // For drag update throttle.
-  DragUpdateDetails? _lastDragUpdateDetails;
-  Timer? _dragUpdateThrottleTimer;
-  TapStatus? _lastDragTapStatus;
-
-  // The buttons sent by `PointerDownEvent`. If a `PointerMoveEvent` comes with a
-  // different set of buttons, the gesture is canceled.
-  int? _initialButtons;
-
-  final Set<int> _acceptedActivePointers = <int>{};
-
-  bool _hasSufficientGlobalDistanceToAccept(PointerDeviceKind pointerDeviceKind, double? deviceTouchSlop) {
-    return _globalDistanceMoved.abs() > computePanSlop(pointerDeviceKind, gestureSettings);
-  }
-
-  // Drag updates may require throttling to avoid excessive updating, such as for text layouts in text
-  // fields. The frequency of invocations is controlled by the `dragUpdateThrottleFrequency`.
-  //
-  // Once the drag gesture ends, any pending drag update will be fired
-  // immediately. See [_checkEnd].
-  void _handleDragUpdateThrottled() {
-    assert(_lastDragUpdateDetails != null);
-    assert(_lastDragTapStatus != null);
-    invokeCallback<void>('onUpdate', () => onUpdate!(_lastDragUpdateDetails!, _lastDragTapStatus!));
-    _dragUpdateThrottleTimer = null;
-    _lastDragUpdateDetails = null;
-  }
+  bool _isDrag = false;
 
   @override
   bool isPointerAllowed(PointerEvent event) {
-    if (_initialButtons == null) {
+    if (initialButtons == null) {
       switch (event.buttons) {
         case kPrimaryButton:
           if (onTapDown == null &&
@@ -512,7 +335,8 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Tap
         case kSecondaryButton:
           if (onSecondaryTap == null &&
               onSecondaryTapDown == null &&
-              onSecondaryTapUp == null) {
+              onSecondaryTapUp == null &&
+              onSecondaryTapCancel == null) {
             return false;
           }
           break;
@@ -521,308 +345,51 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Tap
       }
     } else {
       // There can be multiple drags simultaneously. Their effects are combined.
-      if (event.buttons != _initialButtons) {
+      if (event.buttons != initialButtons) {
         return false;
       }
     }
-    return super.isPointerAllowed(event as PointerDownEvent);
-  }
-
-  @override
-  void addAllowedPointer(PointerDownEvent event) {
-    super.addAllowedPointer(event);
-    _primaryPointer = event.pointer;
-    if (deadline != null) {
-      _deadlineTimer = Timer(deadline!, () => _didExceedDeadlineWithEvent(event));
-    }
-
-    // `_down` must be assigned in this method instead of `handleEvent`,
-    // because `acceptGesture` might be called before `handleEvent`,
-    // which relies on `_down` to call `checkTapDown`.
-    if (_dragState == _GestureState.ready) {
-      _globalDistanceMoved = 0.0;
-      _initialButtons = event.buttons;
-      _dragState = _GestureState.possible;
-      _initialPosition = OffsetPair(global: event.position, local: event.localPosition);
-    }
+    return true;
+    // return (this as OneSequenceGestureRecognizer).isPointerAllowed(event as PointerDownEvent);
   }
 
   @override
   void acceptGesture(int pointer) {
-    print('acceptGesture - recognizer');
-    if (pointer != primaryPointer) {
-      return;
-    }
-
-    _stopDeadlineTimer();
-
-    assert(!_acceptedActivePointers.contains(pointer));
-    _acceptedActivePointers.add(pointer);
-
-    // Called when this recognizer is accepted by the `GestureArena`.
-    if (currentDown != null) {
-      print('send tap down - recognizer');
-      _checkTapDown(currentDown!);
-    }
-    _wonArenaForPrimaryPointer = true;
-    print('won arena recognizer');
-    if (currentUp != null) {
-      print('send tap up - recognizer');
-      _checkTapUp(currentUp!);
-    }
-
-    // resolve(GestureDisposition.accepted) may be called when the `PointerMoveEvent` has
-    // moved a sufficient global distance.
-    if (_dragState == _GestureState.accepted) {
-      if (_start != null) {
-        _acceptDrag(_start!);
-      }
-    }
-
     super.acceptGesture(pointer);
-  }
-
-  @override
-  void didStopTrackingLastPointer(int pointer) {
-    print('didstoptrackinglastpointer -recognizer $_dragState');
-    switch (_dragState) {
-      case _GestureState.ready:
-        resolve(GestureDisposition.rejected);
-        _checkCancel();
-        break;
-
-      case _GestureState.possible:
-        if (currentUp == null) {
-          // This means our pointer was not accepted as a tap nor a drag.
-          // This can happen when a user drags on a right click, going past the
-          // tap tolerance, and drag tolerance, but being rejected since a right click
-          // drag is not allowed by this recognizer.
-          resolve(GestureDisposition.rejected);
-          _checkCancel();
-        } else {
-          _checkDragCancel();
-          _checkTapUp(currentUp!);
-        }
-        break;
-
-      case _GestureState.accepted:
-        // We only arrive here, after the recognizer has accepted the `PointerEvent`
-        // as a drag. Meaning `_checkTapDown`, and `_checkStart` have already ran.
-        _checkEnd();
-        print('hello worldzaaaaaaaaaqaa');
-        _initialButtons = null;
-        break;
-    }
-
-    _stopDeadlineTimer();
-    _dragState = _GestureState.ready;
-    print('hehz-1');
-    _pastTapTolerance = false;
-    _consecutiveTapCountWhileDragging = null;
-  }
-
-  @override
-  void handleEvent(PointerEvent event) {
-    super.handleEvent(event);
-    print('handle event - recognizer');
-    if (event is PointerMoveEvent) {
-      // Receiving a `PointerMoveEvent`, does not automatically mean the pointer
-      // being tracked is doing a drag gesture. There is some drift that can happen
-      // between the initial `PointerDownEvent` and subsequent `PointerMoveEvent`s,
-      // that drift is calculated by the `isPreAcceptSlopPastTolerance`, and
-      // `isPostAcceptSlopPastTolerance`. If the pointer does not move past this tolerance
-      // than it is not considered a drag.
-      //
-      // To be recognized as a drag, the `PointerMoveEvent` must also have moved
-      // a sufficient global distance from the initial `PointerDownEvent` to be
-      // accepted as a drag. This logic is handled in `_hasSufficientGlobalDistanceToAccept`.
-
-      // If the buttons differ from the `PointerDownEvent`s buttons then we should stop tracking
-      // the pointer.
-      print('move');
-      if (event.buttons != _initialButtons) {
-        _giveUpPointer(event.pointer);
-      }
-
-      if (_dragState == _GestureState.accepted) {
-        print('accepted');
-        _checkUpdate(event);
-      } else if (_dragState == _GestureState.possible) {
-        print('possible');
-        final bool isPreAcceptSlopPastTolerance =
-            !_wonArenaForPrimaryPointer &&
-            preAcceptSlopTolerance != null &&
-            _getGlobalDistance(event) > preAcceptSlopTolerance!;
-        final bool isPostAcceptSlopPastTolerance =
-            _wonArenaForPrimaryPointer &&
-            postAcceptSlopTolerance != null &&
-            _getGlobalDistance(event) > postAcceptSlopTolerance!;
-
-        if (isPreAcceptSlopPastTolerance || isPostAcceptSlopPastTolerance) {
-          // When the tap has drifted past the tolerance, the pointer being tracked
-          // can no longer be considered a tap, i.e. the `OnTapUp` and `onSecondaryTapUp`
-          // callback will not be called. However, the pointer can potentially still be a drag.
-          _pastTapTolerance = true;
-        }
-
-        print('checking drag');
-        _checkDrag(event);
-
-        // We may arrive here if the recognizer is accepted before a `PointerMoveEvent` has been
-        // received.
-        if (_start != null && _wonArenaForPrimaryPointer) {
-          _acceptDrag(_start!);
-        }
-      }
-      print('netierh');
-    } else if (event is PointerUpEvent) {
-      if (_dragState == _GestureState.possible) {
-        print('pointer up event handled - drag possible -recognizer');
-        // If we arrive at a `PointerUpEvent`, and the recognizer has not won the arena, and the tap drift
-        // has exceeded its tolerance, then we should reject this recognizer.
-        if (_pastTapTolerance) {
-          _giveUpPointer(event.pointer);
-          return;
-        }
-        // The drag has not been accepted before a `PointerUpEvent`, therefore the recognizer
-        // only registers a tap has occurred.
-        stopTrackingIfPointerNoLongerDown(event);
-      } else if (_dragState == _GestureState.accepted) {
-        _giveUpPointer(event.pointer);
-      }
-    } else if (event is PointerCancelEvent){
-      _giveUpPointer(event.pointer);
+    print('accept from recognizer');
+    _declaredWinner = true;
+    if (currentUp != null && currentDown != null) {
+      print('accept recognizer - tryign tap up');
+      _checkTapUp();
     }
   }
 
-  @override
-  void rejectGesture(int pointer) {
-    super.rejectGesture(pointer);
-    if (pointer != primaryPointer) {
+  void _checkTapUp() {
+    assert(currentUp != null);
+    if (!_declaredWinner) {
+      print('didnt win arena up');
       return;
     }
-
-    _stopDeadlineTimer();
-    _giveUpPointer(pointer);
-
-    // Reset down and up when the recognizer has been rejected.
-    // This prevents an erroneous _up being sent when this recognizer is
-    // accepted for a drag, following a previous rejection.
-    _resetTaps();
-    _resetDragUpdateThrottle();
-    _initialButtons = null;
-  }
-
-  @override
-  void dispose() {
-    _stopDeadlineTimer();
-    _resetDragUpdateThrottle();
-    super.dispose();
-  }
-
-  @override
-  String get debugDescription => 'tap_and_drag';
-
-  void _acceptDrag(PointerMoveEvent event) {
-    _checkTapCancel();
-    print('accept drag');
-    if (dragStartBehavior == DragStartBehavior.start) {
-      _initialPosition = _initialPosition + OffsetPair(global: event.delta, local: event.localDelta);
-    }
-    _checkStart(event);
-    if (event.localDelta != Offset.zero) {
-      final Matrix4? localToGlobal = event.transform != null ? Matrix4.tryInvert(event.transform!) : null;
-      final Offset correctedLocalPosition = _initialPosition.local + event.localDelta;
-      final Offset globalUpdateDelta = PointerEvent.transformDeltaViaPositions(
-        untransformedEndPosition: correctedLocalPosition,
-        untransformedDelta: event.localDelta,
-        transform: localToGlobal,
-      );
-      final OffsetPair updateDelta = OffsetPair(local: event.localDelta, global: globalUpdateDelta);
-      _correctedPosition = _initialPosition + updateDelta; // Only adds delta for down behaviour
-      _checkUpdate(event);
-      _correctedPosition = null;
-    }
-  }
-
-  void _checkDrag(PointerMoveEvent event) {
-    final Matrix4? localToGlobalTransform = event.transform == null ? null : Matrix4.tryInvert(event.transform!);
-    _globalDistanceMoved += PointerEvent.transformDeltaViaPositions(
-      transform: localToGlobalTransform,
-      untransformedDelta: event.localDelta,
-      untransformedEndPosition: event.localPosition
-    ).distance * 1.sign;
-    print('checkkk');
-    if (_hasSufficientGlobalDistanceToAccept(event.kind, gestureSettings?.touchSlop)) {
-      if (event.buttons == kSecondaryButton) {
-        // Reject a right click drag.
-        resolve(GestureDisposition.rejected);
-        print('reject');
-        return;
-      }
-      print('accept');
-      _start = event;
-      _dragState = _GestureState.accepted;
-      resolve(GestureDisposition.accepted);
-    }
-    print('woah');
-  }
-
-  void _checkTapDown(PointerDownEvent event) {
-    if (_sentTapDown) {
-      return;
-    }
-
-    final TapDownDetails details = TapDownDetails(
-      globalPosition: event.position,
-      localPosition: event.localPosition,
-      kind: getKindForPointer(event.pointer),
-    );
-
-    _consecutiveTapCountWhileDragging = consecutiveTapCount;
-
-    final TapStatus status = TapStatus(
-      consecutiveTapCount: consecutiveTapCount,
-      keysPressedOnDown: keysPressedOnTapDown,
-    );
-
-    switch (_initialButtons) {
-      case kPrimaryButton:
-        if (onTapDown != null) {
-          invokeCallback('onTapDown', () => onTapDown!(details, status));
-        }
-        break;
-      case kSecondaryButton:
-        if (onSecondaryTapDown != null) {
-          invokeCallback('onSecondaryTapDown', () => onSecondaryTapDown!(details));
-        }
-        break;
-      default:
-    }
-
-    _sentTapDown = true;
-  }
-
-  void _checkTapUp(PointerUpEvent event) {
-    if (!_wonArenaForPrimaryPointer) {
-      return;
-    }
-    print('running check tap up - recognizer');
+    _declaredWinner = false;
+    print('won arena up');
 
     final TapUpDetails upDetails = TapUpDetails(
-      kind: event.kind,
-      globalPosition: event.position,
-      localPosition: event.localPosition,
+      kind: currentUp!.kind,
+      globalPosition: currentUp!.position,
+      localPosition: currentUp!.localPosition,
     );
 
     final TapStatus status = TapStatus(
       consecutiveTapCount: consecutiveTapCount,
-      keysPressedOnDown: keysPressedOnTapDown,
+      keysPressedOnDown: keysPressedOnDown,
     );
 
-    switch (_initialButtons) {
+    print(initialButtons);
+
+    switch (initialButtons) {
       case kPrimaryButton:
         if (onTapUp != null) {
+          print('whet');
           invokeCallback('onTapUp', () => onTapUp!(upDetails, status));
         }
         break;
@@ -831,158 +398,191 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Tap
           invokeCallback('onSecondaryTapUp', () => onSecondaryTapUp!(upDetails));
         }
         if (onSecondaryTap != null) {
+          print('secondary tap');
           invokeCallback<void>('onSecondaryTap', () => onSecondaryTap!());
         }
         break;
       default:
     }
-
-    _resetTaps();
-    if (!_acceptedActivePointers.remove(event.pointer)) {
-      resolvePointer(event.pointer, GestureDisposition.rejected);
-    } // revisit
-    _initialButtons = null;
   }
 
-  void _checkStart(PointerMoveEvent event) {
-    final DragStartDetails details = DragStartDetails(
-      sourceTimeStamp: event.timeStamp,
-      globalPosition: _initialPosition.global,
-      localPosition: _initialPosition.local,
-      kind: getKindForPointer(event.pointer),
-    );
-
-    final TapStatus status = TapStatus(
-      consecutiveTapCount: _consecutiveTapCountWhileDragging!,
-      keysPressedOnDown: keysPressedOnTapDown,
-    );
-
-    invokeCallback<void>('onStart', () => onStart!(details, status));
-
-    _start = null;
+  @override
+  void rejectGesture(int pointer) {
+    super.rejectGesture(pointer);
   }
 
-  void _checkUpdate(PointerMoveEvent event) {
-    final Offset globalPosition = _correctedPosition != null ? _correctedPosition!.global : event.position;
-    final Offset localPosition = _correctedPosition != null ? _correctedPosition!.local : event.localPosition;
-
-    final DragUpdateDetails details =  DragUpdateDetails(
-      sourceTimeStamp: event.timeStamp,
-      delta: event.localDelta,
-      globalPosition: globalPosition,
-      kind: getKindForPointer(event.pointer),
-      localPosition: localPosition,
-      offsetFromOrigin: globalPosition - _initialPosition.global,
-      localOffsetFromOrigin: localPosition - _initialPosition.local,
-    );
-
-    final TapStatus status = TapStatus(
-      consecutiveTapCount: _consecutiveTapCountWhileDragging!,
-      keysPressedOnDown: keysPressedOnTapDown,
-    );
-
-    if (dragUpdateThrottleFrequency != null) {
-      _lastDragUpdateDetails = details;
-      _lastDragTapStatus = status;
-      // Only schedule a new timer if there's no one pending.
-      _dragUpdateThrottleTimer ??= Timer(dragUpdateThrottleFrequency!, _handleDragUpdateThrottled);
-    } else {
-      invokeCallback<void>('onUpdate', () => onUpdate!(details, status));
+  @override
+  void handleEvent(PointerEvent event) {
+    // If we arrive at a [PointerUpEvent] it can mean one of two things.
+    // 1. A tap has completed.
+    // 2. A drag has completed.
+    // Calling super.handleEvent will immediately process this event as a
+    // drag. First we will reason if the [PointerUpEvent] received is associated
+    // with a tap or drag. If it is a tap then `_checkTapUp` will be called with
+    // `onDragCancel`. If a drag, then super.handleEvent will run as normal, and
+    // `onTapCancel` will be called.
+    if (event is PointerMoveEvent || event is PointerPanZoomUpdateEvent) {
+      final Offset delta = (event is PointerMoveEvent) ? event.delta : (event as PointerPanZoomUpdateEvent).panDelta;
+      final Offset localDelta = (event is PointerMoveEvent) ? event.localDelta : (event as PointerPanZoomUpdateEvent).localPanDelta;
+      final Offset position = (event is PointerMoveEvent) ? event.position : (event.position + (event as PointerPanZoomUpdateEvent).pan);
+      final Offset localPosition = (event is PointerMoveEvent) ? event.localPosition : (event.localPosition + (event as PointerPanZoomUpdateEvent).localPan);
+      if (dragState != DragState.accepted) {
+        final Offset movedLocally = getDeltaForDetails(localDelta);
+        final Matrix4? localToGlobalTransform = event.transform == null ? null : Matrix4.tryInvert(event.transform!);
+        globalDistanceMoved += PointerEvent.transformDeltaViaPositions(
+          transform: localToGlobalTransform,
+          untransformedDelta: movedLocally,
+          untransformedEndPosition: localPosition
+        ).distance * (getPrimaryValueFromOffset(movedLocally) ?? 1).sign;
+        if (hasSufficientGlobalDistanceToAccept(event.kind, gestureSettings?.touchSlop)) {
+          _isDrag = true;
+        }
+      }
     }
-  }
-
-  void _checkEnd() {
-    if (_dragUpdateThrottleTimer != null) {
-      // If there's already an update scheduled, trigger it immediately and
-      // cancel the timer.
-      _dragUpdateThrottleTimer!.cancel();
-      _handleDragUpdateThrottled();
+    super.handleEvent(event);
+    print('handle event from recognizer ${event.runtimeType}');
+    if (event is PointerUpEvent) {
+      print('handle event pointer up recognizer $_declaredWinner');
+      if (currentUp != null && currentDown != null) {
+        print('trying up');
+        _checkTapUp();
+      }
     }
-
-    final DragEndDetails endDetails = DragEndDetails(primaryVelocity: 0.0);
-
-    final TapStatus status = TapStatus(
-      consecutiveTapCount: _consecutiveTapCountWhileDragging!,
-      keysPressedOnDown: keysPressedOnTapDown,
-    );
-
-    invokeCallback<void>('onEnd', () => onEnd!(endDetails, status));
-
-    _resetTaps();
-    _resetDragUpdateThrottle();
+    print('suspicius');
   }
 
-  void _checkCancel() {
-    _checkTapCancel();
-    _checkDragCancel();
-    _resetTaps();
-  }
+  @protected
+  @override
+  void handleDragDown({ required PointerEvent down }) {
+    if (onTapDown != null) {
+      print('hello from handle drag down');
+      final TapDownDetails details = TapDownDetails(
+        globalPosition: down.position,
+        localPosition: down.localPosition,
+        kind: getKindForPointer(down.pointer),
+      );
 
-  void _checkTapCancel() {
-    if (onTapCancel != null) {
-      invokeCallback<void>('onTapCancel', onTapCancel!);
-    }
-  }
+      final TapStatus status = TapStatus(
+        consecutiveTapCount: consecutiveTapCount,
+        keysPressedOnDown: keysPressedOnDown,
+      );
 
-  void _checkDragCancel() {
-    if (onDragCancel != null) {
-      invokeCallback<void>('onDragCancel', onDragCancel!);
-    }
-    _resetDragUpdateThrottle();
-  }
-
-  void _didExceedDeadlineWithEvent(PointerDownEvent event) {
-    _didExceedDeadline();
-  }
-
-  void _didExceedDeadline() {
-    if (currentDown != null) {
-      _checkTapDown(currentDown!);
-
-      if (consecutiveTapCount > 1) {
-        // If our consecutive tap count is greater than 1, i.e. is a double tap or greater,
-        // then this recognizer should declare itself the winner to avoid the `LongPressGestureRecognizer`
-        // from declaring itself the winner if a double tap is held for to long.
-        resolve(GestureDisposition.accepted);
+      switch (initialButtons) {
+        case kPrimaryButton:
+          if (onTapDown != null) {
+            invokeCallback('onTapDown', () => onTapDown!(details, status));
+          }
+          break;
+        case kSecondaryButton:
+          if (onSecondaryTapDown != null) {
+            print('hello from secondary');
+            invokeCallback('onSecondaryTapDown', () => onSecondaryTapDown!(details));
+          }
+          break;
+        default:
       }
     }
   }
 
-  double _getGlobalDistance(PointerEvent event) {
-    final Offset offset = event.position - _initialPosition.global;
-    return offset.distance;
-  }
+  @protected
+  @override
+  void handleDragStart({ 
+    required Duration timestamp, 
+    required int pointer, 
+    required OffsetPair dragOrigin,
+  }) {
+      if (onStart != null) {
+        final DragStartDetails details = DragStartDetails(
+          sourceTimeStamp: timestamp,
+          globalPosition: dragOrigin.global,
+          localPosition: dragOrigin.local,
+          kind: getKindForPointer(pointer),
+        );
 
-  void _giveUpPointer(int pointer) {
-    print('give up pointer -recognizer');
-    stopTrackingPointer(pointer);
-    // If we never accepted the pointer, we reject it since we are no longer
-    // interested in winning the gesture arena for it.
-    if (!_acceptedActivePointers.remove(pointer)) {
-      resolvePointer(pointer, GestureDisposition.rejected);
+        final TapStatus status = TapStatus(
+          consecutiveTapCount: consecutiveTapCount,
+          keysPressedOnDown: keysPressedOnDown,
+        );
+
+        invokeCallback<void>('onStart', () => onStart!(details, status));
+    }
+  }
+  
+  @protected
+  @override
+  void handleDragUpdate({
+    Duration? sourceTimeStamp,
+    required Offset delta,
+    double? primaryDelta,
+    required int pointer,
+    required OffsetPair dragOrigin,
+    required Offset globalPosition,
+    required Offset localPosition,
+  }) {
+    if (onUpdate != null) {
+      final DragUpdateDetails details =  DragUpdateDetails(
+        sourceTimeStamp: sourceTimeStamp,
+        delta: delta,
+        primaryDelta: primaryDelta,
+        globalPosition: globalPosition,
+        kind: getKindForPointer(pointer),
+        localPosition: localPosition,
+        offsetFromOrigin: globalPosition - dragOrigin.global,
+        localOffsetFromOrigin: localPosition - dragOrigin.local,
+      );
+
+      final TapStatus status = TapStatus(
+        consecutiveTapCount: consecutiveTapCount,
+        keysPressedOnDown: keysPressedOnDown,
+      );
+
+      invokeCallback<void>('onUpdate', () => onUpdate!(details, status));
     }
   }
 
-  void _resetTaps() {
-    _sentTapDown = false;
-    _wonArenaForPrimaryPointer = false;
-    // _up = null;
-    // _down = null;
-  }
+  @protected
+  @override
+  void handleDragEnd({ required VelocityTracker tracker }) {
+    if (onEnd != null) {
+      final DragEndDetails endDetails = DragEndDetails(primaryVelocity: 0.0);
 
-  void _resetDragUpdateThrottle() {
-    _lastDragTapStatus = null;
-    _lastDragUpdateDetails = null;
-    if (_dragUpdateThrottleTimer != null) {
-      _dragUpdateThrottleTimer!.cancel();
-      _dragUpdateThrottleTimer = null;
+      final TapStatus status = TapStatus(
+        consecutiveTapCount: consecutiveTapCount,
+        keysPressedOnDown: keysPressedOnDown,
+      );
+
+      invokeCallback<void>('onEnd', () => onEnd!(endDetails, status));
     }
   }
 
-  void _stopDeadlineTimer() {
-    if (_deadlineTimer != null) {
-      _deadlineTimer!.cancel();
-      _deadlineTimer = null;
+  @protected
+  @override
+  void handleDragCancel() {
+    if (onDragCancel != null) {
+      invokeCallback<void>('onDragCancel', onDragCancel!);
     }
   }
+
+  // To enable panning.
+  @override
+  bool isFlingGesture(VelocityEstimate estimate, PointerDeviceKind kind) {
+    final double minVelocity = minFlingVelocity ?? kMinFlingVelocity;
+    final double minDistance = minFlingDistance ?? computeHitSlop(kind, gestureSettings);
+    return estimate.pixelsPerSecond.distanceSquared > minVelocity * minVelocity
+        && estimate.offset.distanceSquared > minDistance * minDistance;
+  }
+
+  @override
+  bool hasSufficientGlobalDistanceToAccept(PointerDeviceKind pointerDeviceKind, double? deviceTouchSlop) {
+    return globalDistanceMoved.abs() > computePanSlop(pointerDeviceKind, gestureSettings);
+  }
+
+  @override
+  Offset getDeltaForDetails(Offset delta) => delta;
+
+  @override
+  double? getPrimaryValueFromOffset(Offset value) => null;
+
+  @override
+  String get debugDescription => 'tap_and_drag';
 }
