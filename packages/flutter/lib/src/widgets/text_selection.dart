@@ -2737,9 +2737,9 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
     switch(defaultTargetPlatform) {
       case TargetPlatform.android:
       case TargetPlatform.fuchsia:
-      case TargetPlatform.iOS:
       case TargetPlatform.linux:
         return 3;
+      case TargetPlatform.iOS:
       case TargetPlatform.macOS:
       case TargetPlatform.windows:
         return null;
