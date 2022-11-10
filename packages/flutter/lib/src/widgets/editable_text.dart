@@ -3843,7 +3843,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     int graphemeEnd = 0;
 
     final TextPosition textPosition = renderEditable.getPositionForPoint(position);
-    int tappedTextOffset = textPosition.offset;
+    final int tappedTextOffset = textPosition.offset;
 
     while(charIter.moveNext()) {
       graphemeEnd += charIter.current.length;
@@ -3855,7 +3855,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
           // position of this final line terminator will be our closing bound
           // for this paragraph. `graphemeEnd` is decremented by 1 to offset
           // the line terminator the iterator is currently at.
-          graphemeEnd - 1;
+          graphemeEnd -= 1;
           break;
         }
       }

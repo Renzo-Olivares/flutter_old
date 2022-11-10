@@ -128,6 +128,11 @@ void main() {
     expect(doubleTapDownCount, 1);
     await tester.tapAt(const Offset(200, 200));
     await tester.pump(const Duration(milliseconds: 50));
+    expect(singleTapUpCount, 1);
+    expect(doubleTapDownCount, 1);
+    expect(tripleTapDownCount, 1);
+    await tester.tapAt(const Offset(200, 200));
+    await tester.pump(const Duration(milliseconds: 50));
     expect(singleTapUpCount, 2);
     expect(doubleTapDownCount, 1);
     expect(tripleTapDownCount, 1);
@@ -138,18 +143,13 @@ void main() {
     expect(tripleTapDownCount, 1);
     await tester.tapAt(const Offset(200, 200));
     await tester.pump(const Duration(milliseconds: 50));
-    expect(singleTapUpCount, 3);
+    expect(singleTapUpCount, 2);
     expect(doubleTapDownCount, 2);
     expect(tripleTapDownCount, 2);
     await tester.tapAt(const Offset(200, 200));
-    await tester.pump(const Duration(milliseconds: 50));
     expect(singleTapUpCount, 3);
-    expect(doubleTapDownCount, 3);
+    expect(doubleTapDownCount, 2);
     expect(tripleTapDownCount, 2);
-    await tester.tapAt(const Offset(200, 200));
-    expect(singleTapUpCount, 4);
-    expect(doubleTapDownCount, 3);
-    expect(tripleTapDownCount, 3);
     expect(tapCount, 7);
   });
 

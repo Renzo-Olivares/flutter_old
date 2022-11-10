@@ -2420,8 +2420,10 @@ class TextSelectionGestureDetectorBuilder {
       );
       final Offset dragStartGlobalPosition = details.globalPosition - details.offsetFromOrigin;
 
+      final bool alternateBetweenEvenOdd = defaultTargetPlatform == TargetPlatform.windows;
+
       // Select word by word.
-      if (status.consecutiveTapCount.isEven) {
+      if (alternateBetweenEvenOdd ? status.consecutiveTapCount.isEven : status.consecutiveTapCount == 2) {
         return renderEditable.selectWordsInRange(
           from: dragStartGlobalPosition - editableOffset - scrollableOffset,
           to: details.globalPosition,
@@ -2430,7 +2432,9 @@ class TextSelectionGestureDetectorBuilder {
       }
 
       // Select paragraph by paragraph.
-      if (status.consecutiveTapCount > 1 && status.consecutiveTapCount.isOdd) {
+      if (alternateBetweenEvenOdd ? 
+          (status.consecutiveTapCount > 1 && status.consecutiveTapCount.isOdd)
+          : status.consecutiveTapCount >= 3) {
         switch (defaultTargetPlatform) {
           case TargetPlatform.android:
           case TargetPlatform.fuchsia:
@@ -2735,9 +2739,10 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
       case TargetPlatform.fuchsia:
       case TargetPlatform.iOS:
       case TargetPlatform.linux:
+        return 3;
       case TargetPlatform.macOS:
       case TargetPlatform.windows:
-        return 2;
+        return null;
     }
   }
 
@@ -2755,14 +2760,16 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
     // on whether it's a single tap, the first tap of a double tap, the second
     // tap held down, a clean double tap etc.
 
-    if (status.consecutiveTapCount == 2) {
-      widget.onDoubleTapDown?.call(details);
-      return;
+    final bool alternateBetweenEvenOdd = defaultTargetPlatform == TargetPlatform.windows;
+    if (alternateBetweenEvenOdd ? status.consecutiveTapCount.isEven : status.consecutiveTapCount == 2) {
+      return widget.onDoubleTapDown?.call(details);
     }
 
-    if (status.consecutiveTapCount > 1 && status.consecutiveTapCount.isOdd) {
-      widget.onTripleTapDown?.call(details);
-      return;
+    if (alternateBetweenEvenOdd ? 
+          (status.consecutiveTapCount > 1 && status.consecutiveTapCount.isOdd)
+          : status.consecutiveTapCount >= 3) 
+    {
+      return widget.onTripleTapDown?.call(details);
     }
   }
 
