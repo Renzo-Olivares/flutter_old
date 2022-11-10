@@ -3797,6 +3797,72 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       : null;
   }
 
+  /// Select a paragraph around the given position.
+  ///
+  /// A paragraph boundary is defined as the range that most closely
+  /// encapsulates the given position within two line terminators. If
+  /// a line terminator does not exist in a given direction the selection
+  /// extends to the start/end of the document in that direction.
+  void selectParagraph({ required Offset position, SelectionChangedCause? cause }) {
+    assert(position != null);
+    selectParagraphsInRange(from: position, cause: cause);
+  }
+
+  /// Selects the set of paragraphs in a document that intersect a given range of global positions.
+  ///
+  /// The set of paragraphs selected are not strictly bounded by the range of global positions.
+  ///
+  /// The first and last endpoints of the selection will always be at the beginning and end of a
+  /// paragraph respectively.
+  void selectParagraphsInRange({ required Offset from, Offset? to, SelectionChangedCause? cause }) {
+    assert(from != null);
+    final TextRange fromRange = _getParagraphAtOffset(from);
+    final TextRange toRange = to == null ? fromRange : _getParagraphAtOffset(to);
+    final bool isFromParagraphBeforeToParagraph = fromRange.start < toRange.end;
+
+    final TextSelection newSelection =
+      TextSelection(
+        baseOffset: isFromParagraphBeforeToParagraph ? fromRange.start : fromRange.end,
+        extentOffset: isFromParagraphBeforeToParagraph ? toRange.end : toRange.start,
+      );
+
+    userUpdateTextEditingValue(
+      currentTextEditingValue.copyWith(selection: newSelection),
+      cause,
+    );
+  }
+
+  // Returns the [TextRange] representing a paragraph that bounds the given
+  // `position`. The `position` is bounded by either a line terminator in each
+  // direction of the text, or if there is no line terminator in a given direction
+  // then the bound extends to the start/end of the document in that direction.
+  TextRange _getParagraphAtOffset(Offset position) {
+    final CharacterRange charIter = _value.text.characters.iterator;
+
+    int graphemeStart = 0;
+    int graphemeEnd = 0;
+
+    final TextPosition textPosition = renderEditable.getPositionForPoint(position);
+    int tappedTextOffset = textPosition.offset;
+
+    while(charIter.moveNext()) {
+      graphemeEnd += charIter.current.length;
+      if (charIter.current == '\n') {
+        if (graphemeEnd <= tappedTextOffset) {
+          graphemeStart = graphemeEnd;
+        } else {
+          // The line terminator was found past the given `position`, so the
+          // position of this final line terminator will be our closing bound
+          // for this paragraph. `graphemeEnd` is decremented by 1 to offset
+          // the line terminator the iterator is currently at.
+          graphemeEnd - 1;
+          break;
+        }
+      }
+    }
+
+    return TextRange(start: graphemeStart, end:graphemeEnd);
+  }
 
   // --------------------------- Text Editing Actions ---------------------------
 

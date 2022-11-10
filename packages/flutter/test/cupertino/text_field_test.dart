@@ -2555,7 +2555,9 @@ void main() {
     await gesture.down(textOffsetToPosition(tester, 5));
     await tester.pump();
     await gesture.up();
-    await tester.pumpAndSettle();
+    // Wait for the consecutive tap timer to timeout so our next tap is not
+    // detected as a triple tap.
+    await tester.pumpAndSettle(kDoubleTapTimeout);
     expect(controller.value.selection, isNotNull);
     expect(controller.value.selection.baseOffset, 5);
     expect(controller.value.selection.extentOffset, 6);

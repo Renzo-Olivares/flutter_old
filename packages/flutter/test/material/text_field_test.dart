@@ -10104,7 +10104,7 @@ void main() {
         pointer: 7,
         kind: PointerDeviceKind.mouse,
       );
-        await tester.pump();
+      await tester.pump();
       await gesture.up();
       await tester.pump(const Duration(milliseconds: 50));
       expect(
@@ -10116,7 +10116,9 @@ void main() {
       await gesture.down(textFieldStart + const Offset(50.0, 9.0));
       await tester.pump();
       await gesture.up();
-      await tester.pumpAndSettle();
+      // Wait for the consecutive tap timer to timeout so the next
+      // tap is not detected as a triple tap.
+      await tester.pumpAndSettle(kDoubleTapTimeout);
       expect(
         controller.selection,
         const TextSelection(baseOffset: 0, extentOffset: 7),
@@ -10136,7 +10138,9 @@ void main() {
       await gesture.down(textFieldStart + const Offset(100.0, 9.0));
       await tester.pump();
       await gesture.up();
-      await tester.pumpAndSettle();
+      // Wait for the consecutive tap timer to timeout so the next
+      // tap is not detected as a triple tap.
+      await tester.pumpAndSettle(kDoubleTapTimeout);
       expect(
         controller.selection,
         const TextSelection(baseOffset: 0, extentOffset: 7),
@@ -10291,7 +10295,7 @@ void main() {
     expect(controller.value.selection.extentOffset, 1);
   }, variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.macOS, TargetPlatform.windows, TargetPlatform.linux, TargetPlatform.fuchsia, TargetPlatform.android }));
 
-  testWidgets('selecting a space selects the space on Mac', (WidgetTester tester) async {
+  testWidgets('selecting a space selects the space on Desktop platforms', (WidgetTester tester) async {
     final TextEditingController controller = TextEditingController(
       text: ' blah blah',
     );
@@ -10332,7 +10336,9 @@ void main() {
     await gesture.down(textOffsetToPosition(tester, 5));
     await tester.pump();
     await gesture.up();
-    await tester.pumpAndSettle();
+    // Wait for the consecutive tap timer to timeout so our next tap is not
+    // detected as a triple tap.
+    await tester.pumpAndSettle(kDoubleTapTimeout);
     expect(controller.value.selection, isNotNull);
     expect(controller.value.selection.baseOffset, 5);
     expect(controller.value.selection.extentOffset, 6);
