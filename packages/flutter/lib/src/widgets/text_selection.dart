@@ -2424,11 +2424,15 @@ class TextSelectionGestureDetectorBuilder {
 
       // Select word by word.
       if (details.consecutiveTapCount == 2) {
-        return renderEditable.selectWordsInRange(
+        print('$dragStartGlobalPosition - $editableOffset - $scrollableOffset');
+        print('double tap to drag from ${dragStartGlobalPosition - editableOffset - scrollableOffset} to ${details.globalPosition}');
+        renderEditable.selectWordsInRange(
           from: dragStartGlobalPosition - editableOffset - scrollableOffset,
           to: details.globalPosition,
           cause: SelectionChangedCause.drag,
         );
+        print(editableText.textEditingValue.selection);
+        return;
       }
 
       switch (defaultTargetPlatform) {
@@ -2728,6 +2732,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   // The down handler is force-run on success of a single tap and optimistically
   // run before a long press success.
   void _handleTapDown(TapDragDownDetails details) {
+    print('handle tap down');
     widget.onTapDown?.call(details);
     // This isn't detected as a double tap gesture in the gesture recognizer
     // because it's 2 single taps, each of which may do different things depending
@@ -2735,55 +2740,66 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
     // tap held down, a clean double tap etc.
 
     if (details.consecutiveTapCount == 2) {
+      print('handle double tap down');
       widget.onDoubleTapDown?.call(details);
     }
   }
 
   void _handleTapUp(TapDragUpDetails details) {
+    print('handle tap up');
     if (details.consecutiveTapCount == 1) {
       widget.onSingleTapUp?.call(details);
     }
   }
 
   void _handleTapCancel() {
+    print('handle tap cancel');
     widget.onSingleTapCancel?.call();
   }
 
   void _handleDragStart(TapDragStartDetails details) {
+    print('handel drag staryt');
     if (details.consecutiveTapCount == 1) {
       widget.onDragSelectionStart?.call(details);
     }
   }
 
   void _handleDragUpdate(TapDragUpdateDetails details) {
+    print('handle drag update');
     widget.onDragSelectionUpdate?.call(details);
   }
 
   void _handleDragEnd(TapDragEndDetails endDetails) {
+    print('handle drag end');
     widget.onDragSelectionEnd?.call(endDetails);
   }
 
   void _forcePressStarted(ForcePressDetails details) {
+    print('handle force start');
     widget.onForcePressStart?.call(details);
   }
 
   void _forcePressEnded(ForcePressDetails details) {
+    print('handle force end');
     widget.onForcePressEnd?.call(details);
   }
 
   void _handleLongPressStart(LongPressStartDetails details) {
+    print('handle long start');
     if (widget.onSingleLongTapStart != null) {
       widget.onSingleLongTapStart!(details);
     }
   }
 
   void _handleLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
+    print('handle long move');
     if (widget.onSingleLongTapMoveUpdate != null) {
       widget.onSingleLongTapMoveUpdate!(details);
     }
   }
 
   void _handleLongPressEnd(LongPressEndDetails details) {
+    print('handle long end');
     if (widget.onSingleLongTapEnd != null) {
       widget.onSingleLongTapEnd!(details);
     }
