@@ -3931,6 +3931,7 @@ void main() {
       editableTextState.hideToolbar();
       await tester.pumpAndSettle();
 
+      await tester.pumpAndSettle(kDoubleTapTimeout);
       await tester.tapAt(selectableTextStart + const Offset(150.0, 5.0));
       await tester.pump(const Duration(milliseconds: 50));
       // First tap moved the cursor.
