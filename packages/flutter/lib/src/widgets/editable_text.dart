@@ -3050,8 +3050,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     _scribbleCacheKey = null;
   }
 
-  TextSelectionOverlay _createSelectionOverlay() {
-    final TextSelectionOverlay selectionOverlay = TextSelectionOverlay(
+  void _createSelectionOverlay() {
+    _selectionOverlay = TextSelectionOverlay(
       clipboardStatus: clipboardStatus,
       context: context,
       value: _value,
@@ -3074,8 +3074,6 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         },
       magnifierConfiguration: widget.magnifierConfiguration,
     );
-
-    return selectionOverlay;
   }
 
   @pragma('vm:notify-debugger-on-exception')
@@ -3116,7 +3114,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       _selectionOverlay = null;
     } else {
       if (_selectionOverlay == null) {
-        _selectionOverlay = _createSelectionOverlay();
+        _createSelectionOverlay();
       } else {
         _selectionOverlay!.update(_value);
       }
@@ -3602,7 +3600,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     if (value == textEditingValue) {
       if (!widget.focusNode.hasFocus) {
         widget.focusNode.requestFocus();
-        _selectionOverlay = _createSelectionOverlay();
+        _createSelectionOverlay();
       }
       return;
     }
@@ -3653,11 +3651,10 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   }
 
   /// Toggles the visibility of the toolbar.
-  void toggleToolbar([bool hideHandles = true]) {
-    final TextSelectionOverlay selectionOverlay = _selectionOverlay ??= _createSelectionOverlay();
-
-    if (selectionOverlay.toolbarIsVisible) {
-      hideToolbar(hideHandles);
+  void toggleToolbar() {
+    assert(_selectionOverlay != null);
+    if (_selectionOverlay!.toolbarIsVisible) {
+      hideToolbar();
     } else {
       showToolbar();
     }
