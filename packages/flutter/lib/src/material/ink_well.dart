@@ -300,6 +300,8 @@ class InkResponse extends StatelessWidget {
     this.onTapDown,
     this.onTapUp,
     this.onTapCancel,
+    this.onSecondaryTap,
+    this.onSecondaryTapCancel,
     this.onDoubleTap,
     this.onLongPress,
     this.onHighlightChanged,
@@ -348,6 +350,14 @@ class InkResponse extends StatelessWidget {
   /// Called when the user cancels a tap that was started on this part of the
   /// material.
   final GestureTapCallback? onTapCancel;
+
+  /// Called when the user taps or clicks this part of the material with a
+  /// pointer device's secondary button.
+  final GestureTapCallback? onSecondaryTap;
+
+  /// Called when the user cancels a tap or click that was fired by a pointer
+  /// device's secondary button and started on this part of the material.
+  final GestureTapCallback? onSecondaryTapCancel;
 
   /// Called when the user double taps this part of the material.
   final GestureTapCallback? onDoubleTap;
@@ -610,6 +620,8 @@ class InkResponse extends StatelessWidget {
       onTapDown: onTapDown,
       onTapUp: onTapUp,
       onTapCancel: onTapCancel,
+      onSecondaryTap: onSecondaryTap,
+      onSecondaryTapCancel: onSecondaryTapCancel,
       onDoubleTap: onDoubleTap,
       onLongPress: onLongPress,
       onHighlightChanged: onHighlightChanged,
@@ -662,6 +674,8 @@ class _InkResponseStateWidget extends StatefulWidget {
     this.onTapDown,
     this.onTapUp,
     this.onTapCancel,
+    this.onSecondaryTap,
+    this.onSecondaryTapCancel,
     this.onDoubleTap,
     this.onLongPress,
     this.onHighlightChanged,
@@ -700,6 +714,8 @@ class _InkResponseStateWidget extends StatefulWidget {
   final GestureTapDownCallback? onTapDown;
   final GestureTapUpCallback? onTapUp;
   final GestureTapCallback? onTapCancel;
+  final GestureTapCallback? onSecondaryTap;
+  final GestureTapCallback? onSecondaryTapCancel;
   final GestureTapCallback? onDoubleTap;
   final GestureLongPressCallback? onLongPress;
   final ValueChanged<bool>? onHighlightChanged;
@@ -1111,6 +1127,22 @@ class _InkResponseState extends State<_InkResponseStateWidget>
     updateHighlight(_HighlightType.pressed, value: false);
   }
 
+  void handleSecondaryTap() {
+    _currentSplash?.confirm();
+    _currentSplash = null;
+    updateHighlight(_HighlightType.pressed, value: false);
+    if (widget.onSecondaryTap != null) {
+      widget.onSecondaryTap!();
+    }
+  }
+
+  void handleSecondaryTapCancel() {
+    _currentSplash?.cancel();
+    _currentSplash = null;
+    widget.onSecondaryTapCancel?.call();
+    updateHighlight(_HighlightType.pressed, value: false);
+  }
+
   void handleDoubleTap() {
     _currentSplash?.confirm();
     _currentSplash = null;
@@ -1237,6 +1269,8 @@ class _InkResponseState extends State<_InkResponseStateWidget>
                 onTapUp: enabled ? handleTapUp : null,
                 onTap: enabled ? handleTap : null,
                 onTapCancel: enabled ? handleTapCancel : null,
+                onSecondaryTap: enabled ? handleSecondaryTap : null,
+                onSecondaryTapCancel: enabled ? handleSecondaryTapCancel : null,
                 onDoubleTap: widget.onDoubleTap != null ? handleDoubleTap : null,
                 onLongPress: widget.onLongPress != null ? handleLongPress : null,
                 behavior: HitTestBehavior.opaque,
@@ -1345,6 +1379,8 @@ class InkWell extends InkResponse {
     super.onTapDown,
     super.onTapUp,
     super.onTapCancel,
+    super.onSecondaryTap,
+    super.onSecondaryTapCancel,
     super.onHighlightChanged,
     super.onHover,
     super.mouseCursor,
