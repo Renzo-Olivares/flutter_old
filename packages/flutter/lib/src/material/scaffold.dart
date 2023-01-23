@@ -1580,6 +1580,7 @@ class Scaffold extends StatefulWidget {
     this.drawerEnableOpenDragGesture = true,
     this.endDrawerEnableOpenDragGesture = true,
     this.restorationId,
+    this.backgroundDecoration,
   });
 
   /// If true, and [bottomNavigationBar] or [persistentFooterButtons]
@@ -1835,6 +1836,15 @@ class Scaffold extends StatefulWidget {
   ///  * [RestorationManager], which explains how state restoration works in
   ///    Flutter.
   final String? restorationId;
+
+  /// Defines the background decoration of the [Scaffold]. This property may
+  /// be used to customize the Scaffold background, for example, to provide a
+  /// custom border or shape. The [BoxDecoration.color] property, if set, paints
+  /// on top of [backgroundColor]. As such, the [backgroundColor] color is only
+  /// visible if the Scaffold has a different shape, say [BoxShape.circle] or the
+  /// [BoxDecoration.color] has some alpha value which makes the background behind
+  /// the [backgroundDecoration] visible.
+  final ShapeDecoration? backgroundDecoration;
 
   /// Finds the [ScaffoldState] from the closest instance of this class that
   /// encloses the given context.
@@ -2967,7 +2977,7 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
               actions: <Type, Action<Intent>>{
                 DismissIntent: _DismissDrawerAction(context),
               },
-              child: CustomMultiChildLayout(
+              child: widget.backgroundDecoration == null ? CustomMultiChildLayout(
                 delegate: _ScaffoldLayout(
                   extendBody: extendBody,
                   extendBodyBehindAppBar: widget.extendBodyBehindAppBar,
@@ -2984,6 +2994,26 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
                   snackBarWidth: snackBarWidth,
                 ),
                 children: children,
+              ) : DecoratedBox(
+                decoration: widget.backgroundDecoration!,
+                child: CustomMultiChildLayout(
+                  delegate: _ScaffoldLayout(
+                    extendBody: extendBody,
+                    extendBodyBehindAppBar: widget.extendBodyBehindAppBar,
+                    minInsets: minInsets,
+                    minViewPadding: minViewPadding,
+                    currentFloatingActionButtonLocation: _floatingActionButtonLocation!,
+                    floatingActionButtonMoveAnimationProgress: _floatingActionButtonMoveController.value,
+                    floatingActionButtonMotionAnimator: _floatingActionButtonAnimator,
+                    geometryNotifier: _geometryNotifier,
+                    previousFloatingActionButtonLocation: _previousFloatingActionButtonLocation!,
+                    textDirection: textDirection,
+                    isSnackBarFloating: isSnackBarFloating,
+                    extendBodyBehindMaterialBanner: extendBodyBehindMaterialBanner,
+                    snackBarWidth: snackBarWidth,
+                  ),
+                  children: children,
+                ),
               ),
             );
           }),
