@@ -300,7 +300,8 @@ class InkResponse extends StatelessWidget {
     this.onTapDown,
     this.onTapUp,
     this.onTapCancel,
-    this.onSecondaryTap,
+    this.onSecondaryTapDown,
+    this.onSecondaryTapUp,
     this.onSecondaryTapCancel,
     this.onDoubleTap,
     this.onLongPress,
@@ -351,9 +352,13 @@ class InkResponse extends StatelessWidget {
   /// material.
   final GestureTapCallback? onTapCancel;
 
-  /// Called when the user taps or clicks this part of the material with a
+  /// Called when the user taps or clicks down on this part of the material with a
   /// pointer device's secondary button.
-  final GestureTapCallback? onSecondaryTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
+
+  /// Called when the user releases a tap on this part of the material with a
+  /// pointer device's secondary button.
+  final GestureTapUpCallback? onSecondaryTapUp;
 
   /// Called when the user cancels a tap or click that was fired by a pointer
   /// device's secondary button and started on this part of the material.
@@ -620,7 +625,8 @@ class InkResponse extends StatelessWidget {
       onTapDown: onTapDown,
       onTapUp: onTapUp,
       onTapCancel: onTapCancel,
-      onSecondaryTap: onSecondaryTap,
+      onSecondaryTapDown: onSecondaryTapDown,
+      onSecondaryTapUp: onSecondaryTapUp,
       onSecondaryTapCancel: onSecondaryTapCancel,
       onDoubleTap: onDoubleTap,
       onLongPress: onLongPress,
@@ -674,7 +680,8 @@ class _InkResponseStateWidget extends StatefulWidget {
     this.onTapDown,
     this.onTapUp,
     this.onTapCancel,
-    this.onSecondaryTap,
+    this.onSecondaryTapDown,
+    this.onSecondaryTapUp,
     this.onSecondaryTapCancel,
     this.onDoubleTap,
     this.onLongPress,
@@ -714,7 +721,8 @@ class _InkResponseStateWidget extends StatefulWidget {
   final GestureTapDownCallback? onTapDown;
   final GestureTapUpCallback? onTapUp;
   final GestureTapCallback? onTapCancel;
-  final GestureTapCallback? onSecondaryTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
+  final GestureTapUpCallback? onSecondaryTapUp;
   final GestureTapCallback? onSecondaryTapCancel;
   final GestureTapCallback? onDoubleTap;
   final GestureLongPressCallback? onLongPress;
@@ -1075,11 +1083,15 @@ class _InkResponseState extends State<_InkResponseStateWidget>
     widget.onFocusChange?.call(hasFocus);
   }
 
-  void handleTapDown(TapDownDetails details) {
+  void handleAnyDown(TapDownDetails details) {
     if (_anyChildInkResponsePressed) {
       return;
     }
     _startNewSplash(details: details);
+  }
+
+  void handleTapDown(TapDownDetails details) {
+    handleAnyDown(details);
     widget.onTapDown?.call(details);
   }
 
@@ -1127,12 +1139,19 @@ class _InkResponseState extends State<_InkResponseStateWidget>
     updateHighlight(_HighlightType.pressed, value: false);
   }
 
-  void handleSecondaryTap() {
-    _currentSplash?.confirm();
+  void handleSecondaryTapDown(TapDownDetails details) {
+    handleAnyDown(details);
+    if (widget.onSecondaryTapDown != null) {
+      widget.onSecondaryTapDown!(details);
+    }
+  }
+
+  void handleSecondaryTapUp(TapUpDetails details) {
+    _currentSplash?.cancel();
     _currentSplash = null;
     updateHighlight(_HighlightType.pressed, value: false);
-    if (widget.onSecondaryTap != null) {
-      widget.onSecondaryTap!();
+    if (widget.onSecondaryTapUp != null) {
+      widget.onSecondaryTapUp!(details);
     }
   }
 
@@ -1181,7 +1200,7 @@ class _InkResponseState extends State<_InkResponseStateWidget>
   }
 
   bool isWidgetEnabled(_InkResponseStateWidget widget) {
-    return widget.onTap != null || widget.onDoubleTap != null || widget.onLongPress != null || widget.onTapDown != null;
+    return widget.onTap != null || widget.onDoubleTap != null || widget.onLongPress != null || widget.onTapDown != null || widget.onSecondaryTapDown != null || widget.onSecondaryTapUp != null;
   }
 
   bool get enabled => isWidgetEnabled(widget);
@@ -1269,7 +1288,8 @@ class _InkResponseState extends State<_InkResponseStateWidget>
                 onTapUp: enabled ? handleTapUp : null,
                 onTap: enabled ? handleTap : null,
                 onTapCancel: enabled ? handleTapCancel : null,
-                onSecondaryTap: enabled ? handleSecondaryTap : null,
+                onSecondaryTapUp: enabled != null ? handleSecondaryTapUp : null,
+                onSecondaryTapDown: enabled ? handleSecondaryTapDown : null,
                 onSecondaryTapCancel: enabled ? handleSecondaryTapCancel : null,
                 onDoubleTap: widget.onDoubleTap != null ? handleDoubleTap : null,
                 onLongPress: widget.onLongPress != null ? handleLongPress : null,
@@ -1379,7 +1399,8 @@ class InkWell extends InkResponse {
     super.onTapDown,
     super.onTapUp,
     super.onTapCancel,
-    super.onSecondaryTap,
+    super.onSecondaryTapDown,
+    super.onSecondaryTapUp,
     super.onSecondaryTapCancel,
     super.onHighlightChanged,
     super.onHover,
