@@ -3379,7 +3379,7 @@ void main() {
       expect(find.byType(CupertinoButton), isContextMenuProvidedByPlatform ? findsNothing : findsNWidgets(3));
   }, variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.iOS }));
 
-  group('Triple tap/click', () { 
+  group('Triple tap/click', () {
     testWidgets(
       'Can triple tap to select a paragraph on mobile platforms when tapping at a word edge',
       (WidgetTester tester) async {
@@ -3441,7 +3441,7 @@ void main() {
         expect(controller.selection.extentOffset, 20);
       },
       variant: TargetPlatformVariant.mobile(),
-      skip: true,
+      skip: true, // [intended] currently broken on CupertinoTextSelectionControls because the vertical selection handles block the gesture detector below it.
     );
 
     testWidgets(
