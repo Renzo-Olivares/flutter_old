@@ -9251,7 +9251,7 @@ void main() {
         // First click moves the cursor to the point of the click, not the edge of
         // the clicked word.
         final TestGesture gesture = await tester.startGesture(
-          textFieldStart + const Offset(200.0, 9.0),
+          textFieldStart + const Offset(210.0, 9.0),
           pointer: 7,
           kind: PointerDeviceKind.mouse,
         );
@@ -9262,7 +9262,7 @@ void main() {
         expect(controller.selection.baseOffset, 13);
 
         // Second click selects the word.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump();
@@ -9272,7 +9272,7 @@ void main() {
         );
 
         // Triple click selects the paragraph.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         // Wait for the consecutive tap timer to timeout so the next
@@ -9708,7 +9708,7 @@ void main() {
         // First click moves the cursor to the point of the click, not the edge of
         // the clicked word.
         final TestGesture gesture = await tester.startGesture(
-          textFieldStart + const Offset(200.0, 9.0),
+          textFieldStart + const Offset(210.0, 9.0),
           pointer: 7,
           kind: PointerDeviceKind.mouse,
         );
@@ -9719,7 +9719,7 @@ void main() {
         expect(controller.selection.baseOffset, 13);
 
         // Second click selects the word.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump();
@@ -9729,7 +9729,7 @@ void main() {
         );
 
         // Triple click selects the paragraph.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pumpAndSettle();
@@ -9739,7 +9739,7 @@ void main() {
         );
 
         // Clicking again retains the selection.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump(const Duration(milliseconds: 50));
@@ -9748,7 +9748,7 @@ void main() {
           const TextSelection(baseOffset: 0, extentOffset: 20),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump();
@@ -9758,7 +9758,7 @@ void main() {
           const TextSelection(baseOffset: 0, extentOffset: 20),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pumpAndSettle();
@@ -9795,7 +9795,7 @@ void main() {
         // First click moves the cursor to the point of the click, not the edge of
         // the clicked word.
         final TestGesture gesture = await tester.startGesture(
-          textFieldStart + const Offset(200.0, 9.0),
+          textFieldStart + const Offset(210.0, 9.0),
           pointer: 7,
           kind: PointerDeviceKind.mouse,
         );
@@ -9806,7 +9806,7 @@ void main() {
         expect(controller.selection.baseOffset, 13);
 
         // Second click selects the word.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump();
@@ -9816,7 +9816,7 @@ void main() {
         );
 
         // Triple click selects the paragraph.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pumpAndSettle();
@@ -9826,14 +9826,14 @@ void main() {
         );
 
         // Clicking again moves the caret to the tapped positio.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump(const Duration(milliseconds: 50));
         expect(controller.selection.isCollapsed, true);
         expect(controller.selection.baseOffset, 13);
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump();
@@ -9843,7 +9843,7 @@ void main() {
           const TextSelection(baseOffset: 11, extentOffset: 15),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pumpAndSettle();
@@ -9853,7 +9853,7 @@ void main() {
           const TextSelection(baseOffset: 0, extentOffset: 20),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump(const Duration(milliseconds: 50));
@@ -9861,7 +9861,7 @@ void main() {
         expect(controller.selection.isCollapsed, true);
         expect(controller.selection.baseOffset, 13);
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump();
@@ -9871,7 +9871,7 @@ void main() {
           const TextSelection(baseOffset: 11, extentOffset: 15),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pumpAndSettle();
@@ -9908,7 +9908,7 @@ void main() {
         // First click moves the cursor to the point of the click, not the edge of
         // the clicked word.
         final TestGesture gesture = await tester.startGesture(
-          textFieldStart + const Offset(200.0, 9.0),
+          textFieldStart + const Offset(210.0, 9.0),
           pointer: 7,
           kind: PointerDeviceKind.mouse,
         );
@@ -9919,7 +9919,7 @@ void main() {
         expect(controller.selection.baseOffset, 13);
 
         // Second click selects the word.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump();
@@ -9929,7 +9929,7 @@ void main() {
         );
 
         // Triple click selects the paragraph.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pumpAndSettle();
@@ -9939,7 +9939,7 @@ void main() {
         );
 
         // Clicking again selects the word.
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump(const Duration(milliseconds: 50));
@@ -9948,7 +9948,7 @@ void main() {
           const TextSelection(baseOffset: 11, extentOffset: 15),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump();
@@ -9958,7 +9958,7 @@ void main() {
           const TextSelection(baseOffset: 0, extentOffset: 20),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pumpAndSettle();
@@ -9968,7 +9968,7 @@ void main() {
           const TextSelection(baseOffset: 11, extentOffset: 15),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump(const Duration(milliseconds: 50));
@@ -9978,7 +9978,7 @@ void main() {
           const TextSelection(baseOffset: 0, extentOffset: 20),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pump();
@@ -9988,7 +9988,7 @@ void main() {
           const TextSelection(baseOffset: 11, extentOffset: 15),
         );
 
-        await gesture.down(textFieldStart + const Offset(200.0, 9.0));
+        await gesture.down(textFieldStart + const Offset(210.0, 9.0));
         await tester.pump();
         await gesture.up();
         await tester.pumpAndSettle();
