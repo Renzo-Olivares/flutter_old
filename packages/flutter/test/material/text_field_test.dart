@@ -9246,6 +9246,7 @@ void main() {
         );
 
         final Offset textFieldStart = tester.getTopLeft(find.byType(TextField));
+        final bool platformSelectsByLine = defaultTargetPlatform == TargetPlatform.linux;
 
         // First click moves the cursor to the point of the click, not the edge of
         // the clicked word.
@@ -9279,7 +9280,7 @@ void main() {
         await tester.pumpAndSettle(kDoubleTapTimeout);
         expect(
           controller.selection,
-          const TextSelection(baseOffset: 0, extentOffset: 20),
+          TextSelection(baseOffset: 0, extentOffset: platformSelectsByLine ? 19 : 20),
         );
 
         // Triple click selecting the same paragraph somewhere else is fine.
@@ -9311,7 +9312,7 @@ void main() {
         // Third click selected the paragraph.
         expect(
           controller.selection,
-          const TextSelection(baseOffset: 0, extentOffset: 20),
+          TextSelection(baseOffset: 0, extentOffset: platformSelectsByLine ? 19 : 20),
         );
 
         await gesture.down(textFieldStart + const Offset(150.0, 9.0));
@@ -9340,7 +9341,7 @@ void main() {
         // Third click selects the paragraph.
         expect(
           controller.selection,
-          const TextSelection(baseOffset: 0, extentOffset: 20),
+          TextSelection(baseOffset: 0, extentOffset: platformSelectsByLine ? 19 : 20),
         );
       },
       variant: TargetPlatformVariant.desktop(),
@@ -9366,6 +9367,7 @@ void main() {
         );
 
         final Offset textFieldStart = tester.getTopLeft(find.byType(TextField));
+        final bool platformSelectsByLine = defaultTargetPlatform == TargetPlatform.linux;
 
         final TestGesture gesture = await tester.startGesture(
           textFieldStart + const Offset(50.0, 9.0),
@@ -9406,7 +9408,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(
           controller.selection,
-          const TextSelection(baseOffset: 0, extentOffset: 20),
+          TextSelection(baseOffset: 0, extentOffset: platformSelectsByLine ? 19 : 20),
         );
 
       },
@@ -9546,6 +9548,7 @@ void main() {
         expect(controller.value.text, testValueA);
 
         final Offset firstLinePos = textOffsetToPosition(tester, 5);
+        final bool platformSelectsByLine = defaultTargetPlatform == TargetPlatform.linux;
 
         // Tap on text field to gain focus, and set selection to 'i|s' on the first line.
         final TestGesture gesture = await tester.startGesture(
@@ -9578,7 +9581,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(controller.selection.baseOffset, 0);
-        expect(controller.selection.extentOffset, 20);
+        expect(controller.selection.extentOffset, platformSelectsByLine ? 19 : 20);
       },
       variant: TargetPlatformVariant.desktop(),
     );
@@ -9680,7 +9683,7 @@ void main() {
         expect(controller.selection.baseOffset, 0);
         expect(controller.selection.extentOffset, 20);
       },
-      variant: TargetPlatformVariant.desktop(),
+      variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.macOS, TargetPlatform.windows }),
     );
 
     testWidgets(
@@ -9790,6 +9793,7 @@ void main() {
         );
 
         final Offset textFieldStart = tester.getTopLeft(find.byType(TextField));
+        final bool platformSelectsByLine = defaultTargetPlatform == TargetPlatform.linux;
 
         // First click moves the cursor to the point of the click, not the edge of
         // the clicked word.
@@ -9821,7 +9825,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(
           controller.selection,
-          const TextSelection(baseOffset: 0, extentOffset: 20),
+          TextSelection(baseOffset: 0, extentOffset: platformSelectsByLine ? 19 : 20),
         );
 
         // Clicking again moves the caret to the tapped positio.
@@ -9849,7 +9853,7 @@ void main() {
         // Clicking again selects the paragraph.
         expect(
           controller.selection,
-          const TextSelection(baseOffset: 0, extentOffset: 20),
+          TextSelection(baseOffset: 0, extentOffset: platformSelectsByLine ? 19 : 20),
         );
 
         await gesture.down(textFieldStart + const Offset(210.0, 9.0));
@@ -9877,7 +9881,7 @@ void main() {
         // Clicking again selects the paragraph.
         expect(
           controller.selection,
-          const TextSelection(baseOffset: 0, extentOffset: 20),
+          TextSelection(baseOffset: 0, extentOffset: platformSelectsByLine ? 19 : 20),
         );
       },
       variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.android, TargetPlatform.fuchsia, TargetPlatform.linux }),
