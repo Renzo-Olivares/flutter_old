@@ -452,6 +452,7 @@ class TextSelectionOverlay {
   }
 
   void rebuildHandles() {
+    _updateSelectionOverlay();
     _selectionOverlay.rebuildHandles();
   }
 
@@ -1334,7 +1335,7 @@ class SelectionOverlay {
     if (_handles == null) {
       return;
     }
-    // If we are in build state, it will be too late to update visibility.
+    // If we are in build state, it will be too late to rebuild the handles.
     // We will need to schedule the build in next frame.
     if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
       if (_buildScheduled) {
