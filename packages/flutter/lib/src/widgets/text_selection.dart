@@ -2824,6 +2824,12 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
+  /// Handler for [TextSelectionGestureDetector.onTapTrackReset].
+  @protected
+  void onTapTrackReset() {
+    editableText.showHandles();
+  }
+
   /// Returns a [TextSelectionGestureDetector] configured with the handlers
   /// provided by this builder.
   ///
@@ -2850,6 +2856,7 @@ class TextSelectionGestureDetectorBuilder {
       onDragSelectionStart: onDragSelectionStart,
       onDragSelectionUpdate: onDragSelectionUpdate,
       onDragSelectionEnd: onDragSelectionEnd,
+      onTapTrackReset: onTapTrackReset,
       behavior: behavior,
       child: child,
     );
@@ -2890,6 +2897,7 @@ class TextSelectionGestureDetector extends StatefulWidget {
     this.onDragSelectionStart,
     this.onDragSelectionUpdate,
     this.onDragSelectionEnd,
+    this.onTapTrackReset,
     this.behavior,
     required this.child,
   });
@@ -2958,6 +2966,12 @@ class TextSelectionGestureDetector extends StatefulWidget {
   /// Called when a mouse that was previously dragging is released.
   final GestureTapDragEndCallback? onDragSelectionEnd;
 
+  /// Called when the consecutive tap tracker has reset.
+  ///
+  /// This can happen when the consecutive tap timer is elapsed or when the most
+  /// recent tap does not qualify as a consecutive tap.
+  final VoidCallback? onTapTrackReset;
+
   /// How this gesture detector should behave during hit testing.
   ///
   /// This defaults to [HitTestBehavior.deferToChild].
@@ -2971,6 +2985,7 @@ class TextSelectionGestureDetector extends StatefulWidget {
 }
 
 class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetector> {
+  int? _lastConsecutiveTapCount;
 
   // Converts the details.consecutiveTapCount from a TapAndDrag*Details object,
   // which can grow to be infinitely large, to a value between 1 and 3. The value
@@ -3016,6 +3031,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   // The down handler is force-run on success of a single tap and optimistically
   // run before a long press success.
   void _handleTapDown(TapDragDownDetails details) {
+    _lastConsecutiveTapCount = _getEffectiveConsecutiveTapCount(details.consecutiveTapCount);
     widget.onTapDown?.call(details);
     // This isn't detected as a double tap gesture in the gesture recognizer
     // because it's 2 single taps, each of which may do different things depending
@@ -3078,6 +3094,13 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
     }
   }
 
+  void _handleTapTrackReset() {
+    if (_lastConsecutiveTapCount == 2 && defaultTargetPlatform == TargetPlatform.iOS) {
+      widget.onTapTrackReset?.call();
+    }
+    _lastConsecutiveTapCount = null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final Map<Type, GestureRecognizerFactory> gestures = <Type, GestureRecognizerFactory>{};
@@ -3117,10 +3140,11 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
             ..dragStartBehavior = DragStartBehavior.down
             ..dragUpdateThrottleFrequency = _kDragSelectionUpdateThrottle
             ..onTapDown = _handleTapDown
+            ..onTapUp = _handleTapUp
             ..onDragStart = _handleDragStart
             ..onDragUpdate = _handleDragUpdate
             ..onDragEnd = _handleDragEnd
-            ..onTapUp = _handleTapUp
+            ..onTapTrackReset = _handleTapTrackReset
             ..onCancel = _handleTapCancel;
         },
       );

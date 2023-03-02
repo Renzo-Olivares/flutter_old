@@ -3358,7 +3358,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         _selectionOverlay!.update(_value);
       }
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
-      _selectionOverlay!.showHandles();
+      if (defaultTargetPlatform != TargetPlatform.iOS && (cause == null ? false : cause == SelectionChangedCause.doubleTap)) {
+        _selectionOverlay!.showHandles();
+      }
     }
     // TODO(chunhtai): we should make sure selection actually changed before
     // we call the onSelectionChanged.
@@ -3925,6 +3927,18 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       hideToolbar(hideHandles);
     } else {
       showToolbar();
+    }
+  }
+
+  void showHandles() {
+    if (widget.selectionControls == null && widget.contextMenuBuilder == null) {
+      _selectionOverlay?.dispose();
+      _selectionOverlay = null;
+    } else {
+      if (_selectionOverlay == null) {
+        _selectionOverlay = _createSelectionOverlay();
+      }
+      _selectionOverlay!.showHandles();
     }
   }
 
