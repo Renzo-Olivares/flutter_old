@@ -762,6 +762,7 @@ class EditableText extends StatefulWidget {
     this.autofocus = false,
     bool? showCursor,
     this.showSelectionHandles = false,
+    this.selectionHandlesAllowPointers = true,
     this.selectionColor,
     this.selectionControls,
     TextInputType? keyboardType,
@@ -936,6 +937,9 @@ class EditableText extends StatefulWidget {
   ///
   ///  * [showCursor], which controls the visibility of the cursor.
   final bool showSelectionHandles;
+
+  /// Whether to allow the selection handles to receive pointer events.
+  final bool selectionHandlesAllowPointers;
 
   /// {@template flutter.widgets.editableText.showCursor}
   /// Whether to show cursor.
@@ -2652,6 +2656,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       _selectionOverlay?.update(_value);
     }
     _selectionOverlay?.handlesVisible = widget.showSelectionHandles;
+    _selectionOverlay?.handlesAllowPointers = widget.selectionHandlesAllowPointers;
 
     if (widget.autofillClient != oldWidget.autofillClient) {
       _currentAutofillScope?.unregister(oldWidget.autofillClient?.autofillId ?? autofillId);
@@ -3332,6 +3337,19 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     return selectionOverlay;
   }
 
+  void updateSelectionHandlesOverlay() {
+    if (widget.selectionControls == null && widget.contextMenuBuilder == null) {
+      _selectionOverlay?.dispose();
+      _selectionOverlay = null;
+    } else {
+      if (_selectionOverlay == null) {
+        _selectionOverlay = _createSelectionOverlay();
+      }
+      _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
+      _selectionOverlay!.rebuildHandles();
+    }
+  }
+
   @pragma('vm:notify-debugger-on-exception')
   void _handleSelectionChanged(TextSelection selection, SelectionChangedCause? cause) {
     // We return early if the selection is not valid. This can happen when the
@@ -3375,6 +3393,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         _selectionOverlay!.update(_value);
       }
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
+      _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
       _selectionOverlay!.showHandles();
     }
     // TODO(chunhtai): we should make sure selection actually changed before
