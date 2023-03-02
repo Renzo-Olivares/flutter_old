@@ -314,6 +314,7 @@ class TextSelectionOverlay {
     required this.renderObject,
     this.selectionControls,
     bool handlesVisible = false,
+    bool handlesAllowPointers = true,
     required this.selectionDelegate,
     DragStartBehavior dragStartBehavior = DragStartBehavior.start,
     VoidCallback? onSelectionHandleTapped,
@@ -321,15 +322,20 @@ class TextSelectionOverlay {
     this.contextMenuBuilder,
     required TextMagnifierConfiguration magnifierConfiguration,
   }) : _handlesVisible = handlesVisible,
+       _handlesAllowPointers = handlesAllowPointers,
        _value = value {
     renderObject.selectionStartInViewport.addListener(_updateTextSelectionOverlayVisibilities);
     renderObject.selectionEndInViewport.addListener(_updateTextSelectionOverlayVisibilities);
     _updateTextSelectionOverlayVisibilities();
+    renderObject.selectionStartInViewport.addListener(_updateTextSelectionHandlesOverlayPointerBehavior);
+    renderObject.selectionEndInViewport.addListener(_updateTextSelectionHandlesOverlayPointerBehavior);
+    _updateTextSelectionHandlesOverlayPointerBehavior();
     _selectionOverlay = SelectionOverlay(
       magnifierConfiguration: magnifierConfiguration,
       context: context,
       debugRequiredFor: debugRequiredFor,
       // The metrics will be set when show handles.
+      handlesAllowPointers: _effectiveSelectionHandlesAllowPointers,
       startHandleType: TextSelectionHandleType.collapsed,
       startHandlesVisible: _effectiveStartHandleVisibility,
       lineHeightAtStart: 0.0,
@@ -401,10 +407,16 @@ class TextSelectionOverlay {
   final ValueNotifier<bool> _effectiveEndHandleVisibility = ValueNotifier<bool>(false);
   final ValueNotifier<bool> _effectiveToolbarVisibility = ValueNotifier<bool>(false);
 
+  final ValueNotifier<bool> _effectiveSelectionHandlesAllowPointers = ValueNotifier<bool>(true);
+
   void _updateTextSelectionOverlayVisibilities() {
     _effectiveStartHandleVisibility.value = _handlesVisible && renderObject.selectionStartInViewport.value;
     _effectiveEndHandleVisibility.value = _handlesVisible && renderObject.selectionEndInViewport.value;
     _effectiveToolbarVisibility.value = renderObject.selectionStartInViewport.value || renderObject.selectionEndInViewport.value;
+  }
+
+  void _updateTextSelectionHandlesOverlayPointerBehavior() {
+    _effectiveSelectionHandlesAllowPointers.value = _handlesAllowPointers && (renderObject.selectionStartInViewport.value || renderObject.selectionEndInViewport.value);
   }
 
   /// Whether selection handles are visible.
@@ -423,10 +435,24 @@ class TextSelectionOverlay {
     _updateTextSelectionOverlayVisibilities();
   }
 
+  bool get handlesAllowPointers => _handlesAllowPointers;
+  bool _handlesAllowPointers = true;
+  set handlesAllowPointers(bool canReceivePointers) {
+    if (_handlesAllowPointers == canReceivePointers) {
+      return;
+    }
+    _handlesAllowPointers = canReceivePointers;
+    _updateTextSelectionHandlesOverlayPointerBehavior();
+  }
+
   /// {@macro flutter.widgets.SelectionOverlay.showHandles}
   void showHandles() {
     _updateSelectionOverlay();
     _selectionOverlay.showHandles();
+  }
+
+  void rebuildHandles() {
+    _selectionOverlay.rebuildHandles();
   }
 
   /// {@macro flutter.widgets.SelectionOverlay.hideHandles}
@@ -576,6 +602,8 @@ class TextSelectionOverlay {
     _selectionOverlay.dispose();
     renderObject.selectionStartInViewport.removeListener(_updateTextSelectionOverlayVisibilities);
     renderObject.selectionEndInViewport.removeListener(_updateTextSelectionOverlayVisibilities);
+    renderObject.selectionStartInViewport.removeListener(_updateTextSelectionHandlesOverlayPointerBehavior);
+    renderObject.selectionEndInViewport.removeListener(_updateTextSelectionHandlesOverlayPointerBehavior);
     _effectiveToolbarVisibility.dispose();
     _effectiveStartHandleVisibility.dispose();
     _effectiveEndHandleVisibility.dispose();
@@ -912,6 +940,7 @@ class SelectionOverlay {
     this.debugRequiredFor,
     required TextSelectionHandleType startHandleType,
     required double lineHeightAtStart,
+    this.handlesAllowPointers,
     this.startHandlesVisible,
     this.onStartHandleDragStart,
     this.onStartHandleDragUpdate,
@@ -1055,6 +1084,9 @@ class SelectionOverlay {
   }
 
   bool _isDraggingStartHandle = false;
+
+  /// Whether both handles can receive pointers.
+  final ValueListenable<bool>? handlesAllowPointers;
 
   /// Whether the start handle is visible.
   ///
@@ -1298,6 +1330,28 @@ class SelectionOverlay {
     Overlay.of(context, rootOverlay: true, debugRequiredFor: debugRequiredFor).insertAll(_handles!);
   }
 
+  void rebuildHandles() {
+    if (_handles == null) {
+      return;
+    }
+    // If we are in build state, it will be too late to update visibility.
+    // We will need to schedule the build in next frame.
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      if (_buildScheduled) {
+        return;
+      }
+      _buildScheduled = true;
+      SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
+        _buildScheduled = false;
+        _handles![0].markNeedsBuild();
+        _handles![1].markNeedsBuild();
+      });
+    } else {
+      _handles![0].markNeedsBuild();
+      _handles![1].markNeedsBuild();
+    }
+  }
+
   /// {@template flutter.widgets.SelectionOverlay.hideHandles}
   /// Destroys the handles by removing them from overlay.
   /// {@endtemplate}
@@ -1452,6 +1506,7 @@ class SelectionOverlay {
         onSelectionHandleDragUpdate: onStartHandleDragUpdate,
         onSelectionHandleDragEnd: _handleStartHandleDragEnd,
         selectionControls: selectionControls,
+        allowPointers: handlesAllowPointers,
         visibility: startHandlesVisible,
         preferredLineHeight: _lineHeightAtStart,
         dragStartBehavior: dragStartBehavior,
@@ -1653,6 +1708,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
     this.onSelectionHandleDragUpdate,
     this.onSelectionHandleDragEnd,
     required this.selectionControls,
+    this.allowPointers,
     this.visibility,
     required this.preferredLineHeight,
     this.dragStartBehavior = DragStartBehavior.start,
@@ -1664,6 +1720,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
   final ValueChanged<DragUpdateDetails>? onSelectionHandleDragUpdate;
   final ValueChanged<DragEndDetails>? onSelectionHandleDragEnd;
   final TextSelectionControls selectionControls;
+  final ValueListenable<bool>? allowPointers;
   final ValueListenable<bool>? visibility;
   final double preferredLineHeight;
   final TextSelectionHandleType type;
@@ -1676,6 +1733,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
 class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   Animation<double> get _opacity => _controller.view;
+  bool _allowPointers = true;
 
   @override
   void initState() {
@@ -1685,6 +1743,9 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
 
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
+
+    _handleAllowsPointersChanged();
+    widget.allowPointers?.addListener(_handleAllowsPointersChanged);
   }
 
   void _handleVisibilityChanged() {
@@ -1695,17 +1756,30 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
     }
   }
 
+  void _handleAllowsPointersChanged() {
+    if (widget.allowPointers?.value ?? true) {
+      _allowPointers = true;
+    } else {
+      _allowPointers = false;
+    }
+  }
+
   @override
   void didUpdateWidget(_SelectionHandleOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
     oldWidget.visibility?.removeListener(_handleVisibilityChanged);
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
+
+    oldWidget.allowPointers?.removeListener(_handleAllowsPointersChanged);
+    _handleAllowsPointersChanged();
+    widget.allowPointers?.addListener(_handleAllowsPointersChanged);
   }
 
   @override
   void dispose() {
     widget.visibility?.removeListener(_handleVisibilityChanged);
+    widget.allowPointers?.removeListener(_handleAllowsPointersChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -1742,46 +1816,49 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
       link: widget.handleLayerLink,
       offset: interactiveRect.topLeft,
       showWhenUnlinked: false,
-      child: FadeTransition(
-        opacity: _opacity,
-        child: Container(
-          alignment: Alignment.topLeft,
-          width: interactiveRect.width,
-          height: interactiveRect.height,
-          child: RawGestureDetector(
-            behavior: HitTestBehavior.translucent,
-            gestures: <Type, GestureRecognizerFactory>{
-              PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-                () => PanGestureRecognizer(
-                  debugOwner: this,
-                  // Mouse events select the text and do not drag the cursor.
-                  supportedDevices: <PointerDeviceKind>{
-                    PointerDeviceKind.touch,
-                    PointerDeviceKind.stylus,
-                    PointerDeviceKind.unknown,
+      child: IgnorePointer(
+        ignoring: _allowPointers,
+        child: FadeTransition(
+          opacity: _opacity,
+          child: Container(
+            alignment: Alignment.topLeft,
+            width: interactiveRect.width,
+            height: interactiveRect.height,
+            child: RawGestureDetector(
+              behavior: HitTestBehavior.translucent,
+              gestures: <Type, GestureRecognizerFactory>{
+                PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+                  () => PanGestureRecognizer(
+                    debugOwner: this,
+                    // Mouse events select the text and do not drag the cursor.
+                    supportedDevices: <PointerDeviceKind>{
+                      PointerDeviceKind.touch,
+                      PointerDeviceKind.stylus,
+                      PointerDeviceKind.unknown,
+                    },
+                  ),
+                  (PanGestureRecognizer instance) {
+                    instance
+                      ..dragStartBehavior = widget.dragStartBehavior
+                      ..onStart = widget.onSelectionHandleDragStart
+                      ..onUpdate = widget.onSelectionHandleDragUpdate
+                      ..onEnd = widget.onSelectionHandleDragEnd;
                   },
                 ),
-                (PanGestureRecognizer instance) {
-                  instance
-                    ..dragStartBehavior = widget.dragStartBehavior
-                    ..onStart = widget.onSelectionHandleDragStart
-                    ..onUpdate = widget.onSelectionHandleDragUpdate
-                    ..onEnd = widget.onSelectionHandleDragEnd;
-                },
-              ),
-            },
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: padding.left,
-                top: padding.top,
-                right: padding.right,
-                bottom: padding.bottom,
-              ),
-              child: widget.selectionControls.buildHandle(
-                context,
-                widget.type,
-                widget.preferredLineHeight,
-                widget.onSelectionHandleTapped,
+              },
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: padding.left,
+                  top: padding.top,
+                  right: padding.right,
+                  bottom: padding.bottom,
+                ),
+                child: widget.selectionControls.buildHandle(
+                  context,
+                  widget.type,
+                  widget.preferredLineHeight,
+                  widget.onSelectionHandleTapped,
+                ),
               ),
             ),
           ),
@@ -1968,6 +2045,9 @@ class TextSelectionGestureDetectorBuilder {
   /// a stylus.
   bool get shouldShowSelectionToolbar => _shouldShowSelectionToolbar;
   bool _shouldShowSelectionToolbar = true;
+
+  bool get waitingForConsecutiveTapReset => _waitingForConsecutiveTapReset;
+  bool _waitingForConsecutiveTapReset = false;
 
   /// The [State] of the [EditableText] for which the builder will provide a
   /// [TextSelectionGestureDetector].
@@ -2428,6 +2508,7 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onDoubleTapDown(TapDragDownDetails details) {
     if (delegate.selectionEnabled) {
+      _waitingForConsecutiveTapReset = true;
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
       if (shouldShowSelectionToolbar) {
         editableText.showToolbar();
@@ -2822,6 +2903,17 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
+  /// Handler for [TextSelectionGestureDetector.onTapTrackReset].
+  ///
+  /// By default, it resets the flag [waitingForConsecutiveTapReset] to false.
+  @protected
+  void onTapTrackReset() {
+    if (_waitingForConsecutiveTapReset) {
+      _waitingForConsecutiveTapReset = false;
+      editableText.updateSelectionHandlesOverlay();
+    }
+  }
+
   /// Returns a [TextSelectionGestureDetector] configured with the handlers
   /// provided by this builder.
   ///
@@ -2848,6 +2940,7 @@ class TextSelectionGestureDetectorBuilder {
       onDragSelectionStart: onDragSelectionStart,
       onDragSelectionUpdate: onDragSelectionUpdate,
       onDragSelectionEnd: onDragSelectionEnd,
+      onTapTrackReset: onTapTrackReset,
       behavior: behavior,
       child: child,
     );
@@ -2888,6 +2981,7 @@ class TextSelectionGestureDetector extends StatefulWidget {
     this.onDragSelectionStart,
     this.onDragSelectionUpdate,
     this.onDragSelectionEnd,
+    this.onTapTrackReset,
     this.behavior,
     required this.child,
   });
@@ -2955,6 +3049,12 @@ class TextSelectionGestureDetector extends StatefulWidget {
 
   /// Called when a mouse that was previously dragging is released.
   final GestureTapDragEndCallback? onDragSelectionEnd;
+
+  /// Called when the consecutive tap tracker has reset.
+  ///
+  /// This can happen when the consecutive tap timer is elapsed or when the most
+  /// recent tap does not qualify as a consecutive tap.
+  final VoidCallback? onTapTrackReset;
 
   /// How this gesture detector should behave during hit testing.
   ///
@@ -3076,6 +3176,10 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
     }
   }
 
+  void _handleTapTrackReset() {
+    widget.onTapTrackReset?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final Map<Type, GestureRecognizerFactory> gestures = <Type, GestureRecognizerFactory>{};
@@ -3119,7 +3223,8 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
             ..onDragUpdate = _handleDragUpdate
             ..onDragEnd = _handleDragEnd
             ..onTapUp = _handleTapUp
-            ..onCancel = _handleTapCancel;
+            ..onCancel = _handleTapCancel
+            ..onTapTrackReset = _handleTapTrackReset;
         },
       );
     }
