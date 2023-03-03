@@ -56,6 +56,10 @@ export 'package:flutter/services.dart' show KeyboardInsertedContent, SelectionCh
 /// (including the cursor location).
 typedef SelectionChangedCallback = void Function(TextSelection selection, SelectionChangedCause? cause);
 
+/// Signature for the callback that returns a value that determines whether
+/// the selection handles should allow pointers.
+typedef ShouldSelectionHandlesAllowPointersCallback = bool Function();
+
 /// Signature for the callback that reports the app private command results.
 typedef AppPrivateCommandCallback = void Function(String, Map<String, dynamic>);
 
@@ -771,6 +775,7 @@ class EditableText extends StatefulWidget {
     this.onSubmitted,
     this.onAppPrivateCommand,
     this.onSelectionChanged,
+    this.shouldSelectionHandlesAllowPointers,
     this.onSelectionHandleTapped,
     this.onTapOutside,
     List<TextInputFormatter>? inputFormatters,
@@ -1380,6 +1385,10 @@ class EditableText extends StatefulWidget {
   /// location).
   /// {@endtemplate}
   final SelectionChangedCallback? onSelectionChanged;
+
+  /// Called when the user changes the selection, or when the consecutive tap tracker
+  /// in [TextSelectionGestureDetector] is reset.
+  final ShouldSelectionHandlesAllowPointersCallback? shouldSelectionHandlesAllowPointers;
 
   /// {@macro flutter.widgets.SelectionOverlay.onSelectionHandleTapped}
   final VoidCallback? onSelectionHandleTapped;
@@ -3328,7 +3337,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       if (_selectionOverlay == null) {
         _selectionOverlay = _createSelectionOverlay();
       }
-      _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
+      _selectionOverlay!.handlesAllowPointers = widget.shouldSelectionHandlesAllowPointers?.call() ?? true;
       _selectionOverlay!.rebuildHandles();
     }
   }
@@ -3376,7 +3385,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         _selectionOverlay!.update(_value);
       }
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
-      _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
+      _selectionOverlay!.handlesAllowPointers = widget.shouldSelectionHandlesAllowPointers?.call() ?? true;
       _selectionOverlay!.showHandles();
     }
     // TODO(chunhtai): we should make sure selection actually changed before
