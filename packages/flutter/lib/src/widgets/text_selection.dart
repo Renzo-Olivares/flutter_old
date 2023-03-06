@@ -2510,7 +2510,7 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onDoubleTapDown(TapDragDownDetails details) {
     if (delegate.selectionEnabled) {
-      _waitingForConsecutiveTapReset = true;
+      _waitingForConsecutiveTapReset = defaultTargetPlatform == TargetPlatform.iOS;
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
       if (shouldShowSelectionToolbar) {
         editableText.showToolbar();
@@ -2586,6 +2586,9 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onTripleTapDown(TapDragDownDetails details) {
     if (delegate.selectionEnabled) {
+      if(_waitingForConsecutiveTapReset) {
+        _waitingForConsecutiveTapReset = false;
+      }
       if (renderEditable.maxLines == 1) {
         editableText.selectAll(SelectionChangedCause.tap);
       } else {
@@ -2905,6 +2908,8 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
+  bool _buildScheduled = false;
+
   /// Handler for [TextSelectionGestureDetector.onTapTrackReset].
   ///
   /// By default, it resets the flag [waitingForConsecutiveTapReset] to false.
@@ -2912,7 +2917,40 @@ class TextSelectionGestureDetectorBuilder {
   void onTapTrackReset() {
     if (_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
-      editableText.updateSelectionHandlesOverlay();
+      // If we are in build state, it will be too late to rebuild the handles.
+      // We will need to schedule the build in next frame.
+      if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+        if (_buildScheduled) {
+          return;
+        }
+        _buildScheduled = true;
+        SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
+          _buildScheduled = false;
+          editableText.updateSelectionHandlesOverlay();
+          // try {
+          //   editableText.updateSelectionHandlesOverlay();
+          // } catch (exception, stack) {
+          //   // FlutterError.reportError(FlutterErrorDetails(
+          //   //   exception: exception,
+          //   //   stack: stack,
+          //   //   library: 'widgets',
+          //   //   context: ErrorDescription('while calling editableText'),
+          //   // ));
+          // }
+        });
+      } else {
+        editableText.updateSelectionHandlesOverlay();
+        // try {
+        //   editableText.updateSelectionHandlesOverlay();
+        // } catch (exception, stack) {
+        //   // FlutterError.reportError(FlutterErrorDetails(
+        //   //   exception: exception,
+        //   //   stack: stack,
+        //   //   library: 'widgets',
+        //   //   context: ErrorDescription('while calling editableText'),
+        //   // ));
+        // }
+      }
     }
   }
 

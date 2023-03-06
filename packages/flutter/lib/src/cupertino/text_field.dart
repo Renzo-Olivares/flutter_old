@@ -862,6 +862,7 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
     ?? LengthLimitingTextInputFormatter.getDefaultMaxLengthEnforcement();
 
   bool _showSelectionHandles = false;
+  bool _selectionHandlesAllowPointers = true;
 
   late _CupertinoTextFieldSelectionGestureDetectorBuilder _selectionGestureDetectorBuilder;
 
@@ -954,6 +955,10 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
     });
   }
 
+  bool _shouldSelectionHandlesAllowPointers() {
+    return !_selectionGestureDetectorBuilder.waitingForConsecutiveTapReset;
+  }
+
   bool _shouldShowSelectionHandles(SelectionChangedCause? cause) {
     // When the text field is activated by something that doesn't trigger the
     // selection overlay, we shouldn't show the handles either.
@@ -986,6 +991,13 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
     if (willShowSelectionHandles != _showSelectionHandles) {
       setState(() {
         _showSelectionHandles = willShowSelectionHandles;
+      });
+    }
+
+    final bool willSelectionHandlesAllowPointers = _shouldSelectionHandlesAllowPointers();
+    if (willSelectionHandlesAllowPointers != _selectionHandlesAllowPointers) {
+      setState(() {
+        _selectionHandlesAllowPointers = willSelectionHandlesAllowPointers;
       });
     }
 
@@ -1280,6 +1292,7 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
             readOnly: widget.readOnly,
             toolbarOptions: widget.toolbarOptions,
             showCursor: widget.showCursor,
+            selectionHandlesAllowPointers: _selectionHandlesAllowPointers,
             showSelectionHandles: _showSelectionHandles,
             focusNode: _effectiveFocusNode,
             keyboardType: widget.keyboardType,
@@ -1306,6 +1319,7 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
               ? textSelectionControls : null,
             onChanged: widget.onChanged,
             onSelectionChanged: _handleSelectionChanged,
+            shouldSelectionHandlesAllowPointers: _shouldSelectionHandlesAllowPointers,
             onEditingComplete: widget.onEditingComplete,
             onSubmitted: widget.onSubmitted,
             onTapOutside: widget.onTapOutside,

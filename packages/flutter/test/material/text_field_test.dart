@@ -1044,7 +1044,7 @@ void main() {
       const TextSelection.collapsed(offset: 8),
     );
     await tester.tapAt(textOffsetToPosition(tester, 8));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     // Second tap selects the word around the cursor.
     expect(
@@ -2370,7 +2370,7 @@ void main() {
     await gesture.down(ePos);
     await tester.pump();
     await gesture.up();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final TextSelection selection = controller.selection;
     expect(selection.baseOffset, 4);
@@ -2390,7 +2390,9 @@ void main() {
     Offset newHandlePos = textOffsetToPosition(tester, testValue.length);
     gesture = await tester.startGesture(handlePos, pointer: 7);
     await tester.pump();
+    expect(controller.selection.baseOffset, 4);
     await gesture.moveTo(newHandlePos);
+    expect(controller.selection.baseOffset, 4);
     await tester.pump();
     await gesture.up();
     await tester.pump();
@@ -3119,7 +3121,7 @@ void main() {
     await gesture.down(pos);
     await tester.pump();
     await gesture.up();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final TextSelection selection = controller.selection;
     expect(

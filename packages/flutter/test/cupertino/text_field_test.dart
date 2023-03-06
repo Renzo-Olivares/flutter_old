@@ -1592,7 +1592,7 @@ void main() {
     await tester.tapAt(textOffsetToPosition(tester, index));
     await tester.pump(const Duration(milliseconds: 50));
     await tester.tapAt(textOffsetToPosition(tester, index));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(
       controller.selection,
       const TextSelection(baseOffset: 0, extentOffset: 7),
@@ -5037,7 +5037,7 @@ void main() {
     await gesture.down(pos);
     await tester.pump();
     await gesture.up();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final TextSelection selection = controller.selection;
     expect(
@@ -8715,7 +8715,7 @@ void main() {
       await tester.tapAt(textOffsetToPosition(tester, testValue.indexOf('e')));
       await tester.pump(const Duration(milliseconds: 30));
       await tester.tapAt(textOffsetToPosition(tester, testValue.indexOf('e')));
-      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pumpAndSettle();
 
       final TextSelection selection = controller.selection;
 
@@ -8729,6 +8729,7 @@ void main() {
       final Offset handlePos = endpoints.last.point + const Offset(1.0, 1.0);
       final TestGesture gesture =
           await tester.startGesture(handlePos, pointer: 7);
+      await tester.pump();
 
       Offset? firstDragGesturePosition;
 
