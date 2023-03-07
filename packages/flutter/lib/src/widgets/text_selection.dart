@@ -2588,6 +2588,9 @@ class TextSelectionGestureDetectorBuilder {
     if (!delegate.selectionEnabled) {
       return;
     }
+    if(_waitingForConsecutiveTapReset) {
+      _waitingForConsecutiveTapReset = false;
+    }
     if (renderEditable.maxLines == 1) {
       editableText.selectAll(SelectionChangedCause.tap);
     } else {
