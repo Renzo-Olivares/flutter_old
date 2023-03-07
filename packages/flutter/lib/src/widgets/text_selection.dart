@@ -1535,6 +1535,7 @@ class SelectionOverlay {
         onSelectionHandleDragUpdate: onEndHandleDragUpdate,
         onSelectionHandleDragEnd: _handleEndHandleDragEnd,
         selectionControls: selectionControls,
+        allowPointers: handlesAllowPointers,
         visibility: endHandlesVisible,
         preferredLineHeight: _lineHeightAtEnd,
         dragStartBehavior: dragStartBehavior,
@@ -1818,7 +1819,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
       offset: interactiveRect.topLeft,
       showWhenUnlinked: false,
       child: IgnorePointer(
-        ignoring: _allowPointers,
+        ignoring: !_allowPointers,
         child: FadeTransition(
           opacity: _opacity,
           child: Container(
