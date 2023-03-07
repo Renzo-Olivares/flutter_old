@@ -24,6 +24,7 @@ import 'media_query.dart';
 import 'overlay.dart';
 import 'platform_selectable_region_context_menu.dart';
 import 'selection_container.dart';
+import 'tap_and_drag_gestures.dart';
 import 'text_editing_intents.dart';
 import 'text_selection.dart';
 import 'text_selection_toolbar_anchors.dart';
@@ -323,14 +324,25 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   void initState() {
     super.initState();
     widget.focusNode.addListener(_handleFocusChanged);
-    _initMouseGestureRecognizer();
     _initTouchGestureRecognizer();
     // Taps and right clicks.
     _gestureRecognizers[TapGestureRecognizer] = GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
           () => TapGestureRecognizer(debugOwner: this),
           (TapGestureRecognizer instance) {
-        instance.onTap = _clearSelection;
         instance.onSecondaryTapDown = _handleRightClickDown;
+      },
+    );
+
+    _gestureRecognizers[TapAndDragGestureRecognizer] = GestureRecognizerFactoryWithHandlers<TapAndDragGestureRecognizer>(
+          () => TapAndDragGestureRecognizer(debugOwner: this),
+          (TapAndDragGestureRecognizer instance) {
+            instance..dragStartBehavior = DragStartBehavior.down
+            ..onTapDown = _startNewMouseSelectionGesture
+            ..onTapUp = (TapDragUpDetails details) { _clearSelection(); }
+            ..onDragStart = _handleMouseDragStart
+            ..onDragUpdate = _handleMouseDragUpdate
+            ..onDragEnd = _handleMouseDragEnd
+            ..onCancel = _clearSelection;
       },
     );
   }
@@ -412,20 +424,20 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
 
   // gestures.
 
-  void _initMouseGestureRecognizer() {
-    _gestureRecognizers[PanGestureRecognizer] = GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-          () => PanGestureRecognizer(debugOwner:this, supportedDevices: <PointerDeviceKind>{ PointerDeviceKind.mouse }),
-          (PanGestureRecognizer instance) {
-        instance
-          ..onDown = _startNewMouseSelectionGesture
-          ..onStart = _handleMouseDragStart
-          ..onUpdate = _handleMouseDragUpdate
-          ..onEnd = _handleMouseDragEnd
-          ..onCancel = _clearSelection
-          ..dragStartBehavior = DragStartBehavior.down;
-      },
-    );
-  }
+  // void _initMouseGestureRecognizer() {
+  //   _gestureRecognizers[PanGestureRecognizer] = GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+  //         () => PanGestureRecognizer(debugOwner:this, supportedDevices: <PointerDeviceKind>{ PointerDeviceKind.mouse }),
+  //         (PanGestureRecognizer instance) {
+  //       instance
+  //         ..onDown = _startNewMouseSelectionGesture
+  //         ..onStart = _handleMouseDragStart
+  //         ..onUpdate = _handleMouseDragUpdate
+  //         ..onEnd = _handleMouseDragEnd
+  //         ..onCancel = _clearSelection
+  //         ..dragStartBehavior = DragStartBehavior.down;
+  //     },
+  //   );
+  // }
 
   void _initTouchGestureRecognizer() {
     _gestureRecognizers[LongPressGestureRecognizer] = GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
@@ -440,17 +452,17 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     );
   }
 
-  void _startNewMouseSelectionGesture(DragDownDetails details) {
+  void _startNewMouseSelectionGesture(TapDragDownDetails details) {
     widget.focusNode.requestFocus();
     hideToolbar();
     _clearSelection();
   }
 
-  void _handleMouseDragStart(DragStartDetails details) {
+  void _handleMouseDragStart(TapDragStartDetails details) {
     _selectStartTo(offset: details.globalPosition);
   }
 
-  void _handleMouseDragUpdate(DragUpdateDetails details) {
+  void _handleMouseDragUpdate(TapDragUpdateDetails details) {
     _selectEndTo(offset: details.globalPosition, continuous: true);
   }
 
@@ -461,7 +473,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     }
   }
 
-  void _handleMouseDragEnd(DragEndDetails details) {
+  void _handleMouseDragEnd(TapDragEndDetails details) {
     _finalizeSelection();
     _updateSelectedContentIfNeeded();
   }

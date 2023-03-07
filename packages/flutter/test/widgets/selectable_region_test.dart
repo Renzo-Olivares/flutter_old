@@ -290,6 +290,7 @@ void main() {
       final TestGesture gesture = await tester.startGesture(const Offset(200.0, 200.0));
       addTearDown(gesture.removePointer);
       await tester.pump(const Duration(milliseconds: 500));
+      print(renderSelectionSpy.events);
       expect(renderSelectionSpy.events.length, 1);
       expect(renderSelectionSpy.events[0], isA<SelectWordSelectionEvent>());
       final SelectWordSelectionEvent selectionEvent = renderSelectionSpy.events[0] as SelectWordSelectionEvent;
