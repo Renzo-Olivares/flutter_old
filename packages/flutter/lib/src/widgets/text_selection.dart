@@ -2181,6 +2181,9 @@ class TextSelectionGestureDetectorBuilder {
   void onForcePressStart(ForcePressDetails details) {
     assert(delegate.forcePressEnabled);
     _shouldShowSelectionToolbar = true;
+    if(_waitingForConsecutiveTapReset) {
+      _waitingForConsecutiveTapReset = false;
+    }
     if (delegate.selectionEnabled) {
       renderEditable.selectWordsInRange(
         from: details.globalPosition,
@@ -2332,6 +2335,9 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleLongTapStart(LongPressStartDetails details) {
     if (delegate.selectionEnabled) {
+      if(_waitingForConsecutiveTapReset) {
+        _waitingForConsecutiveTapReset = false;
+      }
       switch (defaultTargetPlatform) {
         case TargetPlatform.iOS:
         case TargetPlatform.macOS:
@@ -2629,6 +2635,9 @@ class TextSelectionGestureDetectorBuilder {
     _shouldShowSelectionToolbar = kind == null
       || kind == PointerDeviceKind.touch
       || kind == PointerDeviceKind.stylus;
+    if(_waitingForConsecutiveTapReset) {
+      _waitingForConsecutiveTapReset = false;
+    }
 
     _dragStartSelection = renderEditable.selection;
     _dragStartScrollOffset = _scrollPosition;
@@ -2909,6 +2918,8 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
+  bool _buildScheduled = false;
+
   /// Handler for [TextSelectionGestureDetector.onTapTrackReset].
   ///
   /// By default, it resets the flag [waitingForConsecutiveTapReset] to false.
@@ -2916,7 +2927,20 @@ class TextSelectionGestureDetectorBuilder {
   void onTapTrackReset() {
     if (_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
-      editableText.updateSelectionHandlesOverlay();
+      // If we are in build state, it will be too late to rebuild the handles.
+      // We will need to schedule the build in next frame.
+      if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+        if (_buildScheduled) {
+          return;
+        }
+        _buildScheduled = true;
+        SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
+          _buildScheduled = false;
+          editableText.updateSelectionHandlesOverlay();
+        });
+      } else {
+        editableText.updateSelectionHandlesOverlay();
+      }
     }
   }
 
