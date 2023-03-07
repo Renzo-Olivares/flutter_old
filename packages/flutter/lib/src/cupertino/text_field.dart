@@ -988,6 +988,10 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
     return false;
   }
 
+  bool _shouldSelectionHandlesAllowPointers() {
+    return !_selectionGestureDetectorBuilder.waitingForConsecutiveTapReset;
+  }
+
   void _handleSelectionChanged(TextSelection selection, SelectionChangedCause? cause) {
     final bool willShowSelectionHandles = _shouldShowSelectionHandles(cause);
     if (willShowSelectionHandles != _showSelectionHandles) {
