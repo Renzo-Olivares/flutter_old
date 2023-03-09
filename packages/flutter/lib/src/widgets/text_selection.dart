@@ -327,9 +327,9 @@ class TextSelectionOverlay {
     renderObject.selectionStartInViewport.addListener(_updateTextSelectionOverlayVisibilities);
     renderObject.selectionEndInViewport.addListener(_updateTextSelectionOverlayVisibilities);
     _updateTextSelectionOverlayVisibilities();
-    renderObject.selectionStartInViewport.addListener(_updateTextSelectionHandlesOverlayPointerBehavior);
-    renderObject.selectionEndInViewport.addListener(_updateTextSelectionHandlesOverlayPointerBehavior);
-    _updateTextSelectionHandlesOverlayPointerBehavior();
+    renderObject.selectionStartInViewport.addListener(_updateTextSelectionHandlesOverlayIgnorePointerBehavior);
+    renderObject.selectionEndInViewport.addListener(_updateTextSelectionHandlesOverlayIgnorePointerBehavior);
+    _updateTextSelectionHandlesOverlayIgnorePointerBehavior();
     _selectionOverlay = SelectionOverlay(
       magnifierConfiguration: magnifierConfiguration,
       context: context,
@@ -415,7 +415,7 @@ class TextSelectionOverlay {
     _effectiveToolbarVisibility.value = renderObject.selectionStartInViewport.value || renderObject.selectionEndInViewport.value;
   }
 
-  void _updateTextSelectionHandlesOverlayPointerBehavior() {
+  void _updateTextSelectionHandlesOverlayIgnorePointerBehavior() {
     _effectiveSelectionHandlesAllowPointers.value = _handlesAllowPointers && (renderObject.selectionStartInViewport.value || renderObject.selectionEndInViewport.value);
   }
 
@@ -437,12 +437,12 @@ class TextSelectionOverlay {
 
   bool get handlesAllowPointers => _handlesAllowPointers;
   bool _handlesAllowPointers = true;
-  set handlesAllowPointers(bool canReceivePointers) {
-    if (_handlesAllowPointers == canReceivePointers) {
+  set handlesAllowPointers(bool allowPointers) {
+    if (_handlesAllowPointers == allowPointers) {
       return;
     }
-    _handlesAllowPointers = canReceivePointers;
-    _updateTextSelectionHandlesOverlayPointerBehavior();
+    _handlesAllowPointers = allowPointers;
+    _updateTextSelectionHandlesOverlayIgnorePointerBehavior();
   }
 
   /// {@macro flutter.widgets.SelectionOverlay.showHandles}
@@ -452,8 +452,10 @@ class TextSelectionOverlay {
   }
 
   void rebuildHandles() {
+    debugPrint('SelectionOverlay -- rebuilding handles');
     _updateSelectionOverlay();
-    _selectionOverlay.rebuildHandles();
+    // _selectionOverlay.rebuildHandles();
+    _selectionOverlay.markNeedsBuild();
   }
 
   /// {@macro flutter.widgets.SelectionOverlay.hideHandles}
@@ -548,6 +550,7 @@ class TextSelectionOverlay {
   }
 
   void _updateSelectionOverlay() {
+    debugPrint('TextSelectionOverlay -- updateSelectionOverlay');
     _selectionOverlay
       // Update selection handle metrics.
       ..startHandleType = _chooseType(
@@ -603,11 +606,12 @@ class TextSelectionOverlay {
     _selectionOverlay.dispose();
     renderObject.selectionStartInViewport.removeListener(_updateTextSelectionOverlayVisibilities);
     renderObject.selectionEndInViewport.removeListener(_updateTextSelectionOverlayVisibilities);
-    renderObject.selectionStartInViewport.removeListener(_updateTextSelectionHandlesOverlayPointerBehavior);
-    renderObject.selectionEndInViewport.removeListener(_updateTextSelectionHandlesOverlayPointerBehavior);
+    renderObject.selectionStartInViewport.removeListener(_updateTextSelectionHandlesOverlayIgnorePointerBehavior);
+    renderObject.selectionEndInViewport.removeListener(_updateTextSelectionHandlesOverlayIgnorePointerBehavior);
     _effectiveToolbarVisibility.dispose();
     _effectiveStartHandleVisibility.dispose();
     _effectiveEndHandleVisibility.dispose();
+    _effectiveSelectionHandlesAllowPointers.dispose();
     hideToolbar();
   }
 
@@ -1341,6 +1345,7 @@ class SelectionOverlay {
       if (_buildScheduled) {
         return;
       }
+      debugPrint('scheduling handle rebuild');
       _buildScheduled = true;
       SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
         _buildScheduled = false;
@@ -1348,6 +1353,7 @@ class SelectionOverlay {
         _handles![1].markNeedsBuild();
       });
     } else {
+      debugPrint('rebuilding handles');
       _handles![0].markNeedsBuild();
       _handles![1].markNeedsBuild();
     }
@@ -1733,15 +1739,16 @@ class _SelectionHandleOverlay extends StatefulWidget {
 }
 
 class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with SingleTickerProviderStateMixin {
+  late bool _allowPointers;
   late AnimationController _controller;
   Animation<double> get _opacity => _controller.view;
-  bool _allowPointers = true;
 
   @override
   void initState() {
     super.initState();
 
     _controller = AnimationController(duration: SelectionOverlay.fadeDuration, vsync: this);
+    _allowPointers = true;
 
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
@@ -1751,6 +1758,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   }
 
   void _handleVisibilityChanged() {
+    debugPrint('visibility changed ${widget.visibility?.value}');
     if (widget.visibility?.value ?? true) {
       _controller.forward();
     } else {
@@ -1759,6 +1767,16 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   }
 
   void _handleAllowsPointersChanged() {
+    debugPrint('allows pointers changed ${widget.allowPointers?.value}');
+    // if (_allowPointers != widget.allowPointers?.value) {
+    //   setState(() {
+    //     if (widget.allowPointers?.value ?? true) {
+    //       _allowPointers = true;
+    //     } else {
+    //       _allowPointers = false;
+    //     }
+    //   });
+    // }
     if (widget.allowPointers?.value ?? true) {
       _allowPointers = true;
     } else {
@@ -1769,6 +1787,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   @override
   void didUpdateWidget(_SelectionHandleOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
+    debugPrint('SelectionOverlay didUpdate');
     oldWidget.visibility?.removeListener(_handleVisibilityChanged);
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
@@ -1788,6 +1807,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('building handle ${widget.type} ${widget.visibility?.value} ${widget.allowPointers?.value}');
     final Offset handleAnchor = widget.selectionControls.getHandleAnchor(
       widget.type,
       widget.preferredLineHeight,
@@ -2105,6 +2125,7 @@ class TextSelectionGestureDetectorBuilder {
     if (!delegate.selectionEnabled) {
       return;
     }
+    debugPrint('onTapDown');
     // TODO(Renzo-Olivares): Migrate text selection gestures away from saving state
     // in renderEditable. The gesture callbacks can use the details objects directly
     // in callbacks variants that provide them [TapGestureRecognizer.onSecondaryTap]
@@ -2226,6 +2247,7 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleTapUp(TapDragUpDetails details) {
     if (delegate.selectionEnabled) {
+      debugPrint('onSingleTapUp');
       // Handle shift + click selection if needed.
       final bool isShiftPressed = _containsShift(details.keysPressedOnDown);
       // It is impossible to extend the selection when the shift key is pressed, if the
@@ -2516,6 +2538,7 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onDoubleTapDown(TapDragDownDetails details) {
     if (delegate.selectionEnabled) {
+      debugPrint('onDoubleTapDown');
       _waitingForConsecutiveTapReset = true;
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
       if (shouldShowSelectionToolbar) {
@@ -2594,6 +2617,7 @@ class TextSelectionGestureDetectorBuilder {
     if (!delegate.selectionEnabled) {
       return;
     }
+    debugPrint('onTripleTapDown');
     if(_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
     }
@@ -2926,10 +2950,12 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onTapTrackReset() {
     if (_waitingForConsecutiveTapReset) {
+      debugPrint('onTapTrackReset');
       _waitingForConsecutiveTapReset = false;
       // If we are in build state, it will be too late to rebuild the handles.
       // We will need to schedule the build in next frame.
       if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+        debugPrint('TextSelectionGestureDetector in build state, scheduling rebuild');
         if (_buildScheduled) {
           return;
         }
@@ -2939,6 +2965,7 @@ class TextSelectionGestureDetectorBuilder {
           editableText.updateSelectionHandlesOverlay();
         });
       } else {
+        debugPrint('TextSelectionGestureDetector rebuilding handles');
         editableText.updateSelectionHandlesOverlay();
       }
     }

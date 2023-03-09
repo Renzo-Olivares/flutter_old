@@ -1020,6 +1020,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
   @override
   void didUpdateWidget(TextField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    debugPrint('TextField.didUpdate');
     if (widget.controller == null && oldWidget.controller != null) {
       _createLocalController(oldWidget.controller!.value);
     } else if (widget.controller != null && oldWidget.controller == null) {
@@ -1125,6 +1126,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
   void _handleSelectionChanged(TextSelection selection, SelectionChangedCause? cause) {
     final bool willShowSelectionHandles = _shouldShowSelectionHandles(cause);
     if (willShowSelectionHandles != _showSelectionHandles) {
+      debugPrint('TextField.handleSelectionChanged should show handles $willShowSelectionHandles');
       setState(() {
         _showSelectionHandles = willShowSelectionHandles;
       });
@@ -1132,6 +1134,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
 
     final bool willSelectionHandlesAllowPointers = _shouldSelectionHandlesAllowPointers();
     if (willSelectionHandlesAllowPointers != _selectionHandlesAllowPointers) {
+      debugPrint('TextField.handleSelectionChanged should handles allow pointers $willSelectionHandlesAllowPointers');
       setState(() {
         _selectionHandlesAllowPointers = willSelectionHandlesAllowPointers;
       });
@@ -1213,6 +1216,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
         (widget.style!.fontSize == null || widget.style!.textBaseline == null)),
       'inherit false style must supply fontSize and textBaseline',
     );
+    print('building TextField');
 
     final ThemeData theme = Theme.of(context);
     final DefaultSelectionStyle selectionStyle = DefaultSelectionStyle.of(context);

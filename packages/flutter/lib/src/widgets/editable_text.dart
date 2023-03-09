@@ -2653,10 +2653,14 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       _updateRemoteEditingValueIfNeeded();
     }
     if (widget.controller.selection != oldWidget.controller.selection) {
+      debugPrint('EditableText.didUpdate -- selection changed so updating selection overlay');
       _selectionOverlay?.update(_value);
     }
     _selectionOverlay?.handlesVisible = widget.showSelectionHandles;
     _selectionOverlay?.handlesAllowPointers = widget.selectionHandlesAllowPointers;
+
+    debugPrint('editableText.didUpdate handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
+    debugPrint('editableText.didUpdate handlesVisible ${widget.showSelectionHandles}');
 
     if (widget.autofillClient != oldWidget.autofillClient) {
       _currentAutofillScope?.unregister(oldWidget.autofillClient?.autofillId ?? autofillId);
@@ -3305,6 +3309,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   }
 
   void _onEditableScroll() {
+    debugPrint('EditableText.onEditableScroll');
     _selectionOverlay?.updateForScroll();
     _scribbleCacheKey = null;
   }
@@ -3394,6 +3399,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       }
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
       _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
+      debugPrint('editableText.handleSelectionChanged handlesVisible ${widget.showSelectionHandles}');
+      debugPrint('editableText.handleSelectionChanged handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
       _selectionOverlay!.showHandles();
     }
     // TODO(chunhtai): we should make sure selection actually changed before
@@ -3513,9 +3520,11 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     if (!mounted) {
       return;
     }
+    debugPrint('EditableText.didChangeMetrics');
     final ui.FlutterView view = View.of(context);
     if (_lastBottomViewInset != view.viewInsets.bottom) {
       SchedulerBinding.instance.addPostFrameCallback((Duration _) {
+        debugPrint('EditableText.didChangeMetrics.scheduleScrollUpdate');
         _selectionOverlay?.updateForScroll();
       });
       if (_lastBottomViewInset < view.viewInsets.bottom) {
@@ -4511,6 +4520,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   Widget build(BuildContext context) {
     assert(debugCheckHasMediaQuery(context));
     super.build(context); // See AutomaticKeepAliveClientMixin.
+    debugPrint('building EditableText');
 
     final TextSelectionControls? controls = widget.selectionControls;
     return _CompositionCallback(

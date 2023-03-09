@@ -9125,7 +9125,9 @@ void main() {
 
         // Here we tap on same position again, to register a triple tap. This will select
         // the paragraph at the tapped position.
+        debugPrint('TEST - after double tap');
         await gesture.down(firstLinePos);
+        debugPrint('TEST - after triple tap');
         await tester.pump();
         await gesture.up();
         await tester.pumpAndSettle();
