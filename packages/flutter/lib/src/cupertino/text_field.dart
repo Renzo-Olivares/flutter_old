@@ -1326,6 +1326,7 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
               ? textSelectionControls : null,
             onChanged: widget.onChanged,
             onSelectionChanged: _handleSelectionChanged,
+            onSelectionHandlesAllowPointersChanged: _shouldSelectionHandlesAllowPointers,
             onEditingComplete: widget.onEditingComplete,
             onSubmitted: widget.onSubmitted,
             onTapOutside: widget.onTapOutside,
