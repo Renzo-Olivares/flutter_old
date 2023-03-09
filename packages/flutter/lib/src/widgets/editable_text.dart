@@ -2665,9 +2665,10 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     }
     _selectionOverlay?.handlesVisible = widget.showSelectionHandles;
     _selectionOverlay?.handlesAllowPointers = widget.onSelectionHandlesAllowPointersChanged?.call() ?? true;
+    debugPrint('editableText.didUpdate handlesAllowPointers ${widget.onSelectionHandlesAllowPointersChanged?.call() ?? true}');
     // _selectionOverlay?.handlesAllowPointers = widget.selectionHandlesAllowPointers;
 
-    debugPrint('editableText.didUpdate handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
+    // debugPrint('editableText.didUpdate handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
     debugPrint('editableText.didUpdate handlesVisible ${widget.showSelectionHandles}');
 
     if (widget.autofillClient != oldWidget.autofillClient) {
@@ -3409,7 +3410,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
       // _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
       _selectionOverlay?.handlesAllowPointers = widget.onSelectionHandlesAllowPointersChanged?.call() ?? true;
-      debugPrint('editableText.handleSelectionChanged handlesVisible ${widget.showSelectionHandles}');
+      debugPrint('editableText.handleSelectionChanged handlesVisible ${widget.onSelectionHandlesAllowPointersChanged?.call() ?? true}');
+
+      // debugPrint('editableText.handleSelectionChanged handlesVisible ${widget.showSelectionHandles}');
       debugPrint('editableText.handleSelectionChanged handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
       _selectionOverlay!.showHandles();
     }
