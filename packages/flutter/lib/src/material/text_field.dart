@@ -1216,7 +1216,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
         (widget.style!.fontSize == null || widget.style!.textBaseline == null)),
       'inherit false style must supply fontSize and textBaseline',
     );
-    print('building TextField');
+    debugPrint('building TextField');
 
     final ThemeData theme = Theme.of(context);
     final DefaultSelectionStyle selectionStyle = DefaultSelectionStyle.of(context);

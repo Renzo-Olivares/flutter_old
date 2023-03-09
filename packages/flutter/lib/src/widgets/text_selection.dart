@@ -454,8 +454,7 @@ class TextSelectionOverlay {
   void rebuildHandles() {
     debugPrint('SelectionOverlay -- rebuilding handles');
     _updateSelectionOverlay();
-    // _selectionOverlay.rebuildHandles();
-    _selectionOverlay.markNeedsBuild();
+    _selectionOverlay.rebuildHandles();
   }
 
   /// {@macro flutter.widgets.SelectionOverlay.hideHandles}
@@ -1768,15 +1767,6 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
 
   void _handleAllowsPointersChanged() {
     debugPrint('allows pointers changed ${widget.allowPointers?.value}');
-    // if (_allowPointers != widget.allowPointers?.value) {
-    //   setState(() {
-    //     if (widget.allowPointers?.value ?? true) {
-    //       _allowPointers = true;
-    //     } else {
-    //       _allowPointers = false;
-    //     }
-    //   });
-    // }
     if (widget.allowPointers?.value ?? true) {
       _allowPointers = true;
     } else {
