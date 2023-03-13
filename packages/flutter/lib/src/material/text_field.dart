@@ -1360,7 +1360,6 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
           selectionControls: widget.selectionEnabled ? textSelectionControls : null,
           onChanged: widget.onChanged,
           onSelectionChanged: _handleSelectionChanged,
-          onSelectionHandlesAllowPointersChanged: _shouldSelectionHandlesAllowPointers,
           onEditingComplete: widget.onEditingComplete,
           onSubmitted: widget.onSubmitted,
           onAppPrivateCommand: widget.onAppPrivateCommand,

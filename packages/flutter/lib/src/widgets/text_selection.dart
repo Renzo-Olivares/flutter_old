@@ -441,8 +441,10 @@ class TextSelectionOverlay {
     if (_handlesAllowPointers == allowPointers) {
       return;
     }
+    debugPrint('SelectionOverlay -- setting handlesAllowPointers $allowPointers');
     _handlesAllowPointers = allowPointers;
     _updateTextSelectionHandlesOverlayIgnorePointerBehavior();
+    // rebuildHandles();
   }
 
   /// {@macro flutter.widgets.SelectionOverlay.showHandles}
@@ -2942,22 +2944,23 @@ class TextSelectionGestureDetectorBuilder {
     if (_waitingForConsecutiveTapReset) {
       debugPrint('onTapTrackReset');
       _waitingForConsecutiveTapReset = false;
-      // If we are in build state, it will be too late to rebuild the handles.
-      // We will need to schedule the build in next frame.
-      if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
-        debugPrint('TextSelectionGestureDetector in build state, scheduling rebuild');
-        if (_buildScheduled) {
-          return;
-        }
-        _buildScheduled = true;
-        SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
-          _buildScheduled = false;
-          editableText.updateSelectionHandlesOverlay();
-        });
-      } else {
-        debugPrint('TextSelectionGestureDetector rebuilding handles');
-        editableText.updateSelectionHandlesOverlay();
-      }
+      editableText.updateSelectionHandlesOverlay();
+      // // If we are in build state, it will be too late to rebuild the handles.
+      // // We will need to schedule the build in next frame.
+      // if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      //   debugPrint('TextSelectionGestureDetector in build state, scheduling rebuild');
+      //   if (_buildScheduled) {
+      //     return;
+      //   }
+      //   _buildScheduled = true;
+      //   SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
+      //     _buildScheduled = false;
+      //     editableText.updateSelectionHandlesOverlay();
+      //   });
+      // } else {
+      //   debugPrint('TextSelectionGestureDetector rebuilding handles');
+      //   editableText.updateSelectionHandlesOverlay();
+      // }
     }
   }
 

@@ -58,9 +58,6 @@ export 'package:flutter/services.dart' show KeyboardInsertedContent, SelectionCh
 /// (including the cursor location).
 typedef SelectionChangedCallback = void Function(TextSelection selection, SelectionChangedCause? cause);
 
-/// Needs documentation.
-typedef SelectionHandlesAllowPointersChangedCallback = bool Function();
-
 /// Signature for the callback that reports the app private command results.
 typedef AppPrivateCommandCallback = void Function(String, Map<String, dynamic>);
 
@@ -776,7 +773,6 @@ class EditableText extends StatefulWidget {
     this.onSubmitted,
     this.onAppPrivateCommand,
     this.onSelectionChanged,
-    this.onSelectionHandlesAllowPointersChanged,
     this.onSelectionHandleTapped,
     this.onTapOutside,
     List<TextInputFormatter>? inputFormatters,
@@ -1391,9 +1387,6 @@ class EditableText extends StatefulWidget {
   /// location).
   /// {@endtemplate}
   final SelectionChangedCallback? onSelectionChanged;
-
-  /// Needs documentation.
-  final SelectionHandlesAllowPointersChangedCallback? onSelectionHandlesAllowPointersChanged;
 
   /// {@macro flutter.widgets.SelectionOverlay.onSelectionHandleTapped}
   final VoidCallback? onSelectionHandleTapped;
@@ -2664,11 +2657,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       _selectionOverlay?.update(_value);
     }
     _selectionOverlay?.handlesVisible = widget.showSelectionHandles;
-    _selectionOverlay?.handlesAllowPointers = widget.onSelectionHandlesAllowPointersChanged?.call() ?? true;
-    debugPrint('editableText.didUpdate handlesAllowPointers ${widget.onSelectionHandlesAllowPointersChanged?.call() ?? true}');
-    // _selectionOverlay?.handlesAllowPointers = widget.selectionHandlesAllowPointers;
+    _selectionOverlay?.handlesAllowPointers = widget.selectionHandlesAllowPointers;
 
-    // debugPrint('editableText.didUpdate handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
+    debugPrint('editableText.didUpdate handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
     debugPrint('editableText.didUpdate handlesVisible ${widget.showSelectionHandles}');
 
     if (widget.autofillClient != oldWidget.autofillClient) {
@@ -3359,9 +3350,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       if (_selectionOverlay == null) {
         _selectionOverlay = _createSelectionOverlay();
       }
-      _selectionOverlay?.handlesAllowPointers = widget.onSelectionHandlesAllowPointersChanged?.call() ?? true;
-      // _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
-      _selectionOverlay!.rebuildHandles();
+      _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
     }
   }
 
@@ -3408,11 +3397,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         _selectionOverlay!.update(_value);
       }
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
-      // _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
-      _selectionOverlay?.handlesAllowPointers = widget.onSelectionHandlesAllowPointersChanged?.call() ?? true;
-      debugPrint('editableText.handleSelectionChanged handlesVisible ${widget.onSelectionHandlesAllowPointersChanged?.call() ?? true}');
+      _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
 
-      // debugPrint('editableText.handleSelectionChanged handlesVisible ${widget.showSelectionHandles}');
+      debugPrint('editableText.handleSelectionChanged handlesVisible ${widget.showSelectionHandles}');
       debugPrint('editableText.handleSelectionChanged handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
       _selectionOverlay!.showHandles();
     }
