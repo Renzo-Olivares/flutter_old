@@ -449,6 +449,7 @@ class TextSelectionOverlay {
 
   /// {@macro flutter.widgets.SelectionOverlay.showHandles}
   void showHandles() {
+    debugPrint('SelectionOverlay -- show handles');
     _updateSelectionOverlay();
     _selectionOverlay.showHandles();
   }
@@ -464,6 +465,7 @@ class TextSelectionOverlay {
 
   /// {@macro flutter.widgets.SelectionOverlay.showToolbar}
   void showToolbar() {
+    debugPrint('SelectionOverlay -- show Toolbar');
     _updateSelectionOverlay();
 
     if (selectionControls is! TextSelectionHandleControls) {
@@ -488,6 +490,7 @@ class TextSelectionOverlay {
   void showSpellCheckSuggestionsToolbar(
     WidgetBuilder spellCheckSuggestionsToolbarBuilder
   ) {
+    debugPrint('SelectionOverlay -- show spellcheck suggestions toolbar');
     _updateSelectionOverlay();
     assert(context.mounted);
     _selectionOverlay
@@ -499,6 +502,7 @@ class TextSelectionOverlay {
 
   /// {@macro flutter.widgets.SelectionOverlay.showMagnifier}
   void showMagnifier(Offset positionToShow) {
+    debugPrint('SelectionOverlay -- show magnifier');
     final TextPosition position = renderObject.getPositionForPoint(positionToShow);
     _updateSelectionOverlay();
     _selectionOverlay.showMagnifier(
@@ -512,6 +516,7 @@ class TextSelectionOverlay {
 
   /// {@macro flutter.widgets.SelectionOverlay.updateMagnifier}
   void updateMagnifier(Offset positionToShow) {
+    debugPrint('SelectionOverlay -- update magnifier');
     final TextPosition position = renderObject.getPositionForPoint(positionToShow);
     _updateSelectionOverlay();
     _selectionOverlay.updateMagnifier(
@@ -541,6 +546,7 @@ class TextSelectionOverlay {
     if (_value == newValue) {
       return;
     }
+    debugPrint('SelectionOverlay -- update');
     _value = newValue;
     _updateSelectionOverlay();
     // _updateSelectionOverlay may not rebuild the selection overlay if the
@@ -576,6 +582,7 @@ class TextSelectionOverlay {
   /// This is intended to be called when the [renderObject] may have changed its
   /// text metrics (e.g. because the text was scrolled).
   void updateForScroll() {
+    debugPrint('SelectionOverlay -- updateForScroll');
     _updateSelectionOverlay();
     // This method may be called due to windows metrics changes. In that case,
     // non of the properties in _selectionOverlay will change, but a rebuild is
@@ -1759,7 +1766,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   }
 
   void _handleVisibilityChanged() {
-    debugPrint('visibility changed ${widget.visibility?.value}');
+    debugPrint('_SelectionHandleOverlay - visibility changed ${widget.visibility?.value}');
     if (widget.visibility?.value ?? true) {
       _controller.forward();
     } else {
@@ -1768,7 +1775,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   }
 
   void _handleAllowsPointersChanged() {
-    debugPrint('allows pointers changed ${widget.allowPointers?.value}');
+    debugPrint('_SelectionHandleOverlay - allows pointers changed ${widget.allowPointers?.value}');
     if (widget.allowPointers?.value ?? true) {
       _allowPointers = true;
     } else {
@@ -1799,7 +1806,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('building handle ${widget.type} ${widget.visibility?.value} ${widget.allowPointers?.value}');
+    debugPrint('building handle ${widget.type} visibility: ${widget.visibility?.value} allowsPointers: ${widget.allowPointers?.value}');
     final Offset handleAnchor = widget.selectionControls.getHandleAnchor(
       widget.type,
       widget.preferredLineHeight,

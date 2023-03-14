@@ -3394,6 +3394,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       if (_selectionOverlay == null) {
         _selectionOverlay = _createSelectionOverlay();
       } else {
+        debugPrint('editableText.handleSelectionChanged updating selection overlay');
         _selectionOverlay!.update(_value);
       }
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
@@ -3749,6 +3750,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   void _didChangeTextEditingValue() {
     _updateRemoteEditingValueIfNeeded();
     _startOrStopCursorTimerIfNeeded();
+    debugPrint('editableText.didChangeTextEditingValue updateOrDisposeSelectionOverlayIfNeeded');
     _updateOrDisposeSelectionOverlayIfNeeded();
     // TODO(abarth): Teach RenderEditable about ValueNotifier<TextEditingValue>
     // to avoid this setState().
@@ -3759,6 +3761,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   void _handleFocusChanged() {
     _openOrCloseInputConnectionIfNeeded();
     _startOrStopCursorTimerIfNeeded();
+    debugPrint('editableText.handleFocusChanged updateOrDisposeSelectionOverlayIfNeeded');
     _updateOrDisposeSelectionOverlayIfNeeded();
     if (_hasFocus) {
       // Listen for changing viewInsets, which indicates keyboard showing up.
