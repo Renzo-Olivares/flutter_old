@@ -2540,7 +2540,7 @@ class TextSelectionGestureDetectorBuilder {
   void onDoubleTapDown(TapDragDownDetails details) {
     if (delegate.selectionEnabled) {
       debugPrint('onDoubleTapDown');
-      _waitingForConsecutiveTapReset = true;
+      _waitingForConsecutiveTapReset = shouldShowSelectionToolbar;
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
       editableText.toggleSelectionHandleOverlayGestures();
       if (shouldShowSelectionToolbar) {
