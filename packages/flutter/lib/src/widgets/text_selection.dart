@@ -2934,7 +2934,14 @@ class TextSelectionGestureDetectorBuilder {
 
   /// Handler for [TextSelectionGestureDetector.onTapTrackReset].
   ///
-  /// By default, it resets the flag [waitingForConsecutiveTapReset] to false.
+  /// By default, it toggles the ability for the selection handles to handle
+  /// gestures, i.e. after this method is called the selection handles will
+  /// receive pointers.
+  ///
+  /// See also:
+  ///
+  ///  * [TextSelectionGestureDetector.onTapTrackReset], which triggers this
+  ///    callback.
   @protected
   void onTapTrackReset() {
     if (_waitingForConsecutiveTapReset) {
@@ -2948,6 +2955,10 @@ class TextSelectionGestureDetectorBuilder {
         _buildScheduled = true;
         SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
           _buildScheduled = false;
+          // If the current editableText state is not available we should
+          // exit out. This can occur at the end of tests, or when the
+          // editableText has been disposed before the consecutive tap timer
+          // has elapsed.
           if (delegate.editableTextKey.currentState == null) {
             return;
           }
