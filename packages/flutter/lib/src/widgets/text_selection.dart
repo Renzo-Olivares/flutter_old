@@ -2985,6 +2985,9 @@ class TextSelectionGestureDetectorBuilder {
         _buildScheduled = true;
         SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
           _buildScheduled = false;
+          if(delegate.editableTextKey.currentState == null) {
+            return;
+          }
           editableText.toggleSelectionHandleOverlayGestures();
         });
       } else {

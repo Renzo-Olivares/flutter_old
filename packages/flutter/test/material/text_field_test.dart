@@ -1019,7 +1019,7 @@ void main() {
       const TextSelection.collapsed(offset: 8),
     );
     await tester.tapAt(textOffsetToPosition(tester, 8));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     // Second tap selects the word around the cursor.
     expect(
@@ -1174,7 +1174,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       await tester.tapAt(pos);
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Selected text shows 'Copy', and not 'Paste', 'Cut', 'Select all'.
       expect(find.text('Paste'), findsNothing);
@@ -5428,7 +5428,7 @@ void main() {
     // Focus and selection is active on second TextField, so the first TextFields
     // selectionColor should be dropped.
     await tester.tap(find.byKey(key2));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(state1.widget.selectionColor, null);
     expect(state2.widget.selectionColor, selectionColor);
   });
@@ -13373,6 +13373,7 @@ void main() {
     expect(calledGetData, false);
     // hasStrings is checked in order to decide if the content can be pasted.
     expect(calledHasStrings, true);
+    debugPrint('test finishes');
   });
 
   testWidgets('TextField changes mouse cursor when hovered', (WidgetTester tester) async {
