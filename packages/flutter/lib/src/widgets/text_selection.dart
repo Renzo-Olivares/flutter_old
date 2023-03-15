@@ -2056,7 +2056,6 @@ class TextSelectionGestureDetectorBuilder {
   bool get shouldShowSelectionToolbar => _shouldShowSelectionToolbar;
   bool _shouldShowSelectionToolbar = true;
 
-  bool get waitingForConsecutiveTapReset => _waitingForConsecutiveTapReset;
   bool _waitingForConsecutiveTapReset = false;
 
   /// The [State] of the [EditableText] for which the builder will provide a
@@ -2189,7 +2188,7 @@ class TextSelectionGestureDetectorBuilder {
   void onForcePressStart(ForcePressDetails details) {
     assert(delegate.forcePressEnabled);
     _shouldShowSelectionToolbar = true;
-    if(_waitingForConsecutiveTapReset) {
+    if (_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
       editableText.toggleSelectionHandleOverlayGestureHandling();
     }
@@ -2344,7 +2343,7 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleLongTapStart(LongPressStartDetails details) {
     if (delegate.selectionEnabled) {
-      if(_waitingForConsecutiveTapReset) {
+      if (_waitingForConsecutiveTapReset) {
         _waitingForConsecutiveTapReset = false;
         editableText.toggleSelectionHandleOverlayGestureHandling();
       }
@@ -2605,7 +2604,7 @@ class TextSelectionGestureDetectorBuilder {
     if (!delegate.selectionEnabled) {
       return;
     }
-    if(_waitingForConsecutiveTapReset) {
+    if (_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
       editableText.toggleSelectionHandleOverlayGestureHandling();
     }
@@ -2647,7 +2646,7 @@ class TextSelectionGestureDetectorBuilder {
     _shouldShowSelectionToolbar = kind == null
       || kind == PointerDeviceKind.touch
       || kind == PointerDeviceKind.stylus;
-    if(_waitingForConsecutiveTapReset) {
+    if (_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
       editableText.toggleSelectionHandleOverlayGestureHandling();
     }
