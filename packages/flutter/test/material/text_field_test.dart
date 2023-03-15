@@ -1019,7 +1019,7 @@ void main() {
       const TextSelection.collapsed(offset: 8),
     );
     await tester.tapAt(textOffsetToPosition(tester, 8));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     // Second tap selects the word around the cursor.
     expect(
@@ -1174,7 +1174,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       await tester.tapAt(pos);
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Selected text shows 'Copy', and not 'Paste', 'Cut', 'Select all'.
       expect(find.text('Paste'), findsNothing);
@@ -2345,7 +2345,7 @@ void main() {
     await gesture.down(ePos);
     await tester.pump();
     await gesture.up();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final TextSelection selection = controller.selection;
     expect(selection.baseOffset, 4);
@@ -2906,7 +2906,7 @@ void main() {
     await gesture.down(pos);
     await tester.pump();
     await gesture.up();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final TextSelection selection = controller.selection;
     expect(
@@ -3094,7 +3094,7 @@ void main() {
     await gesture.down(pos);
     await tester.pump();
     await gesture.up();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final TextSelection selection = controller.selection;
     expect(
@@ -5428,7 +5428,7 @@ void main() {
     // Focus and selection is active on second TextField, so the first TextFields
     // selectionColor should be dropped.
     await tester.tap(find.byKey(key2));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(state1.widget.selectionColor, null);
     expect(state2.widget.selectionColor, selectionColor);
   });
@@ -15194,7 +15194,7 @@ void main() {
       await tester.tapAt(textOffsetToPosition(tester, testValue.indexOf('e')));
       await tester.pump(const Duration(milliseconds: 30));
       await tester.tapAt(textOffsetToPosition(tester, testValue.indexOf('e')));
-      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pumpAndSettle();
 
       final TextSelection selection = controller.selection;
 

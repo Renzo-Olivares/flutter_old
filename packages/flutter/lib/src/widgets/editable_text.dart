@@ -2657,7 +2657,11 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       _selectionOverlay?.update(_value);
     }
     _selectionOverlay?.handlesVisible = widget.showSelectionHandles;
-    _selectionOverlay?.handlesAllowPointers = widget.selectionHandlesAllowPointers;
+    // _selectionOverlay?.handlesAllowPointers = widget.selectionHandlesAllowPointers;
+    // if (widget.selectionHandlesAllowPointers != oldWidget.selectionHandlesAllowPointers) {
+    //   debugPrint('old handlesAllowPointers does not equal new schedule rebuild');
+    //   _selectionOverlay?.rebuildHandles();
+    // }
 
     debugPrint('editableText.didUpdate handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
     debugPrint('editableText.didUpdate handlesVisible ${widget.showSelectionHandles}');
@@ -3354,6 +3358,15 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     }
   }
 
+  void toggleSelectionHandleOverlayGestures() {
+    if (_selectionOverlay == null) {
+      _selectionOverlay = _createSelectionOverlay();
+    }
+    debugPrint('editableText.toggleSelectionHandleOverlayGestures changing to ${!_selectionOverlay!.handlesAllowPointers}');
+    _selectionOverlay!.handlesAllowPointers = !_selectionOverlay!.handlesAllowPointers;
+    _selectionOverlay!.rebuildHandles();
+  }
+
   @pragma('vm:notify-debugger-on-exception')
   void _handleSelectionChanged(TextSelection selection, SelectionChangedCause? cause) {
     // We return early if the selection is not valid. This can happen when the
@@ -3398,7 +3411,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         _selectionOverlay!.update(_value);
       }
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
-      _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
+      // _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
 
       debugPrint('editableText.handleSelectionChanged handlesVisible ${widget.showSelectionHandles}');
       debugPrint('editableText.handleSelectionChanged handlesAllowPointers ${widget.selectionHandlesAllowPointers}');

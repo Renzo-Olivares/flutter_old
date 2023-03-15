@@ -1132,13 +1132,13 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
       });
     }
 
-    final bool willSelectionHandlesAllowPointers = _shouldSelectionHandlesAllowPointers();
-    if (willSelectionHandlesAllowPointers != _selectionHandlesAllowPointers) {
-      debugPrint('TextField.handleSelectionChanged should handles allow pointers $willSelectionHandlesAllowPointers');
-      setState(() {
-        _selectionHandlesAllowPointers = willSelectionHandlesAllowPointers;
-      });
-    }
+    // final bool willSelectionHandlesAllowPointers = _shouldSelectionHandlesAllowPointers();
+    // if (willSelectionHandlesAllowPointers != _selectionHandlesAllowPointers) {
+    //   debugPrint('TextField.handleSelectionChanged should handles allow pointers $willSelectionHandlesAllowPointers');
+    //   setState(() {
+    //     _selectionHandlesAllowPointers = willSelectionHandlesAllowPointers;
+    //   });
+    // }
 
     switch (Theme.of(context).platform) {
       case TargetPlatform.iOS:
@@ -1170,6 +1170,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
 
   /// Toggle the toolbar when a selection handle is tapped.
   void _handleSelectionHandleTapped() {
+    debugPrint('TextField - selection handle tapped');
     if (_effectiveController.selection.isCollapsed) {
       _editableText!.toggleToolbar();
     }

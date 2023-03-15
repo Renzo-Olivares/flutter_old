@@ -1786,7 +1786,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   @override
   void didUpdateWidget(_SelectionHandleOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    debugPrint('SelectionOverlay didUpdate');
+    debugPrint('SelectionHandleOverlay didUpdate');
     oldWidget.visibility?.removeListener(_handleVisibilityChanged);
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
@@ -2203,6 +2203,7 @@ class TextSelectionGestureDetectorBuilder {
     _shouldShowSelectionToolbar = true;
     if(_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
+      editableText.toggleSelectionHandleOverlayGestures();
     }
     if (delegate.selectionEnabled) {
       renderEditable.selectWordsInRange(
@@ -2358,6 +2359,7 @@ class TextSelectionGestureDetectorBuilder {
     if (delegate.selectionEnabled) {
       if(_waitingForConsecutiveTapReset) {
         _waitingForConsecutiveTapReset = false;
+        editableText.toggleSelectionHandleOverlayGestures();
       }
       switch (defaultTargetPlatform) {
         case TargetPlatform.iOS:
@@ -2540,6 +2542,7 @@ class TextSelectionGestureDetectorBuilder {
       debugPrint('onDoubleTapDown');
       _waitingForConsecutiveTapReset = true;
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
+      editableText.toggleSelectionHandleOverlayGestures();
       if (shouldShowSelectionToolbar) {
         editableText.showToolbar();
       }
@@ -2619,6 +2622,7 @@ class TextSelectionGestureDetectorBuilder {
     debugPrint('onTripleTapDown');
     if(_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
+      editableText.toggleSelectionHandleOverlayGestures();
     }
     if (renderEditable.maxLines == 1) {
       editableText.selectAll(SelectionChangedCause.tap);
@@ -2660,6 +2664,7 @@ class TextSelectionGestureDetectorBuilder {
       || kind == PointerDeviceKind.stylus;
     if(_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
+      editableText.toggleSelectionHandleOverlayGestures();
     }
 
     _dragStartSelection = renderEditable.selection;
@@ -2951,7 +2956,8 @@ class TextSelectionGestureDetectorBuilder {
     if (_waitingForConsecutiveTapReset) {
       debugPrint('onTapTrackReset');
       _waitingForConsecutiveTapReset = false;
-      editableText.updateSelectionHandlesOverlay();
+      // editableText.toggleSelectionHandleOverlayGestures(true);
+      // editableText.updateSelectionHandlesOverlay();
       // // If we are in build state, it will be too late to rebuild the handles.
       // // We will need to schedule the build in next frame.
       // if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
@@ -2968,6 +2974,23 @@ class TextSelectionGestureDetectorBuilder {
       //   debugPrint('TextSelectionGestureDetector rebuilding handles');
       //   editableText.updateSelectionHandlesOverlay();
       // }
+
+      // If we are in build state, it will be too late to rebuild the handles.
+      // We will need to schedule the build in next frame.
+      if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+        debugPrint('TextSelectionGestureDetector in build state, scheduling rebuild');
+        if (_buildScheduled) {
+          return;
+        }
+        _buildScheduled = true;
+        SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
+          _buildScheduled = false;
+          editableText.toggleSelectionHandleOverlayGestures();
+        });
+      } else {
+        debugPrint('TextSelectionGestureDetector rebuilding handles');
+        editableText.toggleSelectionHandleOverlayGestures();
+      }
     }
   }
 
