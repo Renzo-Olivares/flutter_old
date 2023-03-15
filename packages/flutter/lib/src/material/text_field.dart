@@ -895,7 +895,6 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
     && widget.decoration!.counterText == null;
 
   bool _showSelectionHandles = false;
-  bool _selectionHandlesAllowPointers = true;
 
   late _TextFieldSelectionGestureDetectorBuilder _selectionGestureDetectorBuilder;
 
@@ -1020,7 +1019,6 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
   @override
   void didUpdateWidget(TextField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    debugPrint('TextField.didUpdate');
     if (widget.controller == null && oldWidget.controller != null) {
       _createLocalController(oldWidget.controller!.value);
     } else if (widget.controller != null && oldWidget.controller == null) {
@@ -1082,10 +1080,6 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
     _editableText?.requestKeyboard();
   }
 
-  bool _shouldSelectionHandlesAllowPointers() {
-    return !_selectionGestureDetectorBuilder.waitingForConsecutiveTapReset;
-  }
-
   bool _shouldShowSelectionHandles(SelectionChangedCause? cause) {
     // When the text field is activated by something that doesn't trigger the
     // selection overlay, we shouldn't show the handles either.
@@ -1126,19 +1120,10 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
   void _handleSelectionChanged(TextSelection selection, SelectionChangedCause? cause) {
     final bool willShowSelectionHandles = _shouldShowSelectionHandles(cause);
     if (willShowSelectionHandles != _showSelectionHandles) {
-      debugPrint('TextField.handleSelectionChanged should show handles $willShowSelectionHandles');
       setState(() {
         _showSelectionHandles = willShowSelectionHandles;
       });
     }
-
-    // final bool willSelectionHandlesAllowPointers = _shouldSelectionHandlesAllowPointers();
-    // if (willSelectionHandlesAllowPointers != _selectionHandlesAllowPointers) {
-    //   debugPrint('TextField.handleSelectionChanged should handles allow pointers $willSelectionHandlesAllowPointers');
-    //   setState(() {
-    //     _selectionHandlesAllowPointers = willSelectionHandlesAllowPointers;
-    //   });
-    // }
 
     switch (Theme.of(context).platform) {
       case TargetPlatform.iOS:
@@ -1170,7 +1155,6 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
 
   /// Toggle the toolbar when a selection handle is tapped.
   void _handleSelectionHandleTapped() {
-    debugPrint('TextField - selection handle tapped');
     if (_effectiveController.selection.isCollapsed) {
       _editableText!.toggleToolbar();
     }
@@ -1217,7 +1201,6 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
         (widget.style!.fontSize == null || widget.style!.textBaseline == null)),
       'inherit false style must supply fontSize and textBaseline',
     );
-    debugPrint('building TextField');
 
     final ThemeData theme = Theme.of(context);
     final DefaultSelectionStyle selectionStyle = DefaultSelectionStyle.of(context);
@@ -1334,7 +1317,6 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
           readOnly: widget.readOnly || !_isEnabled,
           toolbarOptions: widget.toolbarOptions,
           showCursor: widget.showCursor,
-          selectionHandlesAllowPointers: _selectionHandlesAllowPointers,
           showSelectionHandles: _showSelectionHandles,
           controller: controller,
           focusNode: focusNode,

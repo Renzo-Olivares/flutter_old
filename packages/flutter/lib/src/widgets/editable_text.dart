@@ -762,7 +762,6 @@ class EditableText extends StatefulWidget {
     this.autofocus = false,
     bool? showCursor,
     this.showSelectionHandles = false,
-    this.selectionHandlesAllowPointers = true,
     this.selectionColor,
     this.selectionControls,
     TextInputType? keyboardType,
@@ -937,9 +936,6 @@ class EditableText extends StatefulWidget {
   ///
   ///  * [showCursor], which controls the visibility of the cursor.
   final bool showSelectionHandles;
-
-  /// Whether to allow the selection handles to receive pointer events.
-  final bool selectionHandlesAllowPointers;
 
   /// {@template flutter.widgets.editableText.showCursor}
   /// Whether to show cursor.
@@ -2653,18 +2649,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       _updateRemoteEditingValueIfNeeded();
     }
     if (widget.controller.selection != oldWidget.controller.selection) {
-      debugPrint('EditableText.didUpdate -- selection changed so updating selection overlay');
       _selectionOverlay?.update(_value);
     }
     _selectionOverlay?.handlesVisible = widget.showSelectionHandles;
-    // _selectionOverlay?.handlesAllowPointers = widget.selectionHandlesAllowPointers;
-    // if (widget.selectionHandlesAllowPointers != oldWidget.selectionHandlesAllowPointers) {
-    //   debugPrint('old handlesAllowPointers does not equal new schedule rebuild');
-    //   _selectionOverlay?.rebuildHandles();
-    // }
-
-    debugPrint('editableText.didUpdate handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
-    debugPrint('editableText.didUpdate handlesVisible ${widget.showSelectionHandles}');
 
     if (widget.autofillClient != oldWidget.autofillClient) {
       _currentAutofillScope?.unregister(oldWidget.autofillClient?.autofillId ?? autofillId);
@@ -3313,7 +3300,6 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   }
 
   void _onEditableScroll() {
-    debugPrint('EditableText.onEditableScroll');
     _selectionOverlay?.updateForScroll();
     _scribbleCacheKey = null;
   }
@@ -3346,23 +3332,22 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     return selectionOverlay;
   }
 
-  void updateSelectionHandlesOverlay() {
-    if (widget.selectionControls == null && widget.contextMenuBuilder == null) {
-      _selectionOverlay?.dispose();
-      _selectionOverlay = null;
-    } else {
-      if (_selectionOverlay == null) {
-        _selectionOverlay = _createSelectionOverlay();
-      }
-      _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
-    }
-  }
-
-  void toggleSelectionHandleOverlayGestures() {
+  /// Toggles the gesture handling of the selection handles.
+  ///
+  /// If [TextSelectionOverlay.handlesAllowPointers] is true, this will set it
+  /// to false.
+  ///
+  /// If [TextSelectionOverlay.handlesAllowPointers] is false, this will set it
+  /// to true.
+  ///
+  /// See also:
+  ///
+  ///  * [TextSelectionOverlay.handlesAllowPointers], which is the flag that this
+  /// method toggles.
+  void toggleSelectionHandleOverlayGestureHandling() {
     if (_selectionOverlay == null) {
       _selectionOverlay = _createSelectionOverlay();
     }
-    debugPrint('editableText.toggleSelectionHandleOverlayGestures changing to ${!_selectionOverlay!.handlesAllowPointers}');
     _selectionOverlay!.handlesAllowPointers = !_selectionOverlay!.handlesAllowPointers;
     _selectionOverlay!.rebuildHandles();
   }
@@ -3407,14 +3392,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       if (_selectionOverlay == null) {
         _selectionOverlay = _createSelectionOverlay();
       } else {
-        debugPrint('editableText.handleSelectionChanged updating selection overlay');
         _selectionOverlay!.update(_value);
       }
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
-      // _selectionOverlay!.handlesAllowPointers = widget.selectionHandlesAllowPointers;
-
-      debugPrint('editableText.handleSelectionChanged handlesVisible ${widget.showSelectionHandles}');
-      debugPrint('editableText.handleSelectionChanged handlesAllowPointers ${widget.selectionHandlesAllowPointers}');
       _selectionOverlay!.showHandles();
     }
     // TODO(chunhtai): we should make sure selection actually changed before
@@ -3534,11 +3514,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     if (!mounted) {
       return;
     }
-    debugPrint('EditableText.didChangeMetrics');
     final ui.FlutterView view = View.of(context);
     if (_lastBottomViewInset != view.viewInsets.bottom) {
       SchedulerBinding.instance.addPostFrameCallback((Duration _) {
-        debugPrint('EditableText.didChangeMetrics.scheduleScrollUpdate');
         _selectionOverlay?.updateForScroll();
       });
       if (_lastBottomViewInset < view.viewInsets.bottom) {
@@ -3763,7 +3741,6 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   void _didChangeTextEditingValue() {
     _updateRemoteEditingValueIfNeeded();
     _startOrStopCursorTimerIfNeeded();
-    debugPrint('editableText.didChangeTextEditingValue updateOrDisposeSelectionOverlayIfNeeded');
     _updateOrDisposeSelectionOverlayIfNeeded();
     // TODO(abarth): Teach RenderEditable about ValueNotifier<TextEditingValue>
     // to avoid this setState().
@@ -3774,7 +3751,6 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   void _handleFocusChanged() {
     _openOrCloseInputConnectionIfNeeded();
     _startOrStopCursorTimerIfNeeded();
-    debugPrint('editableText.handleFocusChanged updateOrDisposeSelectionOverlayIfNeeded');
     _updateOrDisposeSelectionOverlayIfNeeded();
     if (_hasFocus) {
       // Listen for changing viewInsets, which indicates keyboard showing up.
@@ -4536,7 +4512,6 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   Widget build(BuildContext context) {
     assert(debugCheckHasMediaQuery(context));
     super.build(context); // See AutomaticKeepAliveClientMixin.
-    debugPrint('building EditableText');
 
     final TextSelectionControls? controls = widget.selectionControls;
     return _CompositionCallback(

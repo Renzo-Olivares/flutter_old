@@ -868,7 +868,6 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
     ?? LengthLimitingTextInputFormatter.getDefaultMaxLengthEnforcement();
 
   bool _showSelectionHandles = false;
-  bool _selectionHandlesAllowPointers = true;
 
   late _CupertinoTextFieldSelectionGestureDetectorBuilder _selectionGestureDetectorBuilder;
 
@@ -988,22 +987,11 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
     return false;
   }
 
-  bool _shouldSelectionHandlesAllowPointers() {
-    return !_selectionGestureDetectorBuilder.waitingForConsecutiveTapReset;
-  }
-
   void _handleSelectionChanged(TextSelection selection, SelectionChangedCause? cause) {
     final bool willShowSelectionHandles = _shouldShowSelectionHandles(cause);
     if (willShowSelectionHandles != _showSelectionHandles) {
       setState(() {
         _showSelectionHandles = willShowSelectionHandles;
-      });
-    }
-
-    final bool willSelectionHandlesAllowPointers = _shouldSelectionHandlesAllowPointers();
-    if (willSelectionHandlesAllowPointers != _selectionHandlesAllowPointers) {
-      setState(() {
-        _selectionHandlesAllowPointers = willSelectionHandlesAllowPointers;
       });
     }
 
@@ -1299,7 +1287,6 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
             readOnly: widget.readOnly,
             toolbarOptions: widget.toolbarOptions,
             showCursor: widget.showCursor,
-            selectionHandlesAllowPointers: _selectionHandlesAllowPointers,
             showSelectionHandles: _showSelectionHandles,
             focusNode: _effectiveFocusNode,
             keyboardType: widget.keyboardType,

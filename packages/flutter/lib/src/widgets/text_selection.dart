@@ -435,27 +435,29 @@ class TextSelectionOverlay {
     _updateTextSelectionOverlayVisibilities();
   }
 
+  /// Whether selection handles allow pointers.
+  ///
+  /// Set to false if you want the selection handles to not receive any pointer
+  /// events.
+  ///
+  /// Defaults to true.
   bool get handlesAllowPointers => _handlesAllowPointers;
   bool _handlesAllowPointers = true;
   set handlesAllowPointers(bool allowPointers) {
     if (_handlesAllowPointers == allowPointers) {
       return;
     }
-    debugPrint('SelectionOverlay -- setting handlesAllowPointers $allowPointers');
     _handlesAllowPointers = allowPointers;
     _updateTextSelectionHandlesOverlayIgnorePointerBehavior();
-    // rebuildHandles();
   }
 
   /// {@macro flutter.widgets.SelectionOverlay.showHandles}
   void showHandles() {
-    debugPrint('SelectionOverlay -- show handles');
     _updateSelectionOverlay();
     _selectionOverlay.showHandles();
   }
 
   void rebuildHandles() {
-    debugPrint('SelectionOverlay -- rebuilding handles');
     _updateSelectionOverlay();
     _selectionOverlay.rebuildHandles();
   }
@@ -465,7 +467,6 @@ class TextSelectionOverlay {
 
   /// {@macro flutter.widgets.SelectionOverlay.showToolbar}
   void showToolbar() {
-    debugPrint('SelectionOverlay -- show Toolbar');
     _updateSelectionOverlay();
 
     if (selectionControls is! TextSelectionHandleControls) {
@@ -490,7 +491,6 @@ class TextSelectionOverlay {
   void showSpellCheckSuggestionsToolbar(
     WidgetBuilder spellCheckSuggestionsToolbarBuilder
   ) {
-    debugPrint('SelectionOverlay -- show spellcheck suggestions toolbar');
     _updateSelectionOverlay();
     assert(context.mounted);
     _selectionOverlay
@@ -502,7 +502,6 @@ class TextSelectionOverlay {
 
   /// {@macro flutter.widgets.SelectionOverlay.showMagnifier}
   void showMagnifier(Offset positionToShow) {
-    debugPrint('SelectionOverlay -- show magnifier');
     final TextPosition position = renderObject.getPositionForPoint(positionToShow);
     _updateSelectionOverlay();
     _selectionOverlay.showMagnifier(
@@ -516,7 +515,6 @@ class TextSelectionOverlay {
 
   /// {@macro flutter.widgets.SelectionOverlay.updateMagnifier}
   void updateMagnifier(Offset positionToShow) {
-    debugPrint('SelectionOverlay -- update magnifier');
     final TextPosition position = renderObject.getPositionForPoint(positionToShow);
     _updateSelectionOverlay();
     _selectionOverlay.updateMagnifier(
@@ -546,7 +544,6 @@ class TextSelectionOverlay {
     if (_value == newValue) {
       return;
     }
-    debugPrint('SelectionOverlay -- update');
     _value = newValue;
     _updateSelectionOverlay();
     // _updateSelectionOverlay may not rebuild the selection overlay if the
@@ -557,7 +554,6 @@ class TextSelectionOverlay {
   }
 
   void _updateSelectionOverlay() {
-    debugPrint('TextSelectionOverlay -- updateSelectionOverlay');
     _selectionOverlay
       // Update selection handle metrics.
       ..startHandleType = _chooseType(
@@ -582,7 +578,6 @@ class TextSelectionOverlay {
   /// This is intended to be called when the [renderObject] may have changed its
   /// text metrics (e.g. because the text was scrolled).
   void updateForScroll() {
-    debugPrint('SelectionOverlay -- updateForScroll');
     _updateSelectionOverlay();
     // This method may be called due to windows metrics changes. In that case,
     // non of the properties in _selectionOverlay will change, but a rebuild is
@@ -1353,7 +1348,6 @@ class SelectionOverlay {
       if (_buildScheduled) {
         return;
       }
-      debugPrint('scheduling handle rebuild');
       _buildScheduled = true;
       SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
         _buildScheduled = false;
@@ -1361,7 +1355,6 @@ class SelectionOverlay {
         _handles![1].markNeedsBuild();
       });
     } else {
-      debugPrint('rebuilding handles');
       _handles![0].markNeedsBuild();
       _handles![1].markNeedsBuild();
     }
@@ -1766,7 +1759,6 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   }
 
   void _handleVisibilityChanged() {
-    debugPrint('_SelectionHandleOverlay - visibility changed ${widget.visibility?.value}');
     if (widget.visibility?.value ?? true) {
       _controller.forward();
     } else {
@@ -1775,7 +1767,6 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   }
 
   void _handleAllowsPointersChanged() {
-    debugPrint('_SelectionHandleOverlay - allows pointers changed ${widget.allowPointers?.value}');
     if (widget.allowPointers?.value ?? true) {
       _allowPointers = true;
     } else {
@@ -1786,7 +1777,6 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   @override
   void didUpdateWidget(_SelectionHandleOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    debugPrint('SelectionHandleOverlay didUpdate');
     oldWidget.visibility?.removeListener(_handleVisibilityChanged);
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
@@ -1806,7 +1796,6 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('building handle ${widget.type} visibility: ${widget.visibility?.value} allowsPointers: ${widget.allowPointers?.value}');
     final Offset handleAnchor = widget.selectionControls.getHandleAnchor(
       widget.type,
       widget.preferredLineHeight,
@@ -2124,7 +2113,6 @@ class TextSelectionGestureDetectorBuilder {
     if (!delegate.selectionEnabled) {
       return;
     }
-    debugPrint('onTapDown');
     // TODO(Renzo-Olivares): Migrate text selection gestures away from saving state
     // in renderEditable. The gesture callbacks can use the details objects directly
     // in callbacks variants that provide them [TapGestureRecognizer.onSecondaryTap]
@@ -2203,7 +2191,7 @@ class TextSelectionGestureDetectorBuilder {
     _shouldShowSelectionToolbar = true;
     if(_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
-      editableText.toggleSelectionHandleOverlayGestures();
+      editableText.toggleSelectionHandleOverlayGestureHandling();
     }
     if (delegate.selectionEnabled) {
       renderEditable.selectWordsInRange(
@@ -2247,7 +2235,6 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleTapUp(TapDragUpDetails details) {
     if (delegate.selectionEnabled) {
-      debugPrint('onSingleTapUp');
       // Handle shift + click selection if needed.
       final bool isShiftPressed = _containsShift(details.keysPressedOnDown);
       // It is impossible to extend the selection when the shift key is pressed, if the
@@ -2359,7 +2346,7 @@ class TextSelectionGestureDetectorBuilder {
     if (delegate.selectionEnabled) {
       if(_waitingForConsecutiveTapReset) {
         _waitingForConsecutiveTapReset = false;
-        editableText.toggleSelectionHandleOverlayGestures();
+        editableText.toggleSelectionHandleOverlayGestureHandling();
       }
       switch (defaultTargetPlatform) {
         case TargetPlatform.iOS:
@@ -2539,10 +2526,9 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onDoubleTapDown(TapDragDownDetails details) {
     if (delegate.selectionEnabled) {
-      debugPrint('onDoubleTapDown');
       _waitingForConsecutiveTapReset = shouldShowSelectionToolbar;
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
-      editableText.toggleSelectionHandleOverlayGestures();
+      editableText.toggleSelectionHandleOverlayGestureHandling();
       if (shouldShowSelectionToolbar) {
         editableText.showToolbar();
       }
@@ -2619,10 +2605,9 @@ class TextSelectionGestureDetectorBuilder {
     if (!delegate.selectionEnabled) {
       return;
     }
-    debugPrint('onTripleTapDown');
     if(_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
-      editableText.toggleSelectionHandleOverlayGestures();
+      editableText.toggleSelectionHandleOverlayGestureHandling();
     }
     if (renderEditable.maxLines == 1) {
       editableText.selectAll(SelectionChangedCause.tap);
@@ -2664,7 +2649,7 @@ class TextSelectionGestureDetectorBuilder {
       || kind == PointerDeviceKind.stylus;
     if(_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
-      editableText.toggleSelectionHandleOverlayGestures();
+      editableText.toggleSelectionHandleOverlayGestureHandling();
     }
 
     _dragStartSelection = renderEditable.selection;
@@ -2954,45 +2939,23 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onTapTrackReset() {
     if (_waitingForConsecutiveTapReset) {
-      debugPrint('onTapTrackReset');
       _waitingForConsecutiveTapReset = false;
-      // editableText.toggleSelectionHandleOverlayGestures(true);
-      // editableText.updateSelectionHandlesOverlay();
-      // // If we are in build state, it will be too late to rebuild the handles.
-      // // We will need to schedule the build in next frame.
-      // if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
-      //   debugPrint('TextSelectionGestureDetector in build state, scheduling rebuild');
-      //   if (_buildScheduled) {
-      //     return;
-      //   }
-      //   _buildScheduled = true;
-      //   SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
-      //     _buildScheduled = false;
-      //     editableText.updateSelectionHandlesOverlay();
-      //   });
-      // } else {
-      //   debugPrint('TextSelectionGestureDetector rebuilding handles');
-      //   editableText.updateSelectionHandlesOverlay();
-      // }
-
       // If we are in build state, it will be too late to rebuild the handles.
       // We will need to schedule the build in next frame.
       if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
-        debugPrint('TextSelectionGestureDetector in build state, scheduling rebuild');
         if (_buildScheduled) {
           return;
         }
         _buildScheduled = true;
         SchedulerBinding.instance.addPostFrameCallback((Duration duration) {
           _buildScheduled = false;
-          if(delegate.editableTextKey.currentState == null) {
+          if (delegate.editableTextKey.currentState == null) {
             return;
           }
-          editableText.toggleSelectionHandleOverlayGestures();
+          editableText.toggleSelectionHandleOverlayGestureHandling();
         });
       } else {
-        debugPrint('TextSelectionGestureDetector rebuilding handles');
-        editableText.toggleSelectionHandleOverlayGestures();
+        editableText.toggleSelectionHandleOverlayGestureHandling();
       }
     }
   }
