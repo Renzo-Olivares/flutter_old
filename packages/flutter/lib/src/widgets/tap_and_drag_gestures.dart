@@ -521,6 +521,11 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
   // tracked in [addAllowedPointer].
   double? get slopTolerance;
 
+  // Callback used to indicate that a tap tracking has been reset which happens
+  // when the timer between two taps elapses, the recognizer loses the arena,
+  // the gesture is cancelled or the recognizer is disposed of.
+  VoidCallback? onTapTrackReset;
+
   // Private tap state tracked.
   PointerDownEvent? _down;
   PointerUpEvent? _up;
@@ -645,6 +650,7 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
     _keysPressedOnDown = null;
     _down = null;
     _up = null;
+    onTapTrackReset?.call();
   }
 }
 
