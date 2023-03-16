@@ -3350,6 +3350,11 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     _selectionOverlay!.rebuildHandles();
   }
 
+  void showHandles() {
+    _selectionOverlay ??= _createSelectionOverlay();
+    _selectionOverlay!.showHandles();
+  }
+
   @pragma('vm:notify-debugger-on-exception')
   void _handleSelectionChanged(TextSelection selection, SelectionChangedCause? cause) {
     // We return early if the selection is not valid. This can happen when the
@@ -3393,7 +3398,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         _selectionOverlay!.update(_value);
       }
       _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
-      _selectionOverlay!.showHandles();
+      // _selectionOverlay!.showHandles();
     }
     // TODO(chunhtai): we should make sure selection actually changed before
     // we call the onSelectionChanged.

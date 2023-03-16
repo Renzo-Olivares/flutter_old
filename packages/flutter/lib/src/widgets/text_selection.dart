@@ -1831,7 +1831,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
       offset: interactiveRect.topLeft,
       showWhenUnlinked: false,
       child: IgnorePointer(
-        ignoring: !_allowPointers,
+        ignoring: false,
         child: FadeTransition(
           opacity: _opacity,
           child: Container(
@@ -2531,7 +2531,7 @@ class TextSelectionGestureDetectorBuilder {
     if (delegate.selectionEnabled) {
       _waitingForConsecutiveTapReset = shouldShowSelectionToolbar;
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
-      editableText.toggleSelectionHandleOverlayGestureHandling();
+      // editableText.toggleSelectionHandleOverlayGestureHandling();
       if (shouldShowSelectionToolbar) {
         editableText.showToolbar();
       }
@@ -2966,10 +2966,11 @@ class TextSelectionGestureDetectorBuilder {
           if (delegate.editableTextKey.currentState == null) {
             return;
           }
-          editableText.toggleSelectionHandleOverlayGestureHandling();
+          // editableText.toggleSelectionHandleOverlayGestureHandling();
+          editableText.showHandles();
         });
       } else {
-        editableText.toggleSelectionHandleOverlayGestureHandling();
+        editableText.showHandles();
       }
     }
   }
