@@ -2194,7 +2194,7 @@ class TextSelectionGestureDetectorBuilder {
     _shouldShowSelectionToolbar = true;
     if (_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
-      editableText.toggleSelectionHandleOverlayGestureHandling();
+      // editableText.toggleSelectionHandleOverlayGestureHandling();
     }
     if (delegate.selectionEnabled) {
       renderEditable.selectWordsInRange(
@@ -2349,7 +2349,7 @@ class TextSelectionGestureDetectorBuilder {
     if (delegate.selectionEnabled) {
       if (_waitingForConsecutiveTapReset) {
         _waitingForConsecutiveTapReset = false;
-        editableText.toggleSelectionHandleOverlayGestureHandling();
+        // editableText.toggleSelectionHandleOverlayGestureHandling();
       }
       switch (defaultTargetPlatform) {
         case TargetPlatform.iOS:
@@ -2610,7 +2610,7 @@ class TextSelectionGestureDetectorBuilder {
     }
     if (_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
-      editableText.toggleSelectionHandleOverlayGestureHandling();
+      // editableText.toggleSelectionHandleOverlayGestureHandling();
     }
     if (renderEditable.maxLines == 1) {
       editableText.selectAll(SelectionChangedCause.tap);
@@ -2652,7 +2652,7 @@ class TextSelectionGestureDetectorBuilder {
       || kind == PointerDeviceKind.stylus;
     if (_waitingForConsecutiveTapReset) {
       _waitingForConsecutiveTapReset = false;
-      editableText.toggleSelectionHandleOverlayGestureHandling();
+      // editableText.toggleSelectionHandleOverlayGestureHandling();
     }
 
     _dragStartSelection = renderEditable.selection;
