@@ -2528,9 +2528,11 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onDoubleTapDown(TapDragDownDetails details) {
     if (delegate.selectionEnabled) {
-      _waitingForConsecutiveTapReset = shouldShowSelectionToolbar;
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
-      editableText.toggleSelectionHandleOverlayGestureHandling();
+      if (!_waitingForConsecutiveTapReset) {
+        _waitingForConsecutiveTapReset = shouldShowSelectionToolbar;
+        editableText.toggleSelectionHandleOverlayGestureHandling();
+      }
       if (shouldShowSelectionToolbar) {
         editableText.showToolbar();
       }
@@ -2606,10 +2608,6 @@ class TextSelectionGestureDetectorBuilder {
   void onTripleTapDown(TapDragDownDetails details) {
     if (!delegate.selectionEnabled) {
       return;
-    }
-    if (_waitingForConsecutiveTapReset) {
-      _waitingForConsecutiveTapReset = false;
-      editableText.toggleSelectionHandleOverlayGestureHandling();
     }
     if (renderEditable.maxLines == 1) {
       editableText.selectAll(SelectionChangedCause.tap);
