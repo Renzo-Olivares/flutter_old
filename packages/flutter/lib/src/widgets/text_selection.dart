@@ -1829,8 +1829,8 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
       link: widget.handleLayerLink,
       offset: interactiveRect.topLeft,
       showWhenUnlinked: false,
-      child: IgnorePointer(
-        ignoring: !_allowPointers,
+      child: _SelectionHandlesRenderObjectWidget(
+        passThrough: !_allowPointers,
         child: FadeTransition(
           opacity: _opacity,
           child: Container(
@@ -1878,6 +1878,70 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
         ),
       ),
     );
+  }
+}
+
+class _SelectionHandlesRenderObjectWidget extends SingleChildRenderObjectWidget {
+  const _SelectionHandlesRenderObjectWidget({
+    super.key,
+    this.passThrough = true,
+    super.child,
+  });
+
+  final bool passThrough;
+
+  @override
+  _SelectionHandlesProxy createRenderObject(BuildContext context) {
+    return _SelectionHandlesProxy(
+      passThrough: passThrough,
+    );
+  }
+
+  @override
+  void updateRenderObject(BuildContext context, _SelectionHandlesProxy renderObject) {
+    renderObject
+      ..passThrough = passThrough;
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty<bool>('passThrough', passThrough));
+  }
+}
+
+class _SelectionHandlesProxy extends RenderProxyBox {
+  _SelectionHandlesProxy({
+    RenderBox? child,
+    bool passThrough = true,
+  }) : _passThrough = passThrough,
+       super(child);
+
+  bool get passThrough => _passThrough;
+  bool _passThrough;
+  set passThrough(bool value) {
+    if (value == _passThrough) {
+      return;
+    }
+    _passThrough = value;
+  }
+
+
+  @override
+  bool hitTest(BoxHitTestResult result, { required Offset position }) {
+    if (passThrough) {
+      super.hitTest(result, position: position);
+      // Regardless of the `super.hitTest` result, return false so the hit can
+      // continue to other objects below this one.
+      return false;
+    }
+    return super.hitTest(result, position: position);
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty<bool>('passThrough', passThrough));
   }
 }
 
