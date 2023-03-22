@@ -445,11 +445,11 @@ class TextSelectionOverlay {
   /// Defaults to false.
   bool get handlesPassThroughPointers => _handlesPassThroughPointers;
   bool _handlesPassThroughPointers = false;
-  set handlesPassThroughPointers(bool allowPassThroughPointers) {
-    if (_handlesPassThroughPointers == allowPassThroughPointers) {
+  set handlesPassThroughPointers(bool allowPointerPassThrough) {
+    if (_handlesPassThroughPointers == allowPointerPassThrough) {
       return;
     }
-    _handlesPassThroughPointers = allowPassThroughPointers;
+    _handlesPassThroughPointers = allowPointerPassThrough;
     _updateTextSelectionHandlesOverlayIgnorePointerBehavior();
     _rebuildHandles();
   }
@@ -1519,7 +1519,7 @@ class SelectionOverlay {
         onSelectionHandleDragUpdate: onStartHandleDragUpdate,
         onSelectionHandleDragEnd: _handleStartHandleDragEnd,
         selectionControls: selectionControls,
-        allowPassThroughPointers: handlesPassThroughPointers,
+        allowPointerPassThrough: handlesPassThroughPointers,
         visibility: startHandlesVisible,
         preferredLineHeight: _lineHeightAtStart,
         dragStartBehavior: dragStartBehavior,
@@ -1547,7 +1547,7 @@ class SelectionOverlay {
         onSelectionHandleDragUpdate: onEndHandleDragUpdate,
         onSelectionHandleDragEnd: _handleEndHandleDragEnd,
         selectionControls: selectionControls,
-        allowPassThroughPointers: handlesPassThroughPointers,
+        allowPointerPassThrough: handlesPassThroughPointers,
         visibility: endHandlesVisible,
         preferredLineHeight: _lineHeightAtEnd,
         dragStartBehavior: dragStartBehavior,
@@ -1722,7 +1722,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
     this.onSelectionHandleDragUpdate,
     this.onSelectionHandleDragEnd,
     required this.selectionControls,
-    this.allowPassThroughPointers,
+    this.allowPointerPassThrough,
     this.visibility,
     required this.preferredLineHeight,
     this.dragStartBehavior = DragStartBehavior.start,
@@ -1734,7 +1734,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
   final ValueChanged<DragUpdateDetails>? onSelectionHandleDragUpdate;
   final ValueChanged<DragEndDetails>? onSelectionHandleDragEnd;
   final TextSelectionControls selectionControls;
-  final ValueListenable<bool>? allowPassThroughPointers;
+  final ValueListenable<bool>? allowPointerPassThrough;
   final ValueListenable<bool>? visibility;
   final double preferredLineHeight;
   final TextSelectionHandleType type;
@@ -1745,7 +1745,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
 }
 
 class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with SingleTickerProviderStateMixin {
-  late bool _allowPassThroughPointers;
+  late bool _allowPointerPassThrough;
   late AnimationController _controller;
   Animation<double> get _opacity => _controller.view;
 
@@ -1754,13 +1754,13 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
     super.initState();
 
     _controller = AnimationController(duration: SelectionOverlay.fadeDuration, vsync: this);
-    _allowPassThroughPointers = true;
+    _allowPointerPassThrough = true;
 
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
 
     _handleAllowsPointersChanged();
-    widget.allowPassThroughPointers?.addListener(_handleAllowsPointersChanged);
+    widget.allowPointerPassThrough?.addListener(_handleAllowsPointersChanged);
   }
 
   void _handleVisibilityChanged() {
@@ -1772,10 +1772,10 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   }
 
   void _handleAllowsPointersChanged() {
-    if (widget.allowPassThroughPointers?.value ?? true) {
-      _allowPassThroughPointers = true;
+    if (widget.allowPointerPassThrough?.value ?? true) {
+      _allowPointerPassThrough = true;
     } else {
-      _allowPassThroughPointers = false;
+      _allowPointerPassThrough = false;
     }
   }
 
@@ -1786,15 +1786,15 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
 
-    oldWidget.allowPassThroughPointers?.removeListener(_handleAllowsPointersChanged);
+    oldWidget.allowPointerPassThrough?.removeListener(_handleAllowsPointersChanged);
     _handleAllowsPointersChanged();
-    widget.allowPassThroughPointers?.addListener(_handleAllowsPointersChanged);
+    widget.allowPointerPassThrough?.addListener(_handleAllowsPointersChanged);
   }
 
   @override
   void dispose() {
     widget.visibility?.removeListener(_handleVisibilityChanged);
-    widget.allowPassThroughPointers?.removeListener(_handleAllowsPointersChanged);
+    widget.allowPointerPassThrough?.removeListener(_handleAllowsPointersChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -1832,7 +1832,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
       offset: interactiveRect.topLeft,
       showWhenUnlinked: false,
       child: _SelectionHandlesRenderObjectWidget(
-        passThrough: _allowPassThroughPointers,
+        passThrough: _allowPointerPassThrough,
         child: FadeTransition(
           opacity: _opacity,
           child: Container(
