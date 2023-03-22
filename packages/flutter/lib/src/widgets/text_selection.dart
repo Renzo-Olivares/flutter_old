@@ -2255,10 +2255,6 @@ class TextSelectionGestureDetectorBuilder {
   void onForcePressStart(ForcePressDetails details) {
     assert(delegate.forcePressEnabled);
     _shouldShowSelectionToolbar = true;
-    if (_waitingForConsecutiveTapReset) {
-      _waitingForConsecutiveTapReset = false;
-      editableText.toggleSelectionHandleOverlayGestureHandling();
-    }
     if (delegate.selectionEnabled) {
       renderEditable.selectWordsInRange(
         from: details.globalPosition,
@@ -2410,10 +2406,6 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleLongTapStart(LongPressStartDetails details) {
     if (delegate.selectionEnabled) {
-      if (_waitingForConsecutiveTapReset) {
-        _waitingForConsecutiveTapReset = false;
-        editableText.toggleSelectionHandleOverlayGestureHandling();
-      }
       switch (defaultTargetPlatform) {
         case TargetPlatform.iOS:
         case TargetPlatform.macOS:
@@ -2711,10 +2703,6 @@ class TextSelectionGestureDetectorBuilder {
     _shouldShowSelectionToolbar = kind == null
       || kind == PointerDeviceKind.touch
       || kind == PointerDeviceKind.stylus;
-    if (_waitingForConsecutiveTapReset) {
-      _waitingForConsecutiveTapReset = false;
-      editableText.toggleSelectionHandleOverlayGestureHandling();
-    }
 
     _dragStartSelection = renderEditable.selection;
     _dragStartScrollOffset = _scrollPosition;
