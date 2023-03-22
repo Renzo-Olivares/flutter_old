@@ -2350,7 +2350,7 @@ void main() {
     await gesture.down(ePos);
     await tester.pump();
     await gesture.up();
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     final TextSelection selection = controller.selection;
     expect(selection.baseOffset, 4);
@@ -2911,7 +2911,7 @@ void main() {
     await gesture.down(pos);
     await tester.pump();
     await gesture.up();
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     final TextSelection selection = controller.selection;
     expect(
@@ -3099,7 +3099,7 @@ void main() {
     await gesture.down(pos);
     await tester.pump();
     await gesture.up();
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     final TextSelection selection = controller.selection;
     expect(
@@ -15293,7 +15293,7 @@ void main() {
       await tester.tapAt(textOffsetToPosition(tester, testValue.indexOf('e')));
       await tester.pump(const Duration(milliseconds: 30));
       await tester.tapAt(textOffsetToPosition(tester, testValue.indexOf('e')));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(); // This one is still needed.
 
       final TextSelection selection = controller.selection;
 
