@@ -1767,7 +1767,10 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
                       ..dragStartBehavior = widget.dragStartBehavior
                       ..onStart = widget.onSelectionHandleDragStart
                       ..onUpdate = widget.onSelectionHandleDragUpdate
-                      ..onEnd = widget.onSelectionHandleDragEnd;
+                      ..onEnd = widget.onSelectionHandleDragEnd
+                      ..gestureSettings = DeviceGestureSettings(
+                        touchSlop: 2.5,
+                      );
                   },
                 ),
               },
