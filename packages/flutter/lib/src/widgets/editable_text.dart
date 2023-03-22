@@ -3337,21 +3337,22 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     return selectionOverlay;
   }
 
-  /// Toggles the gesture handling of the selection handles.
+  /// Toggles whether the selection handles can pass through pointers to widgets
+  /// below them.
   ///
-  /// If [TextSelectionOverlay.handlesAllowPointers] is true, this will set it
+  /// If [TextSelectionOverlay.handlesPassThroughPointers] is true, this will set it
   /// to false.
   ///
-  /// If [TextSelectionOverlay.handlesAllowPointers] is false, this will set it
+  /// If [TextSelectionOverlay.handlesPassThroughPointers] is false, this will set it
   /// to true.
   ///
   /// See also:
   ///
-  ///  * [TextSelectionOverlay.handlesAllowPointers], which is the flag that this
+  ///  * [TextSelectionOverlay.handlesPassThroughPointers], which is the flag that this
   /// method toggles.
-  void toggleSelectionHandleOverlayGestureHandling() {
+  void toggleSelectionHandleOverlayPointerPassThrough() {
     _selectionOverlay ??= _createSelectionOverlay();
-    _selectionOverlay!.handlesAllowPointers = !_selectionOverlay!.handlesAllowPointers;
+    _selectionOverlay!.handlesPassThroughPointers = !_selectionOverlay!.handlesPassThroughPointers;
   }
 
   @pragma('vm:notify-debugger-on-exception')

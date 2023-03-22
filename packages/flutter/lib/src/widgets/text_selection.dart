@@ -314,7 +314,7 @@ class TextSelectionOverlay {
     required this.renderObject,
     this.selectionControls,
     bool handlesVisible = false,
-    bool handlesAllowPointers = true,
+    bool handlesPassThroughPointers = false,
     required this.selectionDelegate,
     DragStartBehavior dragStartBehavior = DragStartBehavior.start,
     VoidCallback? onSelectionHandleTapped,
@@ -322,7 +322,7 @@ class TextSelectionOverlay {
     this.contextMenuBuilder,
     required TextMagnifierConfiguration magnifierConfiguration,
   }) : _handlesVisible = handlesVisible,
-       _handlesAllowPointers = handlesAllowPointers,
+       _handlesPassThroughPointers = handlesPassThroughPointers,
        _value = value {
     renderObject.selectionStartInViewport.addListener(_updateTextSelectionOverlayVisibilities);
     renderObject.selectionEndInViewport.addListener(_updateTextSelectionOverlayVisibilities);
@@ -335,7 +335,7 @@ class TextSelectionOverlay {
       context: context,
       debugRequiredFor: debugRequiredFor,
       // The metrics will be set when show handles.
-      handlesAllowPointers: _effectiveSelectionHandlesAllowPointers,
+      handlesPassThroughPointers: _effectiveSelectionhandlesPassThroughPointers,
       startHandleType: TextSelectionHandleType.collapsed,
       startHandlesVisible: _effectiveStartHandleVisibility,
       lineHeightAtStart: 0.0,
@@ -407,7 +407,7 @@ class TextSelectionOverlay {
   final ValueNotifier<bool> _effectiveEndHandleVisibility = ValueNotifier<bool>(false);
   final ValueNotifier<bool> _effectiveToolbarVisibility = ValueNotifier<bool>(false);
 
-  final ValueNotifier<bool> _effectiveSelectionHandlesAllowPointers = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> _effectiveSelectionhandlesPassThroughPointers = ValueNotifier<bool>(true);
 
   void _updateTextSelectionOverlayVisibilities() {
     _effectiveStartHandleVisibility.value = _handlesVisible && renderObject.selectionStartInViewport.value;
@@ -416,7 +416,7 @@ class TextSelectionOverlay {
   }
 
   void _updateTextSelectionHandlesOverlayIgnorePointerBehavior() {
-    _effectiveSelectionHandlesAllowPointers.value = _handlesAllowPointers && (renderObject.selectionStartInViewport.value || renderObject.selectionEndInViewport.value);
+    _effectiveSelectionhandlesPassThroughPointers.value = _handlesPassThroughPointers && (renderObject.selectionStartInViewport.value || renderObject.selectionEndInViewport.value);
   }
 
   /// Whether selection handles are visible.
@@ -435,19 +435,21 @@ class TextSelectionOverlay {
     _updateTextSelectionOverlayVisibilities();
   }
 
-  /// Whether selection handles allow pointers.
+  /// Whether selection handles allow pointers to pass through to widgets below
+  /// it.
   ///
-  /// Set to false if you want the selection handles to not receive any pointer
-  /// events.
+  /// Set to true if you want the selection handles to pass through pointer
+  /// events to widgets below it. The selection handles themselves will still
+  /// receive pointer events.
   ///
-  /// Defaults to true.
-  bool get handlesAllowPointers => _handlesAllowPointers;
-  bool _handlesAllowPointers = true;
-  set handlesAllowPointers(bool allowPointers) {
-    if (_handlesAllowPointers == allowPointers) {
+  /// Defaults to false.
+  bool get handlesPassThroughPointers => _handlesPassThroughPointers;
+  bool _handlesPassThroughPointers = false;
+  set handlesPassThroughPointers(bool allowPassThroughPointers) {
+    if (_handlesPassThroughPointers == allowPassThroughPointers) {
       return;
     }
-    _handlesAllowPointers = allowPointers;
+    _handlesPassThroughPointers = allowPassThroughPointers;
     _updateTextSelectionHandlesOverlayIgnorePointerBehavior();
     _rebuildHandles();
   }
@@ -616,7 +618,7 @@ class TextSelectionOverlay {
     _effectiveToolbarVisibility.dispose();
     _effectiveStartHandleVisibility.dispose();
     _effectiveEndHandleVisibility.dispose();
-    _effectiveSelectionHandlesAllowPointers.dispose();
+    _effectiveSelectionhandlesPassThroughPointers.dispose();
     hideToolbar();
   }
 
@@ -950,7 +952,7 @@ class SelectionOverlay {
     this.debugRequiredFor,
     required TextSelectionHandleType startHandleType,
     required double lineHeightAtStart,
-    this.handlesAllowPointers,
+    this.handlesPassThroughPointers,
     this.startHandlesVisible,
     this.onStartHandleDragStart,
     this.onStartHandleDragUpdate,
@@ -1095,8 +1097,8 @@ class SelectionOverlay {
 
   bool _isDraggingStartHandle = false;
 
-  /// Whether both handles can receive pointers.
-  final ValueListenable<bool>? handlesAllowPointers;
+  /// Whether both handles allow pointers to pass through to widgets below them.
+  final ValueListenable<bool>? handlesPassThroughPointers;
 
   /// Whether the start handle is visible.
   ///
@@ -1517,7 +1519,7 @@ class SelectionOverlay {
         onSelectionHandleDragUpdate: onStartHandleDragUpdate,
         onSelectionHandleDragEnd: _handleStartHandleDragEnd,
         selectionControls: selectionControls,
-        allowPointers: handlesAllowPointers,
+        allowPassThroughPointers: handlesPassThroughPointers,
         visibility: startHandlesVisible,
         preferredLineHeight: _lineHeightAtStart,
         dragStartBehavior: dragStartBehavior,
@@ -1545,7 +1547,7 @@ class SelectionOverlay {
         onSelectionHandleDragUpdate: onEndHandleDragUpdate,
         onSelectionHandleDragEnd: _handleEndHandleDragEnd,
         selectionControls: selectionControls,
-        allowPointers: handlesAllowPointers,
+        allowPassThroughPointers: handlesPassThroughPointers,
         visibility: endHandlesVisible,
         preferredLineHeight: _lineHeightAtEnd,
         dragStartBehavior: dragStartBehavior,
@@ -1720,7 +1722,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
     this.onSelectionHandleDragUpdate,
     this.onSelectionHandleDragEnd,
     required this.selectionControls,
-    this.allowPointers,
+    this.allowPassThroughPointers,
     this.visibility,
     required this.preferredLineHeight,
     this.dragStartBehavior = DragStartBehavior.start,
@@ -1732,7 +1734,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
   final ValueChanged<DragUpdateDetails>? onSelectionHandleDragUpdate;
   final ValueChanged<DragEndDetails>? onSelectionHandleDragEnd;
   final TextSelectionControls selectionControls;
-  final ValueListenable<bool>? allowPointers;
+  final ValueListenable<bool>? allowPassThroughPointers;
   final ValueListenable<bool>? visibility;
   final double preferredLineHeight;
   final TextSelectionHandleType type;
@@ -1743,7 +1745,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
 }
 
 class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with SingleTickerProviderStateMixin {
-  late bool _allowPointers;
+  late bool _allowPassThroughPointers;
   late AnimationController _controller;
   Animation<double> get _opacity => _controller.view;
 
@@ -1752,13 +1754,13 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
     super.initState();
 
     _controller = AnimationController(duration: SelectionOverlay.fadeDuration, vsync: this);
-    _allowPointers = true;
+    _allowPassThroughPointers = true;
 
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
 
     _handleAllowsPointersChanged();
-    widget.allowPointers?.addListener(_handleAllowsPointersChanged);
+    widget.allowPassThroughPointers?.addListener(_handleAllowsPointersChanged);
   }
 
   void _handleVisibilityChanged() {
@@ -1770,10 +1772,10 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   }
 
   void _handleAllowsPointersChanged() {
-    if (widget.allowPointers?.value ?? true) {
-      _allowPointers = true;
+    if (widget.allowPassThroughPointers?.value ?? true) {
+      _allowPassThroughPointers = true;
     } else {
-      _allowPointers = false;
+      _allowPassThroughPointers = false;
     }
   }
 
@@ -1784,15 +1786,15 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
 
-    oldWidget.allowPointers?.removeListener(_handleAllowsPointersChanged);
+    oldWidget.allowPassThroughPointers?.removeListener(_handleAllowsPointersChanged);
     _handleAllowsPointersChanged();
-    widget.allowPointers?.addListener(_handleAllowsPointersChanged);
+    widget.allowPassThroughPointers?.addListener(_handleAllowsPointersChanged);
   }
 
   @override
   void dispose() {
     widget.visibility?.removeListener(_handleVisibilityChanged);
-    widget.allowPointers?.removeListener(_handleAllowsPointersChanged);
+    widget.allowPassThroughPointers?.removeListener(_handleAllowsPointersChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -1830,7 +1832,7 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
       offset: interactiveRect.topLeft,
       showWhenUnlinked: false,
       child: _SelectionHandlesRenderObjectWidget(
-        passThrough: !_allowPointers,
+        passThrough: _allowPassThroughPointers,
         child: FadeTransition(
           opacity: _opacity,
           child: Container(
@@ -1881,13 +1883,24 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
   }
 }
 
+/// A widget that hit tests itself and allows hits to pass through to objects
+/// below it.
+///
+/// When [passThrough] is true, this widget (and its subtree) and any widgets
+/// below it will be hit test.
+///
+/// When [passThrough] is false, only this widget (and its subtree) will be hit test.
 class _SelectionHandlesRenderObjectWidget extends SingleChildRenderObjectWidget {
+  /// Creates a widget that hit tests itself (and its subtree) and widgets below it.
+  ///
+  /// The [passThrough] argument must not be null.
   const _SelectionHandlesRenderObjectWidget({
     super.key,
     this.passThrough = true,
     super.child,
   });
 
+  /// Whether this widget allows hit test to pass through to widgets below it.
   final bool passThrough;
 
   @override
@@ -1899,8 +1912,7 @@ class _SelectionHandlesRenderObjectWidget extends SingleChildRenderObjectWidget 
 
   @override
   void updateRenderObject(BuildContext context, _SelectionHandlesProxy renderObject) {
-    renderObject
-      ..passThrough = passThrough;
+    renderObject.passThrough = passThrough;
   }
 
   @override
@@ -1910,13 +1922,23 @@ class _SelectionHandlesRenderObjectWidget extends SingleChildRenderObjectWidget 
   }
 }
 
+/// A render object that is allows hits to pass through to widgets below it
+/// while still hit testing itself.
+///
+/// When [passThrough] is true, this render object (and its subtree) will be hit
+/// tested and it allows hit testing to continue to other objects below it.
 class _SelectionHandlesProxy extends RenderProxyBox {
+  /// Creates a render object that allows hit tests to pass through to widgets below it.
+  ///
+  /// The [passThrough] argument must not be null.
   _SelectionHandlesProxy({
     RenderBox? child,
     bool passThrough = true,
   }) : _passThrough = passThrough,
        super(child);
 
+  /// Whether this render object allows hit testing to continue to other objects
+  /// below it.
   bool get passThrough => _passThrough;
   bool _passThrough;
   set passThrough(bool value) {
@@ -1925,7 +1947,6 @@ class _SelectionHandlesProxy extends RenderProxyBox {
     }
     _passThrough = value;
   }
-
 
   @override
   bool hitTest(BoxHitTestResult result, { required Offset position }) {
@@ -2587,7 +2608,7 @@ class TextSelectionGestureDetectorBuilder {
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
       if (!_waitingForConsecutiveTapReset) {
         _waitingForConsecutiveTapReset = shouldShowSelectionToolbar;
-        editableText.toggleSelectionHandleOverlayGestureHandling();
+        editableText.toggleSelectionHandleOverlayPointerPassThrough();
       }
       if (shouldShowSelectionToolbar) {
         editableText.showToolbar();
@@ -3015,10 +3036,10 @@ class TextSelectionGestureDetectorBuilder {
           if (delegate.editableTextKey.currentState == null) {
             return;
           }
-          editableText.toggleSelectionHandleOverlayGestureHandling();
+          editableText.toggleSelectionHandleOverlayPointerPassThrough();
         });
       } else {
-        editableText.toggleSelectionHandleOverlayGestureHandling();
+        editableText.toggleSelectionHandleOverlayPointerPassThrough();
       }
     }
   }
