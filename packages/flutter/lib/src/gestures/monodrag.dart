@@ -600,6 +600,7 @@ class VerticalDragGestureRecognizer extends DragGestureRecognizer {
 
   @override
   bool _hasSufficientGlobalDistanceToAccept(PointerDeviceKind pointerDeviceKind, double? deviceTouchSlop) {
+    debugPrint('vertical drag - ${_globalDistanceMoved.abs()} > ${computeHitSlop(pointerDeviceKind, gestureSettings)}');
     return _globalDistanceMoved.abs() > computeHitSlop(pointerDeviceKind, gestureSettings);
   }
 

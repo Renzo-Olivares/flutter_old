@@ -1091,6 +1091,7 @@ class TapAndDragGestureRecognizer extends OneSequenceGestureRecognizer with _Tap
       untransformedEndPosition: event.localPosition
     ).distance * 1.sign;
     if (_hasSufficientGlobalDistanceToAccept(event.kind, gestureSettings?.touchSlop)) {
+      debugPrint('tapanddrag -- accept');
       _start = event;
       _dragState = _DragState.accepted;
       resolve(GestureDisposition.accepted);
