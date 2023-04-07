@@ -2013,6 +2013,9 @@ class TextSelectionGestureDetectorBuilder {
   // focused, the cursor moves to the long press position.
   bool _longPressStartedWithoutFocus = false;
 
+  Offset? _lastTapDownPosition;
+  Offset? _lastSecondaryTapDownPosition;
+
   /// Handler for [TextSelectionGestureDetector.onTapDown].
   ///
   /// By default, it forwards the tap to [RenderEditable.handleTapDown] and sets
@@ -2026,13 +2029,7 @@ class TextSelectionGestureDetectorBuilder {
     if (!delegate.selectionEnabled) {
       return;
     }
-    // TODO(Renzo-Olivares): Migrate text selection gestures away from saving state
-    // in renderEditable. The gesture callbacks can use the details objects directly
-    // in callbacks variants that provide them [TapGestureRecognizer.onSecondaryTap]
-    // vs [TapGestureRecognizer.onSecondaryTapUp] instead of having to track state in
-    // renderEditable. When this migration is complete we should remove this hack.
-    // See https://github.com/flutter/flutter/issues/115130.
-    renderEditable.handleTapDown(TapDownDetails(globalPosition: details.globalPosition));
+    _lastTapDownPosition = details.globalPosition;
     // The selection overlay should only be shown when the user is interacting
     // through a touch screen (via either a finger or a stylus). A mouse shouldn't
     // trigger the selection overlay.
@@ -2101,7 +2098,7 @@ class TextSelectionGestureDetectorBuilder {
     assert(delegate.forcePressEnabled);
     _shouldShowSelectionToolbar = true;
     if (delegate.selectionEnabled) {
-      renderEditable.selectWordsInRange(
+      _selectWordsInRange(
         from: details.globalPosition,
         cause: SelectionChangedCause.forcePress,
       );
@@ -2122,7 +2119,7 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onForcePressEnd(ForcePressDetails details) {
     assert(delegate.forcePressEnabled);
-    renderEditable.selectWordsInRange(
+    _selectWordsInRange(
       from: details.globalPosition,
       cause: SelectionChangedCause.forcePress,
     );
@@ -2215,7 +2212,7 @@ class TextSelectionGestureDetectorBuilder {
               final bool wordAtCursorIndexIsMisspelled = editableText.findSuggestionSpanAtCursorIndex(textPosition.offset) != null;
 
               if (wordAtCursorIndexIsMisspelled) {
-                renderEditable.selectWord(cause: SelectionChangedCause.tap);
+                _selectWordAt(from: _lastTapDownPosition!, cause: SelectionChangedCause.tap);
                 if (previousSelection != editableText.textEditingValue.selection) {
                   editableText.showSpellCheckSuggestionsToolbar();
                 } else {
@@ -2265,7 +2262,7 @@ class TextSelectionGestureDetectorBuilder {
         case TargetPlatform.macOS:
           if (!renderEditable.hasFocus) {
             _longPressStartedWithoutFocus = true;
-            renderEditable.selectWord(cause: SelectionChangedCause.longPress);
+            _selectWordAt(from: _lastTapDownPosition!, cause: SelectionChangedCause.longPress);
           } else {
             renderEditable.selectPositionAt(
               from: details.globalPosition,
@@ -2276,7 +2273,7 @@ class TextSelectionGestureDetectorBuilder {
         case TargetPlatform.fuchsia:
         case TargetPlatform.linux:
         case TargetPlatform.windows:
-          renderEditable.selectWord(cause: SelectionChangedCause.longPress);
+          _selectWordAt(from: _lastTapDownPosition!, cause: SelectionChangedCause.longPress);
       }
 
       switch (defaultTargetPlatform) {
@@ -2320,7 +2317,7 @@ class TextSelectionGestureDetectorBuilder {
         case TargetPlatform.iOS:
         case TargetPlatform.macOS:
           if (_longPressStartedWithoutFocus) {
-            renderEditable.selectWordsInRange(
+            _selectWordsInRange(
               from: details.globalPosition - details.offsetFromOrigin - editableOffset - scrollableOffset,
               to: details.globalPosition,
               cause: SelectionChangedCause.longPress,
@@ -2335,7 +2332,7 @@ class TextSelectionGestureDetectorBuilder {
         case TargetPlatform.fuchsia:
         case TargetPlatform.linux:
         case TargetPlatform.windows:
-          renderEditable.selectWordsInRange(
+          _selectWordsInRange(
             from: details.globalPosition - details.offsetFromOrigin - editableOffset - scrollableOffset,
             to: details.globalPosition,
             cause: SelectionChangedCause.longPress,
@@ -2395,7 +2392,7 @@ class TextSelectionGestureDetectorBuilder {
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:
         if (!_lastSecondaryTapWasOnSelection || !renderEditable.hasFocus) {
-          renderEditable.selectWord(cause: SelectionChangedCause.tap);
+          _selectWordAt(from: _lastSecondaryTapDownPosition!, cause: SelectionChangedCause.tap);
         }
         if (shouldShowSelectionToolbar) {
           editableText.hideToolbar();
@@ -2421,13 +2418,7 @@ class TextSelectionGestureDetectorBuilder {
   ///  * [onSecondaryTap], which is typically called after this.
   @protected
   void onSecondaryTapDown(TapDownDetails details) {
-    // TODO(Renzo-Olivares): Migrate text selection gestures away from saving state
-    // in renderEditable. The gesture callbacks can use the details objects directly
-    // in callbacks variants that provide them [TapGestureRecognizer.onSecondaryTap]
-    // vs [TapGestureRecognizer.onSecondaryTapUp] instead of having to track state in
-    // renderEditable. When this migration is complete we should remove this hack.
-    // See https://github.com/flutter/flutter/issues/115130.
-    renderEditable.handleSecondaryTapDown(TapDownDetails(globalPosition: details.globalPosition));
+    _lastSecondaryTapDownPosition = details.globalPosition;
     _shouldShowSelectionToolbar = true;
   }
 
@@ -2443,7 +2434,7 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onDoubleTapDown(TapDragDownDetails details) {
     if (delegate.selectionEnabled) {
-      renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
+      _selectWordAt(from: details.globalPosition, cause: SelectionChangedCause.doubleTap);
       if (shouldShowSelectionToolbar) {
         editableText.showToolbar();
       }
@@ -2455,6 +2446,18 @@ class TextSelectionGestureDetectorBuilder {
   void _selectParagraphsInRange({required Offset from, Offset? to, SelectionChangedCause? cause}) {
     final TextBoundary paragraphBoundary = ParagraphBoundary(editableText.textEditingValue.text);
     _selectTextBoundariesInRange(boundary: paragraphBoundary, from: from, to: to, cause: cause);
+  }
+
+  // Selects the word in a document at the given global position.
+  void _selectWordAt({required Offset from, SelectionChangedCause? cause}) {
+    _selectWordsInRange(from: from, cause: cause);
+  }
+
+  // Selects the set of words in a document that intersect a given range of
+  // global positions.
+  void _selectWordsInRange({required Offset from, Offset? to, SelectionChangedCause? cause}) {
+    final TextBoundary wordBoundary = renderEditable.wordBoundaries.moveByWordBoundary;
+    _selectTextBoundariesInRange(boundary: wordBoundary, from: from, to: to, cause: cause);
   }
 
   // Selects the set of lines in a document that intersect a given range of
@@ -2647,7 +2650,7 @@ class TextSelectionGestureDetectorBuilder {
 
       // Select word by word.
       if (_TextSelectionGestureDetectorState._getEffectiveConsecutiveTapCount(details.consecutiveTapCount) == 2) {
-        return renderEditable.selectWordsInRange(
+        return _selectWordsInRange(
           from: dragStartGlobalPosition - editableOffset - scrollableOffset,
           to: details.globalPosition,
           cause: SelectionChangedCause.drag,
