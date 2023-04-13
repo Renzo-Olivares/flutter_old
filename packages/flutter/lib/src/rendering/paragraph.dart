@@ -1392,7 +1392,6 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
       case SelectionEventType.endEdgeUpdate:
         final SelectionEdgeUpdateEvent edgeUpdate = event as SelectionEdgeUpdateEvent;
         final SelectionMode selectionMode = event.mode;
-        debugPrint(selectionMode.toString());
 
         switch (selectionMode) {
           case SelectionMode.character:
@@ -1494,10 +1493,8 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
 
     final (TextPosition start, TextPosition end) wordBoundary = _getWordBoundaryAtPosition(position);
     if (isEnd) {
-      debugPrint('setting end');
       _setSelectionPosition(wordBoundary.$2, isEnd: isEnd);
     } else {
-      debugPrint('setting start');
       _setSelectionPosition(wordBoundary.$1, isEnd: isEnd);
     }
     return SelectionUtils.getResultBasedOnRect(_rect, localPosition);
