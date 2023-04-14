@@ -751,7 +751,7 @@ class SelectionPoint with Diagnosticable {
     super.debugFillProperties(properties);
     properties.add(DiagnosticsProperty<Offset>('localPosition', localPosition));
     properties.add(DoubleProperty('lineHeight', lineHeight));
-    properties.add(EnumProperty('handleType', handleType));
+    properties.add(EnumProperty<TextSelectionHandleType>('handleType', handleType));
   }
 }
 
