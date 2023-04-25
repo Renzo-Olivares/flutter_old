@@ -16,6 +16,7 @@ import 'colors.dart';
 import 'debug.dart';
 import 'desktop_text_selection.dart';
 import 'feedback.dart';
+import 'input_border.dart';
 import 'input_decorator.dart';
 import 'magnifier.dart';
 import 'material_localizations.dart';
@@ -341,6 +342,10 @@ class TextField extends StatefulWidget {
        ),
        keyboardType = keyboardType ?? (maxLines == 1 ? TextInputType.text : TextInputType.multiline),
        enableInteractiveSelection = enableInteractiveSelection ?? (!readOnly || !obscureText);
+
+  const factory TextField.adaptive(
+
+  ): _AdaptiveTextField;
 
   /// {@macro flutter.widgets.magnifier.TextMagnifierConfiguration.intro}
   ///
@@ -1507,6 +1512,53 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
         ),
       ),
     );
+  }
+}
+
+// Value inspected from Xcode 11 & iOS 13.0 Simulator.
+const BorderSide _kDefaultRoundedBorderSide = BorderSide(
+  color: CupertinoDynamicColor.withBrightness(
+    color: Color(0x33000000),
+    darkColor: Color(0x33FFFFFF),
+  ),
+  width: 0.0,
+);
+
+const TextStyle _kDefaultPlaceholderStyle = TextStyle(
+  fontWeight: FontWeight.w400,
+  color: CupertinoColors.placeholderText,
+);
+
+class _AdaptiveTextField extends StatelessWidget {
+  const _AdaptiveTextField(
+
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    switch (Theme.of(context).platform) {
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        return TextField(
+
+        );
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return TextField(
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(5.0)),
+              borderSide: _kDefaultRoundedBorderSide,
+            ),
+            contentPadding: const EdgeInsets.all(7.0),
+            hintStyle: _kDefaultPlaceholderStyle,
+          ),
+          cursorRadius: const Radius.circular(2.0),
+          cursorOpacityAnimates: true,
+        );
+    }
   }
 }
 
