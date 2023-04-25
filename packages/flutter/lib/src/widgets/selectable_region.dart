@@ -590,7 +590,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
       return;
     }
     if (_selectable?.dispatchSelectionEvent(
-        SelectionEdgeUpdateEvent.forEnd(globalPosition: _selectionEndPosition!, textGranularity: textGranularity)) == SelectionResult.pending) {
+        SelectionEdgeUpdateEvent.forEnd(globalPosition: _selectionEndPosition!, granularity: textGranularity)) == SelectionResult.pending) {
       _scheduledSelectionEndEdgeUpdate = true;
       SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
         if (!_scheduledSelectionEndEdgeUpdate) {
@@ -644,7 +644,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
       return;
     }
     if (_selectable?.dispatchSelectionEvent(
-        SelectionEdgeUpdateEvent.forStart(globalPosition: _selectionStartPosition!, textGranularity: textGranularity)) == SelectionResult.pending) {
+        SelectionEdgeUpdateEvent.forStart(globalPosition: _selectionStartPosition!, granularity: textGranularity)) == SelectionResult.pending) {
       _scheduledSelectionStartEdgeUpdate = true;
       SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
         if (!_scheduledSelectionStartEdgeUpdate) {
@@ -863,8 +863,8 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   ///
   /// The `offset` is in global coordinates.
   ///
-  /// Provide the `textGranularity` if the selection should not move the default
-  /// character by character.
+  /// Provide the `textGranularity` if the selection should not move by the default
+  /// [TextGranularity.character].
   ///
   /// See also:
   ///  * [_selectStartTo], which sets or updates selection start edge.
@@ -874,7 +874,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   ///  * [selectAll], which selects the entire content.
   void _selectEndTo({required Offset offset, bool continuous = false, TextGranularity? textGranularity}) {
     if (!continuous) {
-      _selectable?.dispatchSelectionEvent(SelectionEdgeUpdateEvent.forEnd(globalPosition: offset, textGranularity: textGranularity));
+      _selectable?.dispatchSelectionEvent(SelectionEdgeUpdateEvent.forEnd(globalPosition: offset, granularity: textGranularity));
       return;
     }
     if (_selectionEndPosition != offset) {
@@ -901,8 +901,8 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   ///
   /// The `offset` is in global coordinates.
   ///
-  /// Provide the `textGranularity` if the selection should not move the default
-  /// character by character.
+  /// Provide the `textGranularity` if the selection should not move by the default
+  /// [TextGranularity.character].
   ///
   /// See also:
   ///  * [_selectEndTo], which sets or updates selection end edge.
@@ -912,7 +912,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   ///  * [selectAll], which selects the entire content.
   void _selectStartTo({required Offset offset, bool continuous = false, TextGranularity? textGranularity}) {
     if (!continuous) {
-      _selectable?.dispatchSelectionEvent(SelectionEdgeUpdateEvent.forStart(globalPosition: offset, textGranularity: textGranularity));
+      _selectable?.dispatchSelectionEvent(SelectionEdgeUpdateEvent.forStart(globalPosition: offset, granularity: textGranularity));
       return;
     }
     if (_selectionStartPosition != offset) {
