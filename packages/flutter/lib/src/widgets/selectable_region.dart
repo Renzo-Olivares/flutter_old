@@ -489,7 +489,6 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   }
 
   void _handleMouseDragStart(TapDragStartDetails details) {
-    debugPrint('mouse drag start');
     switch (_getEffectiveConsecutiveTapCount(details.consecutiveTapCount)) {
       case 1:
         _selectStartTo(offset: details.globalPosition);
@@ -505,43 +504,30 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     final bool isPositionAboveStartingBaseline = details.localPosition.dy < _initialDragStartSelectionPoint!.localPosition.dy;
     final bool isPositionClampedToStartingLine = isPositionAboveStartingBaseline && details.localPosition.dy >= _initialDragStartSelectionPoint!.localPosition.dy - startGlyphHeight;
     final bool isPositionAtOrBelowStartingBaseline = details.localPosition.dy >= _initialDragStartSelectionPoint!.localPosition.dy;
-    // print(isDraggingForwardFromOrigin);
-    // print(isPositionAboveStartingBaseLine);
-    // print(isPositionBelowStartingBaseLine);
-    // print(isPositionClampedToStartingLine);
-    // print(details);
-    // print(_initialDragStartSelectionPoint);
 
     if (isDraggingForwardFromOrigin && isPositionClampedToStartingLine) {
-      debugPrint('dragging forward and clamped to line');
       return true;
     } else if (!isDraggingForwardFromOrigin && isPositionClampedToStartingLine) {
-      debugPrint('dragging backward and clamped to line');
       return false;
     }
 
     if (isPositionAtOrBelowStartingBaseline) {
-      debugPrint('below line');
       return true;
     } else {
-      debugPrint('above line');
       return false;
     }
   }
 
   void _handleMouseDragUpdate(TapDragUpdateDetails details) {
-    debugPrint('mouse drag update');
     switch (_getEffectiveConsecutiveTapCount(details.consecutiveTapCount)) {
       case 1:
         _selectEndTo(offset: details.globalPosition, continuous: true);
       case 2:
         if (_shouldMoveEndEdge(details)) {
-          debugPrint('move end edge');
           // Hold the start edge at the word located at the beginning of the drag.
           _selectStartTo(offset: details.globalPosition - details.offsetFromOrigin, continuous: true, selectionMode: SelectionMode.words);
           _selectEndTo(offset: details.globalPosition, continuous: true, selectionMode: SelectionMode.words);
         } else {
-          debugPrint('move start edge');
           _selectStartTo(offset: details.globalPosition, continuous: true, selectionMode: SelectionMode.words);
           // Hold the end edge at the word located at the beginning of the drag.
           _selectEndTo(offset: details.globalPosition - details.offsetFromOrigin, continuous: true, selectionMode: SelectionMode.words);
@@ -550,7 +536,6 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   }
 
   void _handleMouseDragEnd(TapDragEndDetails details) {
-    debugPrint('mouse drag end');
     _finalizeSelection();
     _updateSelectedContentIfNeeded();
     _initialDragStartSelectionPoint = null;
@@ -609,7 +594,6 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     if (_scheduledSelectionEndEdgeUpdate || !_userDraggingSelectionEnd) {
       return;
     }
-    debugPrint('helllo from trigger selection end egde');
     if (_selectable?.dispatchSelectionEvent(
         SelectionEdgeUpdateEvent.forEnd(globalPosition: _selectionEndPosition!, selectionMode: selectionMode)) == SelectionResult.pending) {
       _scheduledSelectionEndEdgeUpdate = true;
@@ -2111,7 +2095,6 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   /// Updates the selection edges.
   @protected
   SelectionResult handleSelectionEdgeUpdate(SelectionEdgeUpdateEvent event) {
-    debugPrint('hello from handle Selection edge update');
     if (event.type == SelectionEventType.endEdgeUpdate) {
       return currentSelectionEndIndex == -1 ? _initSelection(event, isEnd: true) : _adjustSelection(event, isEnd: true);
     }
@@ -2120,7 +2103,6 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
 
   @override
   SelectionResult dispatchSelectionEvent(SelectionEvent event) {
-    debugPrint('hello from multiselectablecontainer dispatchSelectionEvent');
     final bool selectionWillbeInProgress = event is! ClearSelectionEvent;
     if (!_selectionInProgress && selectionWillbeInProgress) {
       // Sort the selectable every time a selection start.
@@ -2181,7 +2163,6 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   /// treatments prior to sending the selection events.
   @protected
   SelectionResult dispatchSelectionEventToChild(Selectable selectable, SelectionEvent event) {
-    debugPrint('hello from dispatch to child');
     return selectable.dispatchSelectionEvent(event);
   }
 
@@ -2197,7 +2178,6 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   /// drag selection, once for start edge update event, once for end edge update
   /// event.
   SelectionResult _initSelection(SelectionEdgeUpdateEvent event, {required bool isEnd}) {
-    debugPrint('hello from initi selection');
     assert((isEnd && currentSelectionEndIndex == -1) || (!isEnd && currentSelectionStartIndex == -1));
     int newIndex = -1;
     bool hasFoundEdgeIndex = false;
@@ -2249,7 +2229,6 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   /// selectable that contains the selection edge, and finds forward or backward
   /// if that selectable no longer contains the selection edge.
   SelectionResult _adjustSelection(SelectionEdgeUpdateEvent event, {required bool isEnd}) {
-    debugPrint('hello from adjust selection');
     assert(() {
       if (isEnd) {
         assert(currentSelectionEndIndex < selectables.length && currentSelectionEndIndex >= 0);
