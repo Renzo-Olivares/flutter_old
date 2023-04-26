@@ -1053,10 +1053,15 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
   Color get _errorColor => widget.decoration?.errorStyle?.color ?? Theme.of(context).colorScheme.error;
 
   InputDecorationTheme _getCupertinoDecoration() {
+    BorderSide resolveBorderSide(BorderSide side) {
+      return side == BorderSide.none
+        ? side
+        : side.copyWith(color: CupertinoDynamicColor.resolve(side.color, context));
+    }
     final InputDecorationTheme cupertinoTheme = InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(5.0)),
-        borderSide: _kDefaultRoundedBorderSide, 
+        borderSide: resolveBorderSide(_kDefaultRoundedBorderSide), 
       ),
       contentPadding: const EdgeInsets.all(7.0),
       hintStyle: _kDefaultPlaceholderStyle,
@@ -1382,6 +1387,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
     );
 
     final ThemeData theme = Theme.of(context);
+
     final DefaultSelectionStyle selectionStyle = DefaultSelectionStyle.of(context);
     final TextStyle? providedStyle = MaterialStateProperty.resolveAs(widget.style, _materialState);
     final TextStyle style = _getInputStyleForState(theme.useMaterial3 ? _m3InputStyle(context) : theme.textTheme.titleMedium!).merge(providedStyle);
@@ -1396,6 +1402,26 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
           maxLengthEnforcement: _effectiveMaxLengthEnforcement,
         ),
     ];
+
+    // if (widget.type == _TextFieldType.adaptive) {
+    //   switch (theme.platform) {
+    //     case TargetPlatform.android:
+    //     case TargetPlatform.fuchsia:
+    //     case TargetPlatform.linux:
+    //     case TargetPlatform.windows:
+    //       break;
+    //     case TargetPlatform.iOS:
+    //     case TargetPlatform.macOS:
+    //       final CupertinoThemeData cupertinoTheme = CupertinoTheme.of(context);
+
+    //       final TextStyle? resolvedStyle = widget.style?.copyWith(
+    //         color: CupertinoDynamicColor.maybeResolve(widget.style?.color, context),
+    //         backgroundColor: CupertinoDynamicColor.maybeResolve(widget.style?.backgroundColor, context),
+    //       );
+
+    //       style = cupertinoTheme.textTheme.textStyle.merge(resolvedStyle);
+    //   }
+    // }
 
     // Set configuration as disabled if not otherwise specified. If specified,
     // ensure that configuration uses the correct style for misspelled words for
