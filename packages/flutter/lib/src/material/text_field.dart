@@ -32,6 +32,11 @@ export 'package:flutter/services.dart' show SmartDashesType, SmartQuotesType, Te
 // late BuildContext context;
 // late FocusNode myFocusNode;
 
+enum _TextFieldType {
+  material,
+  adaptive,
+}
+
 /// Signature for the [TextField.buildCounter] callback.
 typedef InputCounterWidgetBuilder = Widget? Function(
   /// The build context for the TextField.
@@ -341,11 +346,104 @@ class TextField extends StatefulWidget {
          'Use keyboardType TextInputType.multiline when using TextInputAction.newline on a multiline TextField.',
        ),
        keyboardType = keyboardType ?? (maxLines == 1 ? TextInputType.text : TextInputType.multiline),
-       enableInteractiveSelection = enableInteractiveSelection ?? (!readOnly || !obscureText);
+       enableInteractiveSelection = enableInteractiveSelection ?? (!readOnly || !obscureText),
+       type = _TextFieldType.material;
 
-  const factory TextField.adaptive(
+  /// A platform adaptive constructor for [TextField].
+  const TextField.adaptive({
+    super.key,
+    this.controller,
+    this.focusNode,
+    this.undoController,
+    this.decoration = const InputDecoration(),
+    TextInputType? keyboardType,
+    this.textInputAction,
+    this.textCapitalization = TextCapitalization.none,
+    this.style,
+    this.strutStyle,
+    this.textAlign = TextAlign.start,
+    this.textAlignVertical,
+    this.textDirection,
+    this.readOnly = false,
+    @Deprecated(
+      'Use `contextMenuBuilder` instead. '
+      'This feature was deprecated after v3.3.0-0.5.pre.',
+    )
+    this.toolbarOptions,
+    this.showCursor,
+    this.autofocus = false,
+    this.obscuringCharacter = '•',
+    this.obscureText = false,
+    this.autocorrect = true,
+    SmartDashesType? smartDashesType,
+    SmartQuotesType? smartQuotesType,
+    this.enableSuggestions = true,
+    this.maxLines = 1,
+    this.minLines,
+    this.expands = false,
+    this.maxLength,
+    this.maxLengthEnforcement,
+    this.onChanged,
+    this.onEditingComplete,
+    this.onSubmitted,
+    this.onAppPrivateCommand,
+    this.inputFormatters,
+    this.enabled,
+    this.cursorWidth = 2.0,
+    this.cursorHeight,
+    this.cursorRadius,
+    this.cursorOpacityAnimates,
+    this.cursorColor,
+    this.selectionHeightStyle = ui.BoxHeightStyle.tight,
+    this.selectionWidthStyle = ui.BoxWidthStyle.tight,
+    this.keyboardAppearance,
+    this.scrollPadding = const EdgeInsets.all(20.0),
+    this.dragStartBehavior = DragStartBehavior.start,
+    bool? enableInteractiveSelection,
+    this.selectionControls,
+    this.onTap,
+    this.onTapOutside,
+    this.mouseCursor,
+    this.buildCounter,
+    this.scrollController,
+    this.scrollPhysics,
+    this.autofillHints = const <String>[],
+    this.contentInsertionConfiguration,
+    this.clipBehavior = Clip.hardEdge,
+    this.restorationId,
+    this.scribbleEnabled = true,
+    this.enableIMEPersonalizedLearning = true,
+    this.contextMenuBuilder = _defaultContextMenuBuilder,
+    this.canRequestFocus = true,
+    this.spellCheckConfiguration,
+    this.magnifierConfiguration,
+  }) : assert(obscuringCharacter.length == 1),
+       smartDashesType = smartDashesType ?? (obscureText ? SmartDashesType.disabled : SmartDashesType.enabled),
+       smartQuotesType = smartQuotesType ?? (obscureText ? SmartQuotesType.disabled : SmartQuotesType.enabled),
+       assert(maxLines == null || maxLines > 0),
+       assert(minLines == null || minLines > 0),
+       assert(
+         (maxLines == null) || (minLines == null) || (maxLines >= minLines),
+         "minLines can't be greater than maxLines",
+       ),
+       assert(
+         !expands || (maxLines == null && minLines == null),
+         'minLines and maxLines must be null when expands is true.',
+       ),
+       assert(!obscureText || maxLines == 1, 'Obscured fields cannot be multiline.'),
+       assert(maxLength == null || maxLength == TextField.noMaxLength || maxLength > 0),
+       // Assert the following instead of setting it directly to avoid surprising the user by silently changing the value they set.
+       assert(
+         !identical(textInputAction, TextInputAction.newline) ||
+         maxLines == 1 ||
+         !identical(keyboardType, TextInputType.text),
+         'Use keyboardType TextInputType.multiline when using TextInputAction.newline on a multiline TextField.',
+       ),
+       keyboardType = keyboardType ?? (maxLines == 1 ? TextInputType.text : TextInputType.multiline),
+       enableInteractiveSelection = enableInteractiveSelection ?? (!readOnly || !obscureText),
+       type = _TextFieldType.adaptive;
 
-  ): _AdaptiveTextField;
+  final _TextFieldType type;
 
   /// {@macro flutter.widgets.magnifier.TextMagnifierConfiguration.intro}
   ///
@@ -954,9 +1052,41 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
 
   Color get _errorColor => widget.decoration?.errorStyle?.color ?? Theme.of(context).colorScheme.error;
 
+  InputDecorationTheme _getCupertinoDecoration() {
+    final InputDecorationTheme cupertinoTheme = InputDecorationTheme(
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(5.0)),
+        borderSide: _kDefaultRoundedBorderSide, 
+      ),
+      contentPadding: const EdgeInsets.all(7.0),
+      hintStyle: _kDefaultPlaceholderStyle,
+    );
+
+    return cupertinoTheme;
+  }
+
   InputDecoration _getEffectiveDecoration() {
     final MaterialLocalizations localizations = MaterialLocalizations.of(context);
     final ThemeData themeData = Theme.of(context);
+
+    if (widget.type == _TextFieldType.adaptive) {
+      switch (themeData.platform) {
+        case TargetPlatform.android:
+        case TargetPlatform.fuchsia:
+        case TargetPlatform.linux:
+        case TargetPlatform.windows:
+          break;
+        case TargetPlatform.iOS:
+        case TargetPlatform.macOS:
+          return (widget.decoration ?? const InputDecoration())
+            .applyDefaults(_getCupertinoDecoration())
+            .copyWith(
+              enabled: _isEnabled,
+              hintMaxLines: widget.decoration?.hintMaxLines ?? widget.maxLines,
+            );
+      }
+    }
+
     final InputDecoration effectiveDecoration = (widget.decoration ?? const InputDecoration())
       .applyDefaults(themeData.inputDecorationTheme)
       .copyWith(
@@ -1528,39 +1658,6 @@ const TextStyle _kDefaultPlaceholderStyle = TextStyle(
   fontWeight: FontWeight.w400,
   color: CupertinoColors.placeholderText,
 );
-
-class _AdaptiveTextField extends StatelessWidget {
-  const _AdaptiveTextField(
-
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    switch (Theme.of(context).platform) {
-      case TargetPlatform.android:
-      case TargetPlatform.fuchsia:
-      case TargetPlatform.linux:
-      case TargetPlatform.windows:
-        return TextField(
-
-        );
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-        return TextField(
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(5.0)),
-              borderSide: _kDefaultRoundedBorderSide,
-            ),
-            contentPadding: const EdgeInsets.all(7.0),
-            hintStyle: _kDefaultPlaceholderStyle,
-          ),
-          cursorRadius: const Radius.circular(2.0),
-          cursorOpacityAnimates: true,
-        );
-    }
-  }
-}
 
 TextStyle? _m2StateInputStyle(BuildContext context) => MaterialStateTextStyle.resolveWith((Set<MaterialState> states) {
   final ThemeData theme = Theme.of(context);
