@@ -24,6 +24,7 @@ import 'magnifier.dart';
 import 'media_query.dart';
 import 'overlay.dart';
 import 'platform_selectable_region_context_menu.dart';
+import 'scrollable.dart';
 import 'selection_container.dart';
 import 'tap_and_drag_gestures.dart';
 import 'text_editing_intents.dart';
@@ -488,30 +489,70 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     }
   }
 
+  double? _initialScrollOffset;
   void _handleMouseDragStart(TapDragStartDetails details) {
+    _initialScrollOffset = _scrollPosition;
     switch (_getEffectiveConsecutiveTapCount(details.consecutiveTapCount)) {
       case 1:
         _selectStartTo(offset: details.globalPosition);
     }
   }
 
+  double get _scrollPosition {
+    ScrollableState? scrollableState = !context.mounted ? null : Scrollable.maybeOf(context);
+    if (scrollableState == null) {
+      context.visitChildElements((element) {
+        scrollableState = findChildScrollable(element);
+        return;
+      });
+    }
+    return scrollableState == null ? 0.0 : scrollableState!.position.pixels;
+  }
+
+  ScrollableState? findChildScrollable(Element element) {
+    if (element is StatefulElement && element.state is ScrollableState) {
+      return element.state as ScrollableState;
+    }
+
+    ScrollableState? childScrollable;
+    element.visitChildElements((child) {
+      childScrollable ??= findChildScrollable(child);
+    });
+
+    return childScrollable;
+  }
+
   SelectionPoint? _initialDragStartSelectionPoint;
   bool _shouldMoveEndEdge(TapDragUpdateDetails details) {
     assert(_selectionDelegate.value.startSelectionPoint != null || _initialDragStartSelectionPoint != null);
-    _initialDragStartSelectionPoint = _initialDragStartSelectionPoint ?? _selectionDelegate.value.startSelectionPoint!;
+    _initialDragStartSelectionPoint ??= _selectionDelegate.value.startSelectionPoint!;
+    final double _scrollOffset = _scrollPosition - _initialScrollOffset!;
     final bool isDraggingForwardFromOrigin = details.localOffsetFromOrigin.dx > 0;
-    final bool isPositionAboveStartingBaseline = details.localPosition.dy < _initialDragStartSelectionPoint!.localPosition.dy;
-    final bool isPositionClampedToStartingLine = isPositionAboveStartingBaseline && details.localPosition.dy >= _initialDragStartSelectionPoint!.localPosition.dy - _initialDragStartSelectionPoint!.lineHeight;
-    final bool isPositionAtOrBelowStartingBaseline = details.localPosition.dy >= _initialDragStartSelectionPoint!.localPosition.dy;
+    final bool isPositionAboveStartingBaseline = details.localPosition.dy + _scrollOffset < _initialDragStartSelectionPoint!.localPosition.dy;
+    final bool isPositionClampedToStartingLine = isPositionAboveStartingBaseline && details.localPosition.dy + _scrollOffset >= _initialDragStartSelectionPoint!.localPosition.dy - _initialDragStartSelectionPoint!.lineHeight;
+    final bool isPositionAtOrBelowStartingBaseline = details.localPosition.dy + _scrollOffset >= _initialDragStartSelectionPoint!.localPosition.dy;
+
+    debugPrint('$details');
+    debugPrint('$_scrollOffset');
+    debugPrint('initial start $_initialDragStartSelectionPoint');
+    debugPrint('isDraggingForwardFromOrigin $isDraggingForwardFromOrigin');
+    debugPrint('isPositionAboveStartingBaseline $isPositionAboveStartingBaseline');
+    debugPrint('isPositionClampedToStartingLine $isPositionClampedToStartingLine');
+    debugPrint('isPositionAtOrBelowStartingBaseline $isPositionAtOrBelowStartingBaseline');
 
     if (isDraggingForwardFromOrigin && isPositionClampedToStartingLine) {
+      debugPrint('forward drag and clamped to starting line');
       return true;
     } else if (!isDraggingForwardFromOrigin && isPositionClampedToStartingLine) {
+      debugPrint('drag backward and clamped to starting line');
       return false;
     }
 
     return isPositionAtOrBelowStartingBaseline;
   }
+
+  bool? swap;
+  int? test;
 
   void _handleMouseDragUpdate(TapDragUpdateDetails details) {
     switch (_getEffectiveConsecutiveTapCount(details.consecutiveTapCount)) {
@@ -520,12 +561,28 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
       case 2:
         if (_shouldMoveEndEdge(details)) {
           // Hold the start edge at the word located at the beginning of the drag.
-          _selectStartTo(offset: details.globalPosition - details.offsetFromOrigin, continuous: true, textGranularity: TextGranularity.word);
+          debugPrint('move end');
+          // if (test != 1) {
+          //   swap = true;
+          // }
+          // test = 1;
+          // if (swap == null || swap!) {
+            _selectStartTo(offset: details.globalPosition - details.offsetFromOrigin, continuous: true, textGranularity: TextGranularity.word);
+          //   swap = false;
+          // }
           _selectEndTo(offset: details.globalPosition, continuous: true, textGranularity: TextGranularity.word);
         } else {
+          // if (test != 2) {
+          //   swap = true;
+          // }
+          // test = 2;
+          debugPrint('move start');
           _selectStartTo(offset: details.globalPosition, continuous: true, textGranularity: TextGranularity.word);
           // Hold the end edge at the word located at the beginning of the drag.
-          _selectEndTo(offset: details.globalPosition - details.offsetFromOrigin, continuous: true, textGranularity: TextGranularity.word);
+          // if (swap == null || swap!) {
+            _selectEndTo(offset: details.globalPosition - details.offsetFromOrigin, continuous: true, textGranularity: TextGranularity.word);
+          //   swap = false;
+          // }
         }
     }
   }
@@ -534,6 +591,8 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     _finalizeSelection();
     _updateSelectedContentIfNeeded();
     _initialDragStartSelectionPoint = null;
+    _initialScrollOffset = null;
+    test = null;
   }
 
   void _updateSelectedContentIfNeeded() {
