@@ -922,7 +922,7 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
   MaxLengthEnforcement get _effectiveMaxLengthEnforcement => widget.maxLengthEnforcement
     ?? LengthLimitingTextInputFormatter.getDefaultMaxLengthEnforcement();
 
-  bool _showSelectionHandles = false;
+  // bool _showSelectionHandles = false;
 
   late _CupertinoTextFieldSelectionGestureDetectorBuilder _selectionGestureDetectorBuilder;
 
@@ -1015,40 +1015,40 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
     });
   }
 
-  bool _shouldShowSelectionHandles(SelectionChangedCause? cause) {
-    // When the text field is activated by something that doesn't trigger the
-    // selection overlay, we shouldn't show the handles either.
-    if (!_selectionGestureDetectorBuilder.shouldShowSelectionToolbar) {
-      return false;
-    }
+  // bool _shouldShowSelectionHandles(SelectionChangedCause? cause) {
+  //   // When the text field is activated by something that doesn't trigger the
+  //   // selection overlay, we shouldn't show the handles either.
+  //   if (!_selectionGestureDetectorBuilder.shouldShowSelectionToolbar) {
+  //     return false;
+  //   }
 
-    // On iOS, we don't show handles when the selection is collapsed.
-    if (_effectiveController.selection.isCollapsed) {
-      return false;
-    }
+  //   // On iOS, we don't show handles when the selection is collapsed.
+  //   if (_effectiveController.selection.isCollapsed) {
+  //     return false;
+  //   }
 
-    if (cause == SelectionChangedCause.keyboard) {
-      return false;
-    }
+  //   if (cause == SelectionChangedCause.keyboard) {
+  //     return false;
+  //   }
 
-    if (cause == SelectionChangedCause.scribble) {
-      return true;
-    }
+  //   if (cause == SelectionChangedCause.scribble) {
+  //     return true;
+  //   }
 
-    if (_effectiveController.text.isNotEmpty) {
-      return true;
-    }
+  //   if (_effectiveController.text.isNotEmpty) {
+  //     return true;
+  //   }
 
-    return false;
-  }
+  //   return false;
+  // }
 
   void _handleSelectionChanged(TextSelection selection, SelectionChangedCause? cause) {
-    final bool willShowSelectionHandles = _shouldShowSelectionHandles(cause);
-    if (willShowSelectionHandles != _showSelectionHandles) {
-      setState(() {
-        _showSelectionHandles = willShowSelectionHandles;
-      });
-    }
+    // final bool willShowSelectionHandles = _shouldShowSelectionHandles(cause);
+    // if (willShowSelectionHandles != _showSelectionHandles) {
+    //   setState(() {
+    //     _showSelectionHandles = willShowSelectionHandles;
+    //   });
+    // }
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.iOS:
@@ -1335,7 +1335,7 @@ class _CupertinoTextFieldState extends State<CupertinoTextField> with Restoratio
             readOnly: widget.readOnly || !enabled,
             toolbarOptions: widget.toolbarOptions,
             showCursor: widget.showCursor,
-            showSelectionHandles: _showSelectionHandles,
+            // showSelectionHandles: _showSelectionHandles,
             focusNode: _effectiveFocusNode,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,

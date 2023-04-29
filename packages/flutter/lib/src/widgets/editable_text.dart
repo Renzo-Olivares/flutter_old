@@ -761,7 +761,7 @@ class EditableText extends StatefulWidget {
     this.textWidthBasis = TextWidthBasis.parent,
     this.autofocus = false,
     bool? showCursor,
-    this.showSelectionHandles = false,
+    // this.showSelectionHandles = false,
     this.selectionColor,
     this.selectionControls,
     TextInputType? keyboardType,
@@ -935,7 +935,7 @@ class EditableText extends StatefulWidget {
   /// See also:
   ///
   ///  * [showCursor], which controls the visibility of the cursor.
-  final bool showSelectionHandles;
+  // final bool showSelectionHandles;
 
   /// {@template flutter.widgets.editableText.showCursor}
   /// Whether to show cursor.
@@ -2651,7 +2651,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     if (widget.controller.selection != oldWidget.controller.selection) {
       _selectionOverlay?.update(_value);
     }
-    _selectionOverlay?.handlesVisible = widget.showSelectionHandles;
+    // _selectionOverlay?.handlesVisible = widget.showSelectionHandles;
 
     if (widget.autofillClient != oldWidget.autofillClient) {
       _currentAutofillScope?.unregister(oldWidget.autofillClient?.autofillId ?? autofillId);
@@ -3367,8 +3367,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       } else {
         _selectionOverlay!.update(_value);
       }
-      _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
-      _selectionOverlay!.showHandles();
+      // _selectionOverlay!.handlesVisible = widget.showSelectionHandles;
+      // _selectionOverlay!.showHandles();
     }
     // TODO(chunhtai): we should make sure selection actually changed before
     // we call the onSelectionChanged.
@@ -3980,6 +3980,18 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     } else {
       showToolbar();
     }
+  }
+
+  void showHandles() {
+    if (kIsWeb && BrowserContextMenu.enabled) {
+      return;
+    }
+
+    if (_selectionOverlay == null) {
+      return;
+    }
+    _selectionOverlay!.handlesVisible = true;
+    _selectionOverlay!.showHandles();
   }
 
   /// Shows toolbar with spell check suggestions of misspelled words that are

@@ -477,7 +477,7 @@ class _SelectableTextState extends State<SelectableText> implements TextSelectio
   FocusNode get _effectiveFocusNode =>
       widget.focusNode ?? (_focusNode ??= FocusNode(skipTraversal: true));
 
-  bool _showSelectionHandles = false;
+  // bool _showSelectionHandles = false;
 
   late _SelectableTextSelectionGestureDetectorBuilder _selectionGestureDetectorBuilder;
 
@@ -514,11 +514,11 @@ class _SelectableTextState extends State<SelectableText> implements TextSelectio
       );
       _controller.addListener(_onControllerChanged);
     }
-    if (_effectiveFocusNode.hasFocus && _controller.selection.isCollapsed) {
-      _showSelectionHandles = false;
-    } else {
-      _showSelectionHandles = true;
-    }
+    // if (_effectiveFocusNode.hasFocus && _controller.selection.isCollapsed) {
+    //   _showSelectionHandles = false;
+    // } else {
+    //   _showSelectionHandles = true;
+    // }
   }
 
   @override
@@ -531,21 +531,21 @@ class _SelectableTextState extends State<SelectableText> implements TextSelectio
   void _onControllerChanged() {
     final bool showSelectionHandles = !_effectiveFocusNode.hasFocus
       || !_controller.selection.isCollapsed;
-    if (showSelectionHandles == _showSelectionHandles) {
-      return;
-    }
-    setState(() {
-      _showSelectionHandles = showSelectionHandles;
-    });
+    // if (showSelectionHandles == _showSelectionHandles) {
+    //   return;
+    // }
+    // setState(() {
+    //   _showSelectionHandles = showSelectionHandles;
+    // });
   }
 
   void _handleSelectionChanged(TextSelection selection, SelectionChangedCause? cause) {
-    final bool willShowSelectionHandles = _shouldShowSelectionHandles(cause);
-    if (willShowSelectionHandles != _showSelectionHandles) {
-      setState(() {
-        _showSelectionHandles = willShowSelectionHandles;
-      });
-    }
+    // final bool willShowSelectionHandles = _shouldShowSelectionHandles(cause);
+    // if (willShowSelectionHandles != _showSelectionHandles) {
+    //   setState(() {
+    //     _showSelectionHandles = willShowSelectionHandles;
+    //   });
+    // }
 
     widget.onSelectionChanged?.call(selection, cause);
 
@@ -571,31 +571,31 @@ class _SelectableTextState extends State<SelectableText> implements TextSelectio
     }
   }
 
-  bool _shouldShowSelectionHandles(SelectionChangedCause? cause) {
-    // When the text field is activated by something that doesn't trigger the
-    // selection overlay, we shouldn't show the handles either.
-    if (!_selectionGestureDetectorBuilder.shouldShowSelectionToolbar) {
-      return false;
-    }
+  // bool _shouldShowSelectionHandles(SelectionChangedCause? cause) {
+  //   // When the text field is activated by something that doesn't trigger the
+  //   // selection overlay, we shouldn't show the handles either.
+  //   if (!_selectionGestureDetectorBuilder.shouldShowSelectionToolbar) {
+  //     return false;
+  //   }
 
-    if (_controller.selection.isCollapsed) {
-      return false;
-    }
+  //   if (_controller.selection.isCollapsed) {
+  //     return false;
+  //   }
 
-    if (cause == SelectionChangedCause.keyboard) {
-      return false;
-    }
+  //   if (cause == SelectionChangedCause.keyboard) {
+  //     return false;
+  //   }
 
-    if (cause == SelectionChangedCause.longPress) {
-      return true;
-    }
+  //   if (cause == SelectionChangedCause.longPress) {
+  //     return true;
+  //   }
 
-    if (_controller.text.isNotEmpty) {
-      return true;
-    }
+  //   if (_controller.text.isNotEmpty) {
+  //     return true;
+  //   }
 
-    return false;
-  }
+  //   return false;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -679,7 +679,6 @@ class _SelectableTextState extends State<SelectableText> implements TextSelectio
         toolbarOptions: widget.toolbarOptions,
         textWidthBasis: widget.textWidthBasis ?? defaultTextStyle.textWidthBasis,
         textHeightBehavior: widget.textHeightBehavior ?? defaultTextStyle.textHeightBehavior,
-        showSelectionHandles: _showSelectionHandles,
         showCursor: widget.showCursor,
         controller: _controller,
         focusNode: focusNode,

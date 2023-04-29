@@ -1901,6 +1901,22 @@ class TextSelectionGestureDetectorBuilder {
     }
   }
 
+  void _showSelectionHandlesIfSupportedByPlatform(PointerDeviceKind? kind) {
+    final bool nonPrecisePointerDevice = kind != PointerDeviceKind.mouse || kind != PointerDeviceKind.trackpad;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+        editableText.showHandles();
+      case TargetPlatform.iOS:
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        if (nonPrecisePointerDevice) {
+          editableText.showHandles();
+        }
+    }
+  }
+
   /// Returns true if lastSecondaryTapDownPosition was on selection.
   bool get _lastSecondaryTapWasOnSelection {
     assert(renderEditable.lastSecondaryTapDownPosition != null);
@@ -2099,6 +2115,15 @@ class TextSelectionGestureDetectorBuilder {
     _shouldShowSelectionToolbar = kind == null
       || kind == PointerDeviceKind.touch
       || kind == PointerDeviceKind.stylus;
+    
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.iOS:
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+    }
 
     // Handle shift + click selection if needed.
     final bool isShiftPressed = _containsShift(details.keysPressedOnDown);
@@ -2196,7 +2221,11 @@ class TextSelectionGestureDetectorBuilder {
   ///    this callback.
   @protected
   void onSingleTapUp(TapDragUpDetails details) {
-    if (delegate.selectionEnabled) {
+    if (!delegate.selectionEnabled) {
+      return;
+    }
+
+    if (_TextSelectionGestureDetectorState._getEffectiveConsecutiveTapCount(details.consecutiveTapCount) == 1) {
       // Handle shift + click selection if needed.
       final bool isShiftPressed = _containsShift(details.keysPressedOnDown);
       // It is impossible to extend the selection when the shift key is pressed, if the
@@ -2287,6 +2316,10 @@ class TextSelectionGestureDetectorBuilder {
                 }
               }
           }
+      }
+    } else {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        _showSelectionHandlesIfSupportedByPlatform(details.kind);
       }
     }
   }
@@ -2471,6 +2504,9 @@ class TextSelectionGestureDetectorBuilder {
   void onDoubleTapDown(TapDragDownDetails details) {
     if (delegate.selectionEnabled) {
       renderEditable.selectWord(cause: SelectionChangedCause.doubleTap);
+      if (defaultTargetPlatform != TargetPlatform.android) {
+        _showSelectionHandlesIfSupportedByPlatform(details.kind);
+      }
       if (shouldShowSelectionToolbar) {
         editableText.showToolbar();
       }
@@ -3101,9 +3137,7 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
   }
 
   void _handleTapUp(TapDragUpDetails details) {
-    if (_getEffectiveConsecutiveTapCount(details.consecutiveTapCount) == 1) {
-      widget.onSingleTapUp?.call(details);
-    }
+    widget.onSingleTapUp?.call(details);
   }
 
   void _handleTapCancel() {
