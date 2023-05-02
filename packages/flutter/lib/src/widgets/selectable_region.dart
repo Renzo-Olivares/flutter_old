@@ -864,7 +864,8 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   /// The `offset` is in global coordinates.
   ///
   /// Provide the `textGranularity` if the selection should not move by the default
-  /// [TextGranularity.character].
+  /// [TextGranularity.character]. Only [TextGranularity.character] and
+  /// [TextGranularity.word] are currently supported.
   ///
   /// See also:
   ///  * [_selectStartTo], which sets or updates selection start edge.
@@ -902,7 +903,8 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   /// The `offset` is in global coordinates.
   ///
   /// Provide the `textGranularity` if the selection should not move by the default
-  /// [TextGranularity.character].
+  /// [TextGranularity.character]. Only [TextGranularity.character] and
+  /// [TextGranularity.word] are currently supported.
   ///
   /// See also:
   ///  * [_selectEndTo], which sets or updates selection end edge.
