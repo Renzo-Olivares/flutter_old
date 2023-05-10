@@ -1467,6 +1467,7 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
 
     final TextPosition position = _clampTextPosition(paragraph.getPositionForOffset(adjustedOffset));
     _setSelectionPosition(position, isEnd: isEnd);
+debugPrint('moving $fullText end edge $isEnd to $position');
     if (position.offset == range.end) {
       return SelectionResult.next;
     }
@@ -1483,6 +1484,7 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
   SelectionResult _updateSelectionEdgeByWord(Offset globalPosition, {required bool isEnd}) {
     // Cache the boundaries of the origin word. If the origin word is not in the
     // current selectable then the _textSelectionEnd will be null.
+debugPrint('beginning of update selection edge by word $fullText $_textSelectionStart, $_textSelectionEnd');
     if (_selectableContainsOriginWord == null) {
       _originWordSelectionStart ??= _textSelectionStart;
       _originWordSelectionEnd ??= _textSelectionEnd;
@@ -1544,6 +1546,7 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
     targetPosition = _clampTextPosition(targetPosition ?? position);
 
     _setSelectionPosition(targetPosition, isEnd: isEnd);
+debugPrint('$fullText moving isEnd: $isEnd to $targetPosition based on $position, current selectable? : ${_rect.contains(localPosition)} final start and end : $_textSelectionStart $_textSelectionEnd');
     if (targetPosition.offset == range.end) {
       return SelectionResult.next;
     }
