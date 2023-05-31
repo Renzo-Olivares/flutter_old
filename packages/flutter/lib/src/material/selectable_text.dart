@@ -205,6 +205,7 @@ class SelectableText extends StatefulWidget {
     this.enableInteractiveSelection = true,
     this.selectionControls,
     this.onTap,
+    this.onTapOutside,
     this.scrollPhysics,
     this.semanticsLabel,
     this.textHeightBehavior,
@@ -254,6 +255,7 @@ class SelectableText extends StatefulWidget {
     this.enableInteractiveSelection = true,
     this.selectionControls,
     this.onTap,
+    this.onTapOutside,
     this.scrollPhysics,
     this.semanticsLabel,
     this.textHeightBehavior,
@@ -404,6 +406,24 @@ class SelectableText extends StatefulWidget {
   /// To listen to arbitrary pointer events without competing with the
   /// selectable text's internal gesture detector, use a [Listener].
   final GestureTapCallback? onTap;
+
+  /// {@macro flutter.widgets.editableText.onTapOutside}
+  ///
+  /// {@tool dartpad}
+  /// This example shows how to use a `TextFieldTapRegion` to wrap a set of
+  /// "spinner" buttons that increment and decrement a value in the [TextField]
+  /// without causing the text field to lose keyboard focus.
+  ///
+  /// This example includes a generic `SpinnerField<T>` class that you can copy
+  /// into your own project and customize.
+  ///
+  /// ** See code in examples/api/lib/widgets/tap_region/text_field_tap_region.0.dart **
+  /// {@end-tool}
+  ///
+  /// See also:
+  ///
+  ///  * [TapRegion] for how the region group is determined.
+  final TapRegionCallback? onTapOutside;
 
   /// {@macro flutter.widgets.editableText.scrollPhysics}
   final ScrollPhysics? scrollPhysics;
@@ -695,6 +715,7 @@ class _SelectableTextState extends State<SelectableText> implements TextSelectio
         selectionControls: widget.selectionEnabled ? textSelectionControls : null,
         onSelectionChanged: _handleSelectionChanged,
         onSelectionHandleTapped: _handleSelectionHandleTapped,
+        onTapOutside: widget.onTapOutside,
         rendererIgnoresPointer: true,
         cursorWidth: widget.cursorWidth,
         cursorHeight: widget.cursorHeight,
@@ -715,15 +736,17 @@ class _SelectableTextState extends State<SelectableText> implements TextSelectio
       ),
     );
 
-    return Semantics(
-      label: widget.semanticsLabel,
-      excludeSemantics: widget.semanticsLabel != null,
-      onLongPress: () {
-        _effectiveFocusNode.requestFocus();
-      },
-      child: _selectionGestureDetectorBuilder.buildGestureDetector(
-        behavior: HitTestBehavior.translucent,
-        child: child,
+    return TextFieldTapRegion(
+      child: Semantics(
+        label: widget.semanticsLabel,
+        excludeSemantics: widget.semanticsLabel != null,
+        onLongPress: () {
+          _effectiveFocusNode.requestFocus();
+        },
+        child: _selectionGestureDetectorBuilder.buildGestureDetector(
+          behavior: HitTestBehavior.translucent,
+          child: child,
+        ),
       ),
     );
   }
