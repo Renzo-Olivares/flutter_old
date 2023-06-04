@@ -593,6 +593,49 @@ void main() {
       expect(clipboardData['text'], 'w are you?Good, and you?Fine, ');
     }, variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.android, TargetPlatform.windows, TargetPlatform.linux, TargetPlatform.fuchsia }));
 
+    testWidgets('Multiple selectables on a single line should be in screen order when WidgetSpans involved', (WidgetTester tester) async {
+      // Regression test for https://github.com/flutter/flutter/issues/127942.
+      final UniqueKey outerText = UniqueKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SelectableRegion(
+            focusNode: FocusNode(),
+            selectionControls: materialTextSelectionControls,
+            child: Scaffold(
+              body: Center(
+                child: Text.rich(
+                  const TextSpan(
+                    children: <InlineSpan>[
+                      TextSpan(text: 'Hello my name is '),
+                      WidgetSpan(
+                        child: Text('Dash'),
+                      ),
+                      TextSpan(text: '.')
+                    ],
+                  ),
+                  key: outerText,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      final RenderParagraph paragraph1 = tester.renderObject<RenderParagraph>(find.descendant(of: find.byKey(outerText), matching: find.byType(RichText)).first);
+      final TestGesture gesture = await tester.startGesture(textOffsetToPosition(paragraph1, 0), kind: PointerDeviceKind.mouse);
+      addTearDown(gesture.removePointer);
+      await tester.pump();
+      await gesture.up();
+
+      // Select all.
+      await sendKeyCombination(tester, const SingleActivator(LogicalKeyboardKey.keyA, control: true));
+
+      // keyboard copy.
+      await sendKeyCombination(tester, const SingleActivator(LogicalKeyboardKey.keyC, control: true));
+
+      final Map<String, dynamic> clipboardData = mockClipboard.clipboardData as Map<String, dynamic>;
+      expect(clipboardData['text'], 'Hello my name is Dash.');
+    }, variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.android, TargetPlatform.windows, TargetPlatform.linux, TargetPlatform.fuchsia }));
+
     testWidgets(
       'does not override TextField keyboard shortcuts if the TextField is focused - non apple',
       (WidgetTester tester) async {
