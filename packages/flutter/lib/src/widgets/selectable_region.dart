@@ -1658,6 +1658,10 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
         (b.top - a.top < precisionErrorTolerance && b.bottom - a.bottom > - precisionErrorTolerance)) {
       return 0;
     }
+    // Rects overlap vertically.
+    if (a.bottom >= b.top && a.top <= b.bottom) {
+      return 0;
+    }
     if ((a.top - b.top).abs() > precisionErrorTolerance) {
       return a.top > b.top ? 1 : -1;
     }
