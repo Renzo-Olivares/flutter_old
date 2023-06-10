@@ -4695,8 +4695,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       onAcceptWithDetails: (DragTargetDetails<String> details) {
         final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
         final TextRange dropRange = TextRange.collapsed(dropPosition.offset);
-        final TextEditingValue valueWithOriginalSelectionRemoved = widget.controller.value.copyWith(
-          text: widget.controller.selection.textBefore(widget.controller.text) + widget.controller.selection.textAfter(widget.controller.text),
+        final TextEditingValue valueWithOriginalSelectionRemoved = _value.copyWith(
+          text: _value.selection.textBefore(_value.text) + _value.selection.textAfter(_value.text),
         );
         final TextEditingValue valueWithDropData = valueWithOriginalSelectionRemoved.copyWith(
           text: dropRange.textBefore(valueWithOriginalSelectionRemoved.text) + details.data + dropRange.textAfter(valueWithOriginalSelectionRemoved.text),
