@@ -4697,6 +4697,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         final TextRange dropRange = TextRange.collapsed(dropPosition.offset);
         final TextEditingValue valueWithDropData = widget.controller.value.copyWith(
           text: dropRange.textBefore(widget.controller.text) + details.data + dropRange.textAfter(widget.controller.text),
+          selection: TextSelection.collapsed(offset: dropPosition.offset + details.data.length),
         );
         userUpdateTextEditingValue(valueWithDropData, null);
       },
