@@ -4703,6 +4703,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       },
       onAcceptWithDetails: (DragTargetDetails<String> details) {
         // TODO(Renzo-Olivares): Handle case when trying to drag selected text to the end.
+        // TODO(Renzo-Olivares): Fix issue where the dragged content that originated from
+        // this editable text is dragged back to its original position and it duplicates
+        // itself, when the correct behavior is to do nothing.
         assert(_selectionWhenDragTargetInitiated != null);
         final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
         final TextRange dropRange = TextRange.collapsed(dropPosition.offset);
