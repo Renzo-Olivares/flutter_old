@@ -4554,6 +4554,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     TransposeCharactersIntent: _makeOverridable(_transposeCharactersAction),
   };
 
+  TextSelection? _selectionWhenDragTargetInitiated;
+
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasMediaQuery(context));
@@ -4701,23 +4703,29 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       },
       onAcceptWithDetails: (DragTargetDetails<String> details) {
         // TODO(Renzo-Olivares): Handle case when trying to drag selected text to the end.
+        assert(_selectionWhenDragTargetInitiated != null);
         final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
         final TextRange dropRange = TextRange.collapsed(dropPosition.offset);
         final TextEditingValue valueWithOriginalSelectionRemoved = _value.copyWith(
-          text: _value.selection.textBefore(_value.text) + _value.selection.textAfter(_value.text),
+          text: _selectionWhenDragTargetInitiated!.textBefore(_value.text) + _selectionWhenDragTargetInitiated!.textAfter(_value.text),
         );
         final TextEditingValue valueWithDropData = valueWithOriginalSelectionRemoved.copyWith(
           text: dropRange.textBefore(valueWithOriginalSelectionRemoved.text) + details.data + dropRange.textAfter(valueWithOriginalSelectionRemoved.text),
           selection: TextSelection.collapsed(offset: dropPosition.offset + details.data.length),
         );
         userUpdateTextEditingValue(valueWithDropData, null);
+        _selectionWhenDragTargetInitiated = null;
       },
       onMove: (DragTargetDetails<String> details) {
+        _selectionWhenDragTargetInitiated ??= _value.selection;
         final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
         final TextEditingValue valueWithSelectionAtDragPosition = _value.copyWith(
           selection: TextSelection.collapsed(offset: dropPosition.offset),
         );
         userUpdateTextEditingValue(valueWithSelectionAtDragPosition, null);
+      },
+      onLeave: (String? data) {
+        _selectionWhenDragTargetInitiated = null;
       },
     );
   }
