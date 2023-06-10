@@ -253,7 +253,24 @@ class TextEditingController extends ValueNotifier<TextEditingValue> {
     final bool composingRegionOutOfRange = !value.isComposingRangeValid || !withComposing;
 
     if (composingRegionOutOfRange) {
-      return TextSpan(style: style, text: text);
+      if (!selection.isValid || selection.isCollapsed) {
+        return TextSpan(style: style, text: text);
+      }
+      return TextSpan(
+        style: style,
+        children: <InlineSpan>[
+          TextSpan(text: value.selection.textBefore(value.text)),
+          WidgetSpan(
+            style: style,
+            child: LongPressDraggable<String>(
+              data: value.selection.textInside(value.text),
+              feedback: Text(value.selection.textInside(value.text), style: style),
+              child: Text(value.selection.textInside(value.text), style: style),
+            ),
+          ),
+          TextSpan(text: value.selection.textAfter(value.text)),
+        ],
+      );
     }
 
     final TextStyle composingStyle = style?.merge(const TextStyle(decoration: TextDecoration.underline))

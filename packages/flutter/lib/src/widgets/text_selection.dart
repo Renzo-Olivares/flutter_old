@@ -2316,6 +2316,12 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleLongTapStart(LongPressStartDetails details) {
     if (delegate.selectionEnabled) {
+      // Do not initiate a long tap gesture when selection is active. This is
+      // to prevent long press gestures from interfering with drag-n-drop inside
+      // of an EditableText.
+      if (renderEditable.selection != null && !renderEditable.selection!.isCollapsed) {
+        return;
+      }
       switch (defaultTargetPlatform) {
         case TargetPlatform.iOS:
         case TargetPlatform.macOS:
@@ -2354,6 +2360,12 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
     if (delegate.selectionEnabled) {
+      // Do not initiate a long tap gesture when selection is active. This is
+      // to prevent long press gestures from interfering with drag-n-drop inside
+      // of an EditableText.
+      if (renderEditable.selection != null && !renderEditable.selection!.isCollapsed) {
+        return;
+      }
       // Adjust the drag start offset for possible viewport offset changes.
       final Offset editableOffset = renderEditable.maxLines == 1
           ? Offset(renderEditable.offset.pixels - _dragStartViewportOffset, 0.0)
@@ -2403,6 +2415,12 @@ class TextSelectionGestureDetectorBuilder {
   ///    callback.
   @protected
   void onSingleLongTapEnd(LongPressEndDetails details) {
+    // Do not initiate a long tap gesture when selection is active. This is
+    // to prevent long press gestures from interfering with drag-n-drop inside
+    // of an EditableText.
+    if (renderEditable.selection != null && !renderEditable.selection!.isCollapsed) {
+      return;
+    }
     _hideMagnifierIfSupportedByPlatform();
     if (shouldShowSelectionToolbar) {
       editableText.showToolbar();
