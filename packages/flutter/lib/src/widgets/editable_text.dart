@@ -4697,8 +4697,6 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       },
       onAcceptWithDetails: (DragTargetDetails<String> details) {
         // TODO: Handle case when trying to drag selected text to the end.
-        // TODO: Cursor should also move as we drag the text around the text field
-        // to indicate where the text will be dropped.
         final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
         final TextRange dropRange = TextRange.collapsed(dropPosition.offset);
         final TextEditingValue valueWithOriginalSelectionRemoved = _value.copyWith(
@@ -4709,6 +4707,13 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
           selection: TextSelection.collapsed(offset: dropPosition.offset + details.data.length),
         );
         userUpdateTextEditingValue(valueWithDropData, null);
+      },
+      onMove: (DragTargetDetails<String> details) {
+        final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
+        final TextEditingValue valueWithSelectionAtDragPosition = _value.copyWith(
+          selection: TextSelection.collapsed(offset: dropPosition.offset),
+        );
+        userUpdateTextEditingValue(valueWithSelectionAtDragPosition, null);
       },
     );
   }
