@@ -4702,15 +4702,22 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         );
       },
       onAcceptWithDetails: (DragTargetDetails<String> details) {
-        // TODO(Renzo-Olivares): Fix issue where the dragged content that originated from
-        // this editable text is dragged back to its original position and it duplicates
-        // itself, when the correct behavior is to do nothing.
         assert(_selectionWhenDragTargetInitiated != null);
+        int boundedDistanceFromStart(TextSelection selection, int referencePoint) {
+          final int selectionLength = (selection.start - selection.end).abs();
+          late final int result;
+          if (selection.isNormalized) {
+            result = referencePoint > selection.end ? selectionLength : referencePoint - selection.start;
+          } else {
+            result = referencePoint > selection.start ? selectionLength : referencePoint - selection.end;
+          }
+          return result < 0 ? 0 : result;
+        }
         final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
-        final int removedTextLength = (_selectionWhenDragTargetInitiated!.start - _selectionWhenDragTargetInitiated!.end).abs();
+        final int dropPositionDistanceFromSelectionStart = boundedDistanceFromStart(_selectionWhenDragTargetInitiated!, dropPosition.offset);
         final bool dropPositionIsBeforeRemoved = _selectionWhenDragTargetInitiated!.isNormalized ? dropPosition.offset < _selectionWhenDragTargetInitiated!.start : dropPosition.offset < _selectionWhenDragTargetInitiated!.end;
-        final int effectiveNewSelectionPoint = dropPositionIsBeforeRemoved ? dropPosition.offset + details.data.length : dropPosition.offset + details.data.length - removedTextLength;
-        final TextRange effectiveDropRange = TextRange.collapsed(dropPositionIsBeforeRemoved ? dropPosition.offset : dropPosition.offset - removedTextLength);
+        final int effectiveNewSelectionPoint = dropPositionIsBeforeRemoved ? dropPosition.offset + details.data.length : dropPosition.offset + details.data.length - dropPositionDistanceFromSelectionStart;
+        final TextRange effectiveDropRange = TextRange.collapsed(dropPositionIsBeforeRemoved ? dropPosition.offset : dropPosition.offset - dropPositionDistanceFromSelectionStart);
         final TextEditingValue valueWithOriginalSelectionRemoved = _value.copyWith(
           text: _selectionWhenDragTargetInitiated!.textBefore(_value.text) + _selectionWhenDragTargetInitiated!.textAfter(_value.text),
         );
@@ -4718,7 +4725,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
           text: effectiveDropRange.textBefore(valueWithOriginalSelectionRemoved.text) + details.data + effectiveDropRange.textAfter(valueWithOriginalSelectionRemoved.text),
           selection: TextSelection.collapsed(offset: effectiveNewSelectionPoint),
         );
-        userUpdateTextEditingValue(valueWithDropData, null);
+        if (_value.text != valueWithDropData.text) {
+          userUpdateTextEditingValue(valueWithDropData, null);
+        }
         _selectionWhenDragTargetInitiated = null;
       },
       onMove: (DragTargetDetails<String> details) {
