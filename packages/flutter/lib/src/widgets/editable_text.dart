@@ -23,6 +23,7 @@ import 'context_menu_button_item.dart';
 import 'debug.dart';
 import 'default_selection_style.dart';
 import 'default_text_editing_shortcuts.dart';
+import 'drag_target.dart';
 import 'focus_manager.dart';
 import 'focus_scope.dart';
 import 'focus_traversal.dart';
@@ -4535,141 +4536,152 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     super.build(context); // See AutomaticKeepAliveClientMixin.
 
     final TextSelectionControls? controls = widget.selectionControls;
-    return _CompositionCallback(
-      compositeCallback: _compositeCallback,
-      enabled: _hasInputConnection,
-      child: TextFieldTapRegion(
-        onTapOutside: widget.onTapOutside ?? _defaultOnTapOutside,
-        debugLabel: kReleaseMode ? null : 'EditableText',
-        child: MouseRegion(
-          cursor: widget.mouseCursor ?? SystemMouseCursors.text,
-          child: Actions(
-            actions: _actions,
-            child: UndoHistory<TextEditingValue>(
-              value: widget.controller,
-              onTriggered: (TextEditingValue value) {
-                userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
-              },
-              shouldChangeUndoStack: (TextEditingValue? oldValue, TextEditingValue newValue) {
-                if (!newValue.selection.isValid) {
-                  return false;
-                }
-
-                if (oldValue == null) {
-                  return true;
-                }
-
-                switch (defaultTargetPlatform) {
-                  case TargetPlatform.iOS:
-                  case TargetPlatform.macOS:
-                  case TargetPlatform.fuchsia:
-                  case TargetPlatform.linux:
-                  case TargetPlatform.windows:
-                    // Composing text is not counted in history coalescing.
-                    if (!widget.controller.value.composing.isCollapsed) {
+    return DragTarget<String>(
+      builder: (BuildContext context, List<String?> accepted, List<dynamic> rejected) {
+        return _CompositionCallback(
+          compositeCallback: _compositeCallback,
+          enabled: _hasInputConnection,
+          child: TextFieldTapRegion(
+            onTapOutside: widget.onTapOutside ?? _defaultOnTapOutside,
+            debugLabel: kReleaseMode ? null : 'EditableText',
+            child: MouseRegion(
+              cursor: widget.mouseCursor ?? SystemMouseCursors.text,
+              child: Actions(
+                actions: _actions,
+                child: UndoHistory<TextEditingValue>(
+                  value: widget.controller,
+                  onTriggered: (TextEditingValue value) {
+                    userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
+                  },
+                  shouldChangeUndoStack: (TextEditingValue? oldValue, TextEditingValue newValue) {
+                    if (!newValue.selection.isValid) {
                       return false;
                     }
-                  case TargetPlatform.android:
-                    // Gboard on Android puts non-CJK words in composing regions. Coalesce
-                    // composing text in order to allow the saving of partial words in that
-                    // case.
-                    break;
-                }
 
-                return oldValue.text != newValue.text || oldValue.composing != newValue.composing;
-              },
-              focusNode: widget.focusNode,
-              controller: widget.undoController,
-              child: Focus(
-                focusNode: widget.focusNode,
-                includeSemantics: false,
-                debugLabel: kReleaseMode ? null : 'EditableText',
-                child: Scrollable(
-                  key: _scrollableKey,
-                  excludeFromSemantics: true,
-                  axisDirection: _isMultiline ? AxisDirection.down : AxisDirection.right,
-                  controller: _scrollController,
-                  physics: widget.scrollPhysics,
-                  dragStartBehavior: widget.dragStartBehavior,
-                  restorationId: widget.restorationId,
-                  // If a ScrollBehavior is not provided, only apply scrollbars when
-                  // multiline. The overscroll indicator should not be applied in
-                  // either case, glowing or stretching.
-                  scrollBehavior: widget.scrollBehavior ?? ScrollConfiguration.of(context).copyWith(
-                    scrollbars: _isMultiline,
-                    overscroll: false,
-                  ),
-                  viewportBuilder: (BuildContext context, ViewportOffset offset) {
-                    return CompositedTransformTarget(
-                      link: _toolbarLayerLink,
-                      child: Semantics(
-                        onCopy: _semanticsOnCopy(controls),
-                        onCut: _semanticsOnCut(controls),
-                        onPaste: _semanticsOnPaste(controls),
-                        child: _ScribbleFocusable(
-                          focusNode: widget.focusNode,
-                          editableKey: _editableKey,
-                          enabled: widget.scribbleEnabled,
-                          updateSelectionRects: () {
-                            _openInputConnection();
-                            _updateSelectionRects(force: true);
-                          },
-                          child: _Editable(
-                            key: _editableKey,
-                            startHandleLayerLink: _startHandleLayerLink,
-                            endHandleLayerLink: _endHandleLayerLink,
-                            inlineSpan: buildTextSpan(),
-                            value: _value,
-                            cursorColor: _cursorColor,
-                            backgroundCursorColor: widget.backgroundCursorColor,
-                            showCursor: EditableText.debugDeterministicCursor
-                                ? ValueNotifier<bool>(widget.showCursor)
-                                : _cursorVisibilityNotifier,
-                            forceLine: widget.forceLine,
-                            readOnly: widget.readOnly,
-                            hasFocus: _hasFocus,
-                            maxLines: widget.maxLines,
-                            minLines: widget.minLines,
-                            expands: widget.expands,
-                            strutStyle: widget.strutStyle,
-                            selectionColor: _selectionOverlay?.spellCheckToolbarIsVisible ?? false
-                                ? _spellCheckConfiguration.misspelledSelectionColor ?? widget.selectionColor
-                                : widget.selectionColor,
-                            textScaleFactor: widget.textScaleFactor ?? MediaQuery.textScaleFactorOf(context),
-                            textAlign: widget.textAlign,
-                            textDirection: _textDirection,
-                            locale: widget.locale,
-                            textHeightBehavior: widget.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
-                            textWidthBasis: widget.textWidthBasis,
-                            obscuringCharacter: widget.obscuringCharacter,
-                            obscureText: widget.obscureText,
-                            offset: offset,
-                            onCaretChanged: _handleCaretChanged,
-                            rendererIgnoresPointer: widget.rendererIgnoresPointer,
-                            cursorWidth: widget.cursorWidth,
-                            cursorHeight: widget.cursorHeight,
-                            cursorRadius: widget.cursorRadius,
-                            cursorOffset: widget.cursorOffset ?? Offset.zero,
-                            selectionHeightStyle: widget.selectionHeightStyle,
-                            selectionWidthStyle: widget.selectionWidthStyle,
-                            paintCursorAboveText: widget.paintCursorAboveText,
-                            enableInteractiveSelection: widget._userSelectionEnabled,
-                            textSelectionDelegate: this,
-                            devicePixelRatio: _devicePixelRatio,
-                            promptRectRange: _currentPromptRectRange,
-                            promptRectColor: widget.autocorrectionTextRectColor,
-                            clipBehavior: widget.clipBehavior,
-                          ),
-                        ),
-                      ),
-                    );
+                    if (oldValue == null) {
+                      return true;
+                    }
+
+                    switch (defaultTargetPlatform) {
+                      case TargetPlatform.iOS:
+                      case TargetPlatform.macOS:
+                      case TargetPlatform.fuchsia:
+                      case TargetPlatform.linux:
+                      case TargetPlatform.windows:
+                        // Composing text is not counted in history coalescing.
+                        if (!widget.controller.value.composing.isCollapsed) {
+                          return false;
+                        }
+                      case TargetPlatform.android:
+                        // Gboard on Android puts non-CJK words in composing regions. Coalesce
+                        // composing text in order to allow the saving of partial words in that
+                        // case.
+                        break;
+                    }
+
+                    return oldValue.text != newValue.text || oldValue.composing != newValue.composing;
                   },
+                  focusNode: widget.focusNode,
+                  controller: widget.undoController,
+                  child: Focus(
+                    focusNode: widget.focusNode,
+                    includeSemantics: false,
+                    debugLabel: kReleaseMode ? null : 'EditableText',
+                    child: Scrollable(
+                      key: _scrollableKey,
+                      excludeFromSemantics: true,
+                      axisDirection: _isMultiline ? AxisDirection.down : AxisDirection.right,
+                      controller: _scrollController,
+                      physics: widget.scrollPhysics,
+                      dragStartBehavior: widget.dragStartBehavior,
+                      restorationId: widget.restorationId,
+                      // If a ScrollBehavior is not provided, only apply scrollbars when
+                      // multiline. The overscroll indicator should not be applied in
+                      // either case, glowing or stretching.
+                      scrollBehavior: widget.scrollBehavior ?? ScrollConfiguration.of(context).copyWith(
+                        scrollbars: _isMultiline,
+                        overscroll: false,
+                      ),
+                      viewportBuilder: (BuildContext context, ViewportOffset offset) {
+                        return CompositedTransformTarget(
+                          link: _toolbarLayerLink,
+                          child: Semantics(
+                            onCopy: _semanticsOnCopy(controls),
+                            onCut: _semanticsOnCut(controls),
+                            onPaste: _semanticsOnPaste(controls),
+                            child: _ScribbleFocusable(
+                              focusNode: widget.focusNode,
+                              editableKey: _editableKey,
+                              enabled: widget.scribbleEnabled,
+                              updateSelectionRects: () {
+                                _openInputConnection();
+                                _updateSelectionRects(force: true);
+                              },
+                              child: _Editable(
+                                key: _editableKey,
+                                startHandleLayerLink: _startHandleLayerLink,
+                                endHandleLayerLink: _endHandleLayerLink,
+                                inlineSpan: buildTextSpan(),
+                                value: _value,
+                                cursorColor: _cursorColor,
+                                backgroundCursorColor: widget.backgroundCursorColor,
+                                showCursor: EditableText.debugDeterministicCursor
+                                    ? ValueNotifier<bool>(widget.showCursor)
+                                    : _cursorVisibilityNotifier,
+                                forceLine: widget.forceLine,
+                                readOnly: widget.readOnly,
+                                hasFocus: _hasFocus,
+                                maxLines: widget.maxLines,
+                                minLines: widget.minLines,
+                                expands: widget.expands,
+                                strutStyle: widget.strutStyle,
+                                selectionColor: _selectionOverlay?.spellCheckToolbarIsVisible ?? false
+                                    ? _spellCheckConfiguration.misspelledSelectionColor ?? widget.selectionColor
+                                    : widget.selectionColor,
+                                textScaleFactor: widget.textScaleFactor ?? MediaQuery.textScaleFactorOf(context),
+                                textAlign: widget.textAlign,
+                                textDirection: _textDirection,
+                                locale: widget.locale,
+                                textHeightBehavior: widget.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
+                                textWidthBasis: widget.textWidthBasis,
+                                obscuringCharacter: widget.obscuringCharacter,
+                                obscureText: widget.obscureText,
+                                offset: offset,
+                                onCaretChanged: _handleCaretChanged,
+                                rendererIgnoresPointer: widget.rendererIgnoresPointer,
+                                cursorWidth: widget.cursorWidth,
+                                cursorHeight: widget.cursorHeight,
+                                cursorRadius: widget.cursorRadius,
+                                cursorOffset: widget.cursorOffset ?? Offset.zero,
+                                selectionHeightStyle: widget.selectionHeightStyle,
+                                selectionWidthStyle: widget.selectionWidthStyle,
+                                paintCursorAboveText: widget.paintCursorAboveText,
+                                enableInteractiveSelection: widget._userSelectionEnabled,
+                                textSelectionDelegate: this,
+                                devicePixelRatio: _devicePixelRatio,
+                                promptRectRange: _currentPromptRectRange,
+                                promptRectColor: widget.autocorrectionTextRectColor,
+                                clipBehavior: widget.clipBehavior,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
+      onAcceptWithDetails: (DragTargetDetails<String> details) {
+        final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
+        final TextRange dropRange = TextRange.collapsed(dropPosition.offset);
+        widget.controller.value = widget.controller.value.copyWith(
+          text: dropRange.textBefore(widget.controller.text) + details.data + dropRange.textAfter(widget.controller.text),
+        );
+      },
     );
   }
 
