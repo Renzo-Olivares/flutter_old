@@ -262,6 +262,9 @@ class TextEditingController extends ValueNotifier<TextEditingValue> {
           TextSpan(text: value.selection.textBefore(value.text)),
           WidgetSpan(
             style: style,
+            // TODO: Selection with a WidgetSpan is weird. For example double tap
+            // to select a word and long press to select a word. Also moving selection
+            // handles is weird.
             child: LongPressDraggable<String>(
               data: value.selection.textInside(value.text),
               feedback: Text(value.selection.textInside(value.text), style: style),
@@ -4693,6 +4696,9 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         );
       },
       onAcceptWithDetails: (DragTargetDetails<String> details) {
+        // TODO: Handle case when trying to drag selected text to the end.
+        // TODO: Cursor should also move as we drag the text around the text field
+        // to indicate where the text will be dropped.
         final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
         final TextRange dropRange = TextRange.collapsed(dropPosition.offset);
         final TextEditingValue valueWithOriginalSelectionRemoved = _value.copyWith(
