@@ -2304,6 +2304,7 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleTapCancel() { /* Subclass should override this method if needed. */ }
 
+  bool _longPressNotExecuted = false;
   /// Handler for [TextSelectionGestureDetector.onSingleLongTapStart].
   ///
   /// By default, it selects text position specified in [details] if selection
@@ -2322,6 +2323,7 @@ class TextSelectionGestureDetectorBuilder {
       if (renderEditable.selection != null &&
           !renderEditable.selection!.isCollapsed &&
           _positionWasOnSelectionInclusive(renderEditable.getPositionForPoint(details.globalPosition))) {
+        _longPressNotExecuted = true;
         return;
       }
       switch (defaultTargetPlatform) {
@@ -2362,12 +2364,10 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
     if (delegate.selectionEnabled) {
-      // Do not initiate a long tap gesture when selection is active and the long press
-      // was on the active selection. This is to prevent long press gestures from
-      // interfering with drag-n-drop inside of an EditableText.
-      if (renderEditable.selection != null &&
-          !renderEditable.selection!.isCollapsed &&
-          _positionWasOnSelectionInclusive(renderEditable.getPositionForPoint(details.globalPosition))) {
+      // Do not initiate a long tap move gesture when the long press was not executed.
+      // This is to prevent long press gestures from interfering with drag-n-drop
+      // inside of an EditableText.
+      if (_longPressNotExecuted) {
         return;
       }
       // Adjust the drag start offset for possible viewport offset changes.
@@ -2419,14 +2419,13 @@ class TextSelectionGestureDetectorBuilder {
   ///    callback.
   @protected
   void onSingleLongTapEnd(LongPressEndDetails details) {
-    // Do not initiate a long tap gesture when selection is active and the long press
-    // was on the active selection. This is to prevent long press gestures from
-    // interfering with drag-n-drop inside of an EditableText.
-    //   if (renderEditable.selection != null &&
-    //       !renderEditable.selection!.isCollapsed &&
-    //       _positionWasOnSelectionInclusive(renderEditable.getPositionForPoint(details.globalPosition))) {
-    //   return;
-    // }
+    // Do not initiate a long tap end gesture when the long press was not executed.
+    // This is to prevent long press gestures from interfering with drag-n-drop
+    // inside of an EditableText.
+    if (_longPressNotExecuted) {
+      _longPressNotExecuted = false;
+      return;
+    }
     _hideMagnifierIfSupportedByPlatform();
     if (shouldShowSelectionToolbar) {
       editableText.showToolbar();
