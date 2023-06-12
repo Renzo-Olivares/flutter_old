@@ -269,8 +269,8 @@ class TextEditingController extends ValueNotifier<TextEditingValue> {
             // competing gesture recognizers, on tap down immediately sets the selection
             // to the clicked position. LongPressDraggable/Draggable utilizes a Listener
             // so it does not compete in the GestureArena.
-            child: LongPressDraggable<String>(
-              data: value.selection.textInside(value.text),
+            child: LongPressDraggable<EditableTextDraggableContent>(
+              data: EditableTextDraggableContent(data: value.selection.textInside(value.text), editableTextID: hashCode),
               feedback: Text(value.selection.textInside(value.text), style: style),
               child: Text(value.selection.textInside(value.text), style: style),
             ),
@@ -566,6 +566,18 @@ class _DiscreteKeyFrameSimulation extends Simulation {
     _lastKeyFrameIndex = searchIndex;
     return _keyFrames[_lastKeyFrameIndex].value;
   }
+}
+
+/// A class containing data that can be dragged from one [EditableText] to another.
+class EditableTextDraggableContent {
+  /// Creates an instance of [EditableTextDraggableContent].
+  const EditableTextDraggableContent({required this.data, required this.editableTextID});
+
+  /// The text being dragged from the origin [EditableText].
+  final String data;
+
+  /// The identifier of the origin [EditableText].
+  final int editableTextID;
 }
 
 /// A basic text input field.
@@ -4554,7 +4566,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     TransposeCharactersIntent: _makeOverridable(_transposeCharactersAction),
   };
 
-  TextSelection? _selectionWhenDragTargetInitiated;
+  TextSelection? _selectionToRemoveWhenDragOriginIsDragTarget;
 
   @override
   Widget build(BuildContext context) {
@@ -4562,8 +4574,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     super.build(context); // See AutomaticKeepAliveClientMixin.
 
     final TextSelectionControls? controls = widget.selectionControls;
-    return DragTarget<String>(
-      builder: (BuildContext context, List<String?> accepted, List<dynamic> rejected) {
+    return DragTarget<EditableTextDraggableContent>(
+      builder: (BuildContext context, List<EditableTextDraggableContent?> accepted, List<dynamic> rejected) {
         return _CompositionCallback(
           compositeCallback: _compositeCallback,
           enabled: _hasInputConnection,
@@ -4701,8 +4713,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
           ),
         );
       },
-      onAcceptWithDetails: (DragTargetDetails<String> details) {
-        assert(_selectionWhenDragTargetInitiated != null);
+      onAcceptWithDetails: (DragTargetDetails<EditableTextDraggableContent> details) {
         int boundedDistanceFromStart(TextSelection selection, int referencePoint) {
           final int selectionLength = (selection.start - selection.end).abs();
           late final int result;
@@ -4714,34 +4725,49 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
           return result < 0 ? 0 : result;
         }
         final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
-        final int dropPositionDistanceFromSelectionStart = boundedDistanceFromStart(_selectionWhenDragTargetInitiated!, dropPosition.offset);
-        final bool dropPositionIsBeforeRemoved = _selectionWhenDragTargetInitiated!.isNormalized ? dropPosition.offset < _selectionWhenDragTargetInitiated!.start : dropPosition.offset < _selectionWhenDragTargetInitiated!.end;
-        final int effectiveNewSelectionPoint = dropPositionIsBeforeRemoved ? dropPosition.offset + details.data.length : dropPosition.offset + details.data.length - dropPositionDistanceFromSelectionStart;
+        if (_selectionToRemoveWhenDragOriginIsDragTarget == null) {
+          final TextRange dropRange = TextRange.collapsed(dropPosition.offset);
+          final TextEditingValue valueWithDropData = _value.copyWith(
+            text: dropRange.textBefore(_value.text) + details.data.data + dropRange.textAfter(_value.text),
+            selection: TextSelection.collapsed(offset: dropPosition.offset + details.data.data.length),
+          );
+          if (_value.text != valueWithDropData.text) {
+            userUpdateTextEditingValue(valueWithDropData, null);
+          }
+          return;
+        }
+        final int dropPositionDistanceFromSelectionStart = boundedDistanceFromStart(_selectionToRemoveWhenDragOriginIsDragTarget!, dropPosition.offset);
+        final bool dropPositionIsBeforeRemoved = _selectionToRemoveWhenDragOriginIsDragTarget!.isNormalized ? dropPosition.offset < _selectionToRemoveWhenDragOriginIsDragTarget!.start : dropPosition.offset < _selectionToRemoveWhenDragOriginIsDragTarget!.end;
+        final int effectiveNewSelectionPoint = dropPositionIsBeforeRemoved ? dropPosition.offset + details.data.data.length : dropPosition.offset + details.data.data.length - dropPositionDistanceFromSelectionStart;
         final TextRange effectiveDropRange = TextRange.collapsed(dropPositionIsBeforeRemoved ? dropPosition.offset : dropPosition.offset - dropPositionDistanceFromSelectionStart);
         final TextEditingValue valueWithOriginalSelectionRemoved = _value.copyWith(
-          text: _selectionWhenDragTargetInitiated!.textBefore(_value.text) + _selectionWhenDragTargetInitiated!.textAfter(_value.text),
+          text: _selectionToRemoveWhenDragOriginIsDragTarget!.textBefore(_value.text) + _selectionToRemoveWhenDragOriginIsDragTarget!.textAfter(_value.text),
         );
         final TextEditingValue valueWithDropData = valueWithOriginalSelectionRemoved.copyWith(
-          text: effectiveDropRange.textBefore(valueWithOriginalSelectionRemoved.text) + details.data + effectiveDropRange.textAfter(valueWithOriginalSelectionRemoved.text),
+          text: effectiveDropRange.textBefore(valueWithOriginalSelectionRemoved.text) + details.data.data + effectiveDropRange.textAfter(valueWithOriginalSelectionRemoved.text),
           selection: TextSelection.collapsed(offset: effectiveNewSelectionPoint),
         );
         if (_value.text != valueWithDropData.text) {
           userUpdateTextEditingValue(valueWithDropData, null);
         }
-        _selectionWhenDragTargetInitiated = null;
+        _selectionToRemoveWhenDragOriginIsDragTarget = null;
       },
-      onMove: (DragTargetDetails<String> details) {
-        _selectionWhenDragTargetInitiated ??= _value.selection;
+      onMove: (DragTargetDetails<EditableTextDraggableContent> details) {
+        if (widget.controller.hashCode == details.data.editableTextID) {
+          _selectionToRemoveWhenDragOriginIsDragTarget ??= _value.selection;
+        }
         final TextPosition dropPosition = renderEditable.getPositionForPoint(details.offset);
         final TextEditingValue valueWithSelectionAtDragPosition = _value.copyWith(
           selection: TextSelection.collapsed(offset: dropPosition.offset),
         );
         userUpdateTextEditingValue(valueWithSelectionAtDragPosition, null);
       },
-      onLeave: (String? data) {
-        // TODO(Renzo-Olivares): When leaving the drag target and returning, this causes it
-        // to lose the selection it needs to remove. This should be fixed somehow.
-        _selectionWhenDragTargetInitiated = null;
+      onLeave: (EditableTextDraggableContent? data) {
+        // The selection should only be removed if the draggable content is dragged
+        // to the editable text for which the drag content originated from.
+        if (widget.controller.hashCode != data?.editableTextID) {
+          _selectionToRemoveWhenDragOriginIsDragTarget = null;
+        }
       },
     );
   }
