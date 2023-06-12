@@ -4739,6 +4739,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
         userUpdateTextEditingValue(valueWithSelectionAtDragPosition, null);
       },
       onLeave: (String? data) {
+        // TODO(Renzo-Olivares): When leaving the drag target and returning, this causes it
+        // to lose the selection it needs to remove. This should be fixed somehow.
         _selectionWhenDragTargetInitiated = null;
       },
     );
