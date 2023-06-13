@@ -2068,6 +2068,10 @@ class TextSelectionGestureDetectorBuilder {
   // focused, the cursor moves to the long press position.
   bool _longPressStartedWithoutFocus = false;
 
+  bool _longPressNotExecuted = false;
+
+  bool _tapDownStartedOnActiveUncollapsedSelection = false;
+
   /// Handler for [TextSelectionGestureDetector.onTapDown].
   ///
   /// By default, it forwards the tap to [RenderEditable.handleTapDown] and sets
@@ -2115,6 +2119,12 @@ class TextSelectionGestureDetectorBuilder {
         break;
       case TargetPlatform.macOS:
         editableText.hideToolbar();
+        if (renderEditable.selection != null &&
+            !renderEditable.selection!.isCollapsed &&
+            _positionWasOnSelectionInclusive(renderEditable.getPositionForPoint(details.globalPosition))) {
+          _tapDownStartedOnActiveUncollapsedSelection = true;
+          return;
+        }
         // On macOS, a shift-tapped unfocused field expands from 0, not from the
         // previous selection.
         if (isShiftPressedValid) {
@@ -2136,6 +2146,12 @@ class TextSelectionGestureDetectorBuilder {
       case TargetPlatform.linux:
       case TargetPlatform.windows:
         editableText.hideToolbar();
+        if (renderEditable.selection != null &&
+            !renderEditable.selection!.isCollapsed &&
+            _positionWasOnSelectionInclusive(renderEditable.getPositionForPoint(details.globalPosition))) {
+          _tapDownStartedOnActiveUncollapsedSelection = true;
+          return;
+        }
         if (isShiftPressedValid) {
           _extendSelection(details.globalPosition, SelectionChangedCause.tap);
           return;
@@ -2207,11 +2223,17 @@ class TextSelectionGestureDetectorBuilder {
       // renderEditable.selection is invalid.
       final bool isShiftPressedValid = isShiftPressed && renderEditable.selection?.baseOffset != null;
       switch (defaultTargetPlatform) {
-        case TargetPlatform.linux:
         case TargetPlatform.macOS:
+        case TargetPlatform.linux:
         case TargetPlatform.windows:
-          break;
-          // On desktop platforms the selection is set on tap down.
+          // On desktop platforms the selection is set on tap down, except when
+          // the tap down happened on the active selection. Then the selection will
+          // be set on tap up. This is to prevent a selection change on tap down
+          // from interfering with draggable fuctionality.
+          if (_tapDownStartedOnActiveUncollapsedSelection) {
+            renderEditable.selectPosition(cause: SelectionChangedCause.tap);
+          }
+          _tapDownStartedOnActiveUncollapsedSelection = false;
         case TargetPlatform.android:
           if (isShiftPressedValid) {
             _extendSelection(details.globalPosition, SelectionChangedCause.tap);
@@ -2304,7 +2326,6 @@ class TextSelectionGestureDetectorBuilder {
   @protected
   void onSingleTapCancel() { /* Subclass should override this method if needed. */ }
 
-  bool _longPressNotExecuted = false;
   /// Handler for [TextSelectionGestureDetector.onSingleLongTapStart].
   ///
   /// By default, it selects text position specified in [details] if selection
@@ -2604,6 +2625,17 @@ class TextSelectionGestureDetectorBuilder {
     if (!delegate.selectionEnabled) {
       return;
     }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        if (_tapDownStartedOnActiveUncollapsedSelection) {
+          return;
+        }
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.iOS:
+    }
     final PointerDeviceKind? kind = details.kind;
     _shouldShowSelectionToolbar = kind == null
       || kind == PointerDeviceKind.touch
@@ -2706,6 +2738,17 @@ class TextSelectionGestureDetectorBuilder {
   void onDragSelectionUpdate(TapDragUpdateDetails details) {
     if (!delegate.selectionEnabled) {
       return;
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        if (_tapDownStartedOnActiveUncollapsedSelection) {
+          return;
+        }
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.iOS:
     }
 
     final bool isShiftPressed = _containsShift(details.keysPressedOnDown);
@@ -2909,6 +2952,18 @@ class TextSelectionGestureDetectorBuilder {
   ///    callback.
   @protected
   void onDragSelectionEnd(TapDragEndDetails details) {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        if (_tapDownStartedOnActiveUncollapsedSelection) {
+          _tapDownStartedOnActiveUncollapsedSelection = false;
+          return;
+        }
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.iOS:
+    }
     final bool isShiftPressed = _containsShift(details.keysPressedOnDown);
     _dragBeganOnPreviousSelection = null;
 

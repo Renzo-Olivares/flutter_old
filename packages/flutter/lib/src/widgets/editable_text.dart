@@ -265,11 +265,7 @@ class TextEditingController extends ValueNotifier<TextEditingValue> {
             // TODO(Renzo-Olivares): Selection with a WidgetSpan is weird. For example double tap
             // to select a word and long press to select a word. Also moving selection
             // handles is weird.
-            // TODO(Renzo-Olivares): Does not work on desktop because since there are no
-            // competing gesture recognizers, on tap down immediately sets the selection
-            // to the clicked position. LongPressDraggable/Draggable utilizes a Listener
-            // so it does not compete in the GestureArena.
-            child: LongPressDraggable<EditableTextDraggableContent>(
+            child: _AdaptiveDraggable(
               data: EditableTextDraggableContent(data: value.selection.textInside(value.text), editableTextID: hashCode),
               feedback: Text(value.selection.textInside(value.text), style: style),
               child: Text(value.selection.textInside(value.text), style: style),
@@ -565,6 +561,40 @@ class _DiscreteKeyFrameSimulation extends Simulation {
 
     _lastKeyFrameIndex = searchIndex;
     return _keyFrames[_lastKeyFrameIndex].value;
+  }
+}
+
+class _AdaptiveDraggable extends StatelessWidget {
+  const _AdaptiveDraggable({
+    this.data,
+    required this.feedback,
+    required this.child,
+  });
+
+  final EditableTextDraggableContent? data;
+  final Widget feedback;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.iOS:
+        return LongPressDraggable<EditableTextDraggableContent>(
+          data: data,
+          feedback: feedback,
+          child: child,
+        );
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        return Draggable<EditableTextDraggableContent>(
+          data: data,
+          feedback: feedback,
+          child: child,
+        );
+    }
   }
 }
 
