@@ -538,6 +538,7 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
   // falls under the tolerance specifications and reset to 1 if not.
   @override
   void addAllowedPointer(PointerDownEvent event) {
+    debugPrint('addAllowed');
     super.addAllowedPointer(event);
     if (maxConsecutiveTap == _consecutiveTapCount) {
       _tapTrackerReset();
@@ -572,9 +573,9 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
       debugPrint('tap tracker up');
       _up = event;
       if (_down != null) {
-        debugPrint('stopping timer');
+        debugPrint('stopping timer/ starting timer');
         // _consecutiveTapTimerStop();
-        // _consecutiveTapTimerStart();
+        _consecutiveTapTimerStart();
       }
     } else if (event is PointerCancelEvent) {
       debugPrint('cancel tracker reset');
@@ -630,12 +631,12 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
 
   void _consecutiveTapTimerStart() {
     debugPrint('starting timer');
-    _consecutiveTapTimer ??= Timer(kDoubleTapTimeout, _tapTrackerReset);
+    _consecutiveTapTimer ??= Timer(kDoubleTapTimeout, _tapTrackerResetTimeout);
   }
 
   void _consecutiveTapTimerStop() {
     if (_consecutiveTapTimer != null) {
-      debugPrint('timer not null');
+      debugPrint('stopping timer, timer not null');
       _consecutiveTapTimer!.cancel();
       _consecutiveTapTimer = null;
     }
@@ -655,6 +656,17 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
     _keysPressedOnDown = null;
     _down = null;
     _up = null;
+  }
+
+  void _tapTrackerResetTimeout() {
+    // The timer has timed out, i.e. the time between a [PointerUpEvent] and the subsequent
+    // [PointerDownEvent] exceeded the duration of [kDoubleTapTimeout], so the tap belonging
+    // to the [PointerDownEvent] cannot be considered part of the same tap series as the
+    // previous [PointerUpEvent].
+    debugPrint('reset tap timeout');
+    debugPrint('calling reset');
+    _tapTrackerReset();
+    debugPrint('end calling reset');
   }
 }
 
@@ -1007,7 +1019,7 @@ sealed class BaseTapAndDragGestureRecognizer extends OneSequenceGestureRecognize
 
     assert(!_acceptedActivePointers.contains(pointer));
     _acceptedActivePointers.add(pointer);
-    debugPrint('hello');
+    debugPrint('Added pointer to accepted list');
 
     // Called when this recognizer is accepted by the [GestureArena].
     if (currentDown != null) {
