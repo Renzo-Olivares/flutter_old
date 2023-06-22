@@ -331,7 +331,7 @@ void main() {
 
     // On pressed.
     await gesture.down(tester.getCenter(find.byType(SearchBar)));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await gesture.removePointer();
 
     material = tester.widget<Material>(searchBarMaterial);
@@ -371,7 +371,7 @@ void main() {
 
     // On pressed.
     await gesture.down(tester.getCenter(find.byType(SearchBar)));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await gesture.removePointer();
 
     material = tester.widget<Material>(searchBarMaterial);
@@ -411,7 +411,7 @@ void main() {
 
     // On pressed.
     await gesture.down(tester.getCenter(find.byType(SearchBar)));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await gesture.removePointer();
 
     material = tester.widget<Material>(searchBarMaterial);
@@ -451,7 +451,7 @@ void main() {
 
     // On pressed.
     await gesture.down(tester.getCenter(find.byType(SearchBar)));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await gesture.removePointer();
 
     material = tester.widget<Material>(searchBarMaterial);
@@ -563,7 +563,7 @@ void main() {
 
     // On pressed.
     await gesture.down(tester.getCenter(find.byType(SearchBar)));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await gesture.removePointer();
 
     material = tester.widget<Material>(searchBarMaterial);
@@ -626,7 +626,7 @@ void main() {
 
     // On pressed.
     await gesture.down(tester.getCenter(find.byType(SearchBar)));
-    await tester.pump();
+    await tester.pumpAndSettle();
     helperText = tester.widget(find.text('hint text'));
     expect(helperText.style?.color, pressedColor);
     await gesture.removePointer();
@@ -661,7 +661,7 @@ void main() {
 
     // On pressed.
     await gesture.down(tester.getCenter(find.byType(SearchBar)));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await gesture.removePointer();
     inputText = tester.widget(find.text('input text'));
     expect(inputText.style.color, pressedColor);
@@ -696,7 +696,7 @@ void main() {
 
     // On pressed.
     await gesture.down(tester.getCenter(find.byType(SearchBar)));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await gesture.removePointer();
     helperText = tester.widget(find.text('hint text'));
     expect(helperText.style?.color, pressedColor);
