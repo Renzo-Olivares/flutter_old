@@ -74,13 +74,7 @@ class _SelectableTextSelectionGestureDetectorBuilder extends TextSelectionGestur
 
   @override
   void onSingleLongTapMoveUpdate(LongPressMoveUpdateDetails details) {
-    if (delegate.selectionEnabled) {
-      renderEditable.selectWordsInRange(
-        from: details.globalPosition - details.offsetFromOrigin,
-        to: details.globalPosition,
-        cause: SelectionChangedCause.longPress,
-      );
-    }
+    super.onSingleLongTapMoveUpdate(details);
   }
 
   @override
@@ -103,8 +97,8 @@ class _SelectableTextSelectionGestureDetectorBuilder extends TextSelectionGestur
 
   @override
   void onSingleLongTapStart(LongPressStartDetails details) {
+    super.onSingleLongTapStart(details);
     if (delegate.selectionEnabled) {
-      renderEditable.selectWord(cause: SelectionChangedCause.longPress);
       Feedback.forLongPress(_state.context);
     }
   }
