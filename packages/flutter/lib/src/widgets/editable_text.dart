@@ -73,6 +73,11 @@ typedef EditableTextContextMenuBuilder = Widget Function(
   EditableTextState editableTextState,
 );
 
+typedef EditableTextUndoHistoryBuilder = Widget Function(
+  TextEditingController textEditingController,
+  Widget child,
+);
+
 // Signature for a function that determines the target location of the given
 // [TextPosition] after applying the given [TextBoundary].
 typedef _ApplyTextBoundary = TextPosition Function(TextPosition, bool, TextBoundary);
@@ -812,6 +817,7 @@ class EditableText extends StatefulWidget {
     this.enableIMEPersonalizedLearning = true,
     this.contentInsertionConfiguration,
     this.contextMenuBuilder,
+    this.undoHistoryBuilder,
     this.spellCheckConfiguration,
     this.magnifierConfiguration = TextMagnifierConfiguration.disabled,
     this.undoController,
@@ -1805,6 +1811,8 @@ class EditableText extends StatefulWidget {
   ///
   /// If not provided, no context menu will be shown.
   final EditableTextContextMenuBuilder? contextMenuBuilder;
+
+  final EditableTextUndoHistoryBuilder? undoHistoryBuilder;
 
   /// {@template flutter.widgets.EditableText.spellCheckConfiguration}
   /// Configuration that details how spell check should be performed.
@@ -4681,6 +4689,52 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     TransposeCharactersIntent: _makeOverridable(_transposeCharactersAction),
   };
 
+  Widget _buildUndoHistory({required Widget child}) {
+    if (widget.undoHistoryBuilder == null) {
+      return UndoHistory<TextEditingValue>(
+        value: widget.controller,
+        onTriggered: (TextEditingValue value) {
+          userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
+        },
+        shouldChangeUndoStack: (TextEditingValue? oldValue, TextEditingValue newValue) {
+          if (!newValue.selection.isValid) {
+            return false;
+          }
+
+          if (oldValue == null) {
+            return true;
+          }
+
+          switch (defaultTargetPlatform) {
+            case TargetPlatform.iOS:
+            case TargetPlatform.macOS:
+            case TargetPlatform.fuchsia:
+            case TargetPlatform.linux:
+            case TargetPlatform.windows:
+              // Composing text is not counted in history coalescing.
+              if (!widget.controller.value.composing.isCollapsed) {
+                return false;
+              }
+            case TargetPlatform.android:
+              // Gboard on Android puts non-CJK words in composing regions. Coalesce
+              // composing text in order to allow the saving of partial words in that
+              // case.
+              break;
+          }
+
+          return oldValue.text != newValue.text || oldValue.composing != newValue.composing;
+        },
+        focusNode: widget.focusNode,
+        controller: widget.undoController,
+        child: child,
+      );
+    }
+    return widget.undoHistoryBuilder!(
+      widget.controller,
+      child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasMediaQuery(context));
@@ -4703,41 +4757,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
           cursor: widget.mouseCursor ?? SystemMouseCursors.text,
           child: Actions(
             actions: _actions,
-            child: UndoHistory<TextEditingValue>(
-              value: widget.controller,
-              onTriggered: (TextEditingValue value) {
-                userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
-              },
-              shouldChangeUndoStack: (TextEditingValue? oldValue, TextEditingValue newValue) {
-                if (!newValue.selection.isValid) {
-                  return false;
-                }
-
-                if (oldValue == null) {
-                  return true;
-                }
-
-                switch (defaultTargetPlatform) {
-                  case TargetPlatform.iOS:
-                  case TargetPlatform.macOS:
-                  case TargetPlatform.fuchsia:
-                  case TargetPlatform.linux:
-                  case TargetPlatform.windows:
-                    // Composing text is not counted in history coalescing.
-                    if (!widget.controller.value.composing.isCollapsed) {
-                      return false;
-                    }
-                  case TargetPlatform.android:
-                    // Gboard on Android puts non-CJK words in composing regions. Coalesce
-                    // composing text in order to allow the saving of partial words in that
-                    // case.
-                    break;
-                }
-
-                return oldValue.text != newValue.text || oldValue.composing != newValue.composing;
-              },
-              focusNode: widget.focusNode,
-              controller: widget.undoController,
+            child: _buildUndoHistory(
               child: Focus(
                 focusNode: widget.focusNode,
                 includeSemantics: false,

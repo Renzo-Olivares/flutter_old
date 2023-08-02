@@ -314,6 +314,11 @@ class TextField extends StatefulWidget {
     this.scribbleEnabled = true,
     this.enableIMEPersonalizedLearning = true,
     this.contextMenuBuilder = _defaultContextMenuBuilder,
+    this.undoHistoryBuilder,
+    @Deprecated(
+      'Use `focusNode` instead. '
+      'This feature was deprecated after v3.12.0-14.0.pre.',
+    )
     this.canRequestFocus = true,
     this.spellCheckConfiguration,
     this.magnifierConfiguration,
@@ -770,6 +775,8 @@ class TextField extends StatefulWidget {
   ///
   ///  * [AdaptiveTextSelectionToolbar], which is built by default.
   final EditableTextContextMenuBuilder? contextMenuBuilder;
+
+  final EditableTextUndoHistoryBuilder? undoHistoryBuilder;
 
   /// Determine whether this text field can request the primary focus.
   ///
