@@ -75,6 +75,8 @@ typedef EditableTextContextMenuBuilder = Widget Function(
 
 typedef EditableTextUndoHistoryBuilder = Widget Function(
   TextEditingController textEditingController,
+  void Function(TextEditingValue value, SelectionChangedCause cause),
+  FocusNode node,
   Widget child,
 );
 
@@ -4731,6 +4733,8 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     }
     return widget.undoHistoryBuilder!(
       widget.controller,
+      userUpdateTextEditingValue,
+      widget.focusNode,
       child,
     );
   }

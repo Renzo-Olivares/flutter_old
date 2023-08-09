@@ -155,6 +155,7 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
     if (nextValue == _lastValue) {
       return;
     }
+    debugPrint('update $nextValue');
     _lastValue = nextValue;
     _duringTrigger = true;
     try {
@@ -166,6 +167,7 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
   }
 
   void _push() {
+    debugPrint('_push');
     if (widget.value.value == _lastValue) {
       return;
     }
@@ -175,8 +177,10 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
     }
 
     if (!(widget.shouldChangeUndoStack?.call(_lastValue, widget.value.value) ?? true)) {
+      debugPrint('not pushed');
       return;
     }
+    debugPrint('actually pushed ${widget.value.value}');
 
     _lastValue = widget.value.value;
 

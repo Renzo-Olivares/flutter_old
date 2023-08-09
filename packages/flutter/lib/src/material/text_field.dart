@@ -1388,6 +1388,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
           controller: controller,
           focusNode: focusNode,
           undoController: widget.undoController,
+          undoHistoryBuilder: widget.undoHistoryBuilder,
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
           textCapitalization: widget.textCapitalization,
