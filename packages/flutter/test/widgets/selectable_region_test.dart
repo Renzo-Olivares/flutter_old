@@ -2718,7 +2718,6 @@ void main() {
     expect(content!.plainText, 'are');
 
     // Backwards selection.
-    debugPrint('start backwards');
     await gesture.down(textOffsetToPosition(paragraph, 3));
     await tester.pump();
     await gesture.up();
