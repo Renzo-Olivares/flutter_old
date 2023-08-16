@@ -2718,11 +2718,16 @@ void main() {
     expect(content!.plainText, 'are');
 
     // Backwards selection.
+    debugPrint('start backwards');
     await gesture.down(textOffsetToPosition(paragraph, 3));
-    await tester.pumpAndSettle();
-    // The expected content is collapsed not null. We should probably
-    // call gesture.up() here so this propagates to mobile platforms.
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle(kDoubleTapTimeout);
     expect(content, isNotNull);
+    expect(content!.plainText, '');
+
+    await gesture.down(textOffsetToPosition(paragraph, 3));
+    await tester.pump();
     await gesture.moveTo(textOffsetToPosition(paragraph, 0));
     await gesture.up();
     await tester.pump();

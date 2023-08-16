@@ -530,6 +530,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
           case TargetPlatform.android:
           case TargetPlatform.fuchsia:
           case TargetPlatform.iOS:
+            debugPrint('here');
             _selectPositionAt(offset: details.globalPosition);
           case TargetPlatform.macOS:
           case TargetPlatform.linux:
@@ -538,6 +539,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
             break;
         }
     }
+    _updateSelectedContentIfNeeded();
   }
 
   void _updateSelectedContentIfNeeded() {
