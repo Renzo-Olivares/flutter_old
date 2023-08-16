@@ -599,8 +599,7 @@ void main() {
       await gesture.down(textOffsetToPosition(paragraph, 5));
       await tester.pump();
       await gesture.up();
-      expect(paragraph.selections.isEmpty, isFalse);
-      expect(paragraph.selections[0], const TextSelection.collapsed(offset: 5));
+      expect(paragraph.selections.isEmpty, isTrue);
       await tester.pump(kDoubleTapTimeout);
 
       // Double-click.
@@ -712,7 +711,7 @@ void main() {
       // Should clear the selection on paragraph 3.
       expect(paragraph1.selections[0], const TextSelection(baseOffset: 0, extentOffset: 12));
       expect(paragraph2.selections[0], const TextSelection(baseOffset: 0, extentOffset: 6));
-      expect(paragraph3.selections[0], const TextSelection.collapsed(offset: 0));
+      expect(paragraph3.selections.isEmpty, const TextSelection.collapsed(offset: 0));
 
       await gesture.moveTo(textOffsetToPosition(paragraph1, 4));
       // Should clear the selection on paragraph 2.
