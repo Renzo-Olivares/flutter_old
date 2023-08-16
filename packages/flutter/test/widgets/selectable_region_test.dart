@@ -537,13 +537,13 @@ void main() {
       // Check backward selection.
       await gesture.moveTo(textOffsetToPosition(paragraph, 1));
       await tester.pump();
+      expect(paragraph.selections.isEmpty, isFalse);
       expect(paragraph.selections[0], const TextSelection(baseOffset: 2, extentOffset: 1));
 
       // Start a new drag.
       await gesture.up();
       await gesture.down(textOffsetToPosition(paragraph, 5));
       await tester.pumpAndSettle();
-      // expect(paragraph.selections.isEmpty, isTrue);
 
       // Selecting across line should select to the end.
       await gesture.moveTo(textOffsetToPosition(paragraph, 5) + const Offset(0.0, 200.0));
@@ -603,7 +603,8 @@ void main() {
       await gesture.down(textOffsetToPosition(paragraph, 5));
       await tester.pump();
       await gesture.up();
-      expect(paragraph.selections.isEmpty, isTrue);
+      expect(paragraph.selections.isEmpty, isFalse);
+      expect(paragraph.selections[0], const TextSelection.collapsed(offset: 5));
       await tester.pump(kDoubleTapTimeout);
 
       // Double-click.
@@ -715,13 +716,13 @@ void main() {
       // Should clear the selection on paragraph 3.
       expect(paragraph1.selections[0], const TextSelection(baseOffset: 0, extentOffset: 12));
       expect(paragraph2.selections[0], const TextSelection(baseOffset: 0, extentOffset: 6));
-      expect(paragraph3.selections.isEmpty, true);
+      expect(paragraph3.selections[0], const TextSelection.collapsed(offset: 0));
 
       await gesture.moveTo(textOffsetToPosition(paragraph1, 4));
       // Should clear the selection on paragraph 2.
       expect(paragraph1.selections[0], const TextSelection(baseOffset: 0, extentOffset: 7));
-      expect(paragraph2.selections.isEmpty, true);
-      expect(paragraph3.selections.isEmpty, true);
+      expect(paragraph2.selections[0], const TextSelection.collapsed(offset: 0));
+      expect(paragraph3.selections[0], const TextSelection.collapsed(offset: 0));
 
       await gesture.up();
     }, skip: kIsWeb); // https://github.com/flutter/flutter/issues/125582.
@@ -963,7 +964,8 @@ void main() {
         await primaryMouseButtonGesture.up();
         await tester.pumpAndSettle();
         // Selection is collapsed.
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 1));
         expect(find.byKey(toolbarKey), findsNothing);
       },
       variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.iOS, TargetPlatform.macOS }),
@@ -1066,7 +1068,8 @@ void main() {
         await primaryMouseButtonGesture.up();
         await tester.pumpAndSettle();
         // Selection is collapsed.
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 1));
         expect(find.byKey(toolbarKey), findsNothing);
       },
       variant: TargetPlatformVariant.only(TargetPlatform.macOS),
@@ -1108,19 +1111,20 @@ void main() {
         addTearDown(primaryMouseButtonGesture.removePointer);
         addTearDown(gesture.removePointer);
         await tester.pump();
-        // Selection is collapsed so none is reported.
-        expect(paragraph.selections.isEmpty, true);
-
         await gesture.up();
         await tester.pump();
 
+        // Selection is collapsed.
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 2));
         expect(buttonTypes.length, 1);
         expect(buttonTypes, contains(ContextMenuButtonType.selectAll));
         expect(find.byKey(toolbarKey), findsOneWidget);
 
         await gesture.down(textOffsetToPosition(paragraph, 6));
         await tester.pump();
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 6));
 
         await gesture.up();
         await tester.pump();
@@ -1131,7 +1135,8 @@ void main() {
 
         await gesture.down(textOffsetToPosition(paragraph, 9));
         await tester.pump();
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 9));
 
         await gesture.up();
         await tester.pump();
@@ -1146,7 +1151,8 @@ void main() {
         await primaryMouseButtonGesture.up();
         await tester.pumpAndSettle(kDoubleTapTimeout);
         // Selection is collapsed.
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 1));
         expect(find.byKey(toolbarKey), findsNothing);
 
         // Create an uncollapsed selection by dragging.
@@ -1172,7 +1178,8 @@ void main() {
         await tester.pump();
         await gesture.up();
         await tester.pump();
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 7));
         expect(find.byKey(toolbarKey), findsOneWidget);
 
         // Collapse selection.
@@ -1181,7 +1188,8 @@ void main() {
         await primaryMouseButtonGesture.up();
         await tester.pumpAndSettle();
         // Selection is collapsed.
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 1));
         expect(find.byKey(toolbarKey), findsNothing);
       },
       variant: const TargetPlatformVariant(<TargetPlatform>{ TargetPlatform.android, TargetPlatform.fuchsia, TargetPlatform.windows }),
@@ -1223,11 +1231,11 @@ void main() {
         addTearDown(primaryMouseButtonGesture.removePointer);
         addTearDown(gesture.removePointer);
         await tester.pump();
-        // Selection is collapsed so none is reported.
-        expect(paragraph.selections.isEmpty, true);
-
         await gesture.up();
         await tester.pump();
+        // Selection is collapsed.
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 2));
 
         // Context menu toggled on.
         expect(buttonTypes.length, 1);
@@ -1236,17 +1244,18 @@ void main() {
 
         await gesture.down(textOffsetToPosition(paragraph, 6));
         await tester.pump();
-        expect(paragraph.selections.isEmpty, true);
-
         await gesture.up();
         await tester.pump();
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 2));
 
-        // Context menu toggled off.
+        // Context menu toggled off. Selection remains the same.
         expect(find.byKey(toolbarKey), findsNothing);
 
         await gesture.down(textOffsetToPosition(paragraph, 9));
         await tester.pump();
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 9));
 
         await gesture.up();
         await tester.pump();
@@ -1262,7 +1271,8 @@ void main() {
         await primaryMouseButtonGesture.up();
         await tester.pumpAndSettle(kDoubleTapTimeout);
         // Selection is collapsed.
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 1));
         expect(find.byKey(toolbarKey), findsNothing);
 
         await primaryMouseButtonGesture.down(textOffsetToPosition(paragraph, 0));
@@ -1296,7 +1306,8 @@ void main() {
         await tester.pump();
         await gesture.up();
         await tester.pump();
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 7));
         expect(find.byKey(toolbarKey), findsOneWidget);
 
         // Collapse selection.
@@ -1305,7 +1316,8 @@ void main() {
         await primaryMouseButtonGesture.up();
         await tester.pumpAndSettle();
         // Selection is collapsed.
-        expect(paragraph.selections.isEmpty, true);
+        expect(paragraph.selections.isEmpty, false);
+        expect(paragraph.selections[0], const TextSelection.collapsed(offset: 1));
         expect(find.byKey(toolbarKey), findsNothing);
       },
       variant: TargetPlatformVariant.only(TargetPlatform.linux),
@@ -2137,7 +2149,9 @@ void main() {
       expect(paragraph1.selections.length, 1);
       expect(paragraph1.selections[0].start, 2);
       expect(paragraph1.selections[0].end, 12);
-      expect(paragraph2.selections.length, 0);
+      expect(paragraph2.selections.length, 1);
+      expect(paragraph2.selections[0].start, 0);
+      expect(paragraph2.selections[0].end, 0);
 
       await sendKeyCombination(tester, SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true, alt: alt, control: control));
       await tester.pump();
@@ -2147,7 +2161,9 @@ void main() {
       expect(paragraph1.selections.length, 1);
       expect(paragraph1.selections[0].start, 2);
       expect(paragraph1.selections[0].end, 8);
-      expect(paragraph2.selections.length, 0);
+      expect(paragraph2.selections.length, 1);
+      expect(paragraph2.selections[0].start, 0);
+      expect(paragraph2.selections[0].end, 0);
     }, variant: TargetPlatformVariant.all());
 
     testWidgets('can use keyboard to granularly extend selection - line', (WidgetTester tester) async {
@@ -2227,7 +2243,9 @@ void main() {
       expect(paragraph1.selections.length, 1);
       expect(paragraph1.selections[0].start, 2);
       expect(paragraph1.selections[0].end, 12);
-      expect(paragraph2.selections.length, 0);
+      expect(paragraph2.selections.length, 1);
+      expect(paragraph2.selections[0].start, 0);
+      expect(paragraph2.selections[0].end, 0);
 
       await sendKeyCombination(tester, SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true, alt: alt, meta: meta));
       await tester.pump();
@@ -2311,8 +2329,12 @@ void main() {
       expect(paragraph1.selections.length, 1);
       expect(paragraph1.selections[0].start, 0);
       expect(paragraph1.selections[0].end, 2);
-      expect(paragraph2.selections.length, 0);
-      expect(paragraph3.selections.length, 0);
+      expect(paragraph2.selections.length, 1);
+      expect(paragraph2.selections[0].start, 0);
+      expect(paragraph2.selections[0].end, 0);
+      expect(paragraph3.selections.length, 1);
+      expect(paragraph3.selections[0].start, 0);
+      expect(paragraph3.selections[0].end, 0);
     }, variant: TargetPlatformVariant.all());
 
     testWidgets('can use keyboard to directionally extend selection', (WidgetTester tester) async {
@@ -2380,7 +2402,9 @@ void main() {
       expect(paragraph2.selections.length, 1);
       expect(paragraph2.selections[0].start, 2);
       expect(paragraph2.selections[0].end, 6);
-      expect(paragraph3.selections.length, 0);
+      expect(paragraph3.selections.length, 1);
+      expect(paragraph3.selections[0].start, 0);
+      expect(paragraph3.selections[0].end, 0);
 
       await sendKeyCombination(tester, const SingleActivator(LogicalKeyboardKey.arrowUp, shift: true));
       await tester.pump();
