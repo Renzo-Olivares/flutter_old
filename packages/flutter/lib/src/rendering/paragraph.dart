@@ -354,8 +354,7 @@ class RenderParagraph extends RenderBox with ContainerRenderObjectMixin<RenderBo
     final List<TextSelection> results = <TextSelection>[];
     for (final _SelectableFragment fragment in _lastSelectableFragments!) {
       if (fragment._textSelectionStart != null &&
-          fragment._textSelectionEnd != null &&
-          fragment._textSelectionStart!.offset != fragment._textSelectionEnd!.offset) {
+          fragment._textSelectionEnd != null) {
         results.add(
           TextSelection(
             baseOffset: fragment._textSelectionStart!.offset,
