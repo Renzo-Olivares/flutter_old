@@ -341,7 +341,10 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     _gestureRecognizers[TapGestureRecognizer] = GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
           () => TapGestureRecognizer(debugOwner: this),
           (TapGestureRecognizer instance) {
-        instance.onTapUp = (TapUpDetails details) => _selectPositionAt(offset: details.globalPosition);
+        instance.onTapUp = (TapUpDetails details) {
+          hideToolbar();
+          _selectPositionAt(offset: details.globalPosition);
+        };
         instance.onSecondaryTapDown = _handleRightClickDown;
       },
     );
