@@ -295,6 +295,12 @@ enum SelectionEventType {
   /// Used by [SelectWordSelectionEvent].
   selectWord,
 
+  /// An event to expand the selection to the given location
+  /// [ExpandToPositionSelectionEvent.globalPosition].
+  ///
+  /// Used by [ExpandToPositionSelectionEvent].
+  expandToPosition,
+
   /// An event that extends the selection by a specific [TextGranularity].
   granularlyExtendSelection,
 
@@ -413,6 +419,21 @@ class SelectionEdgeUpdateEvent extends SelectionEvent {
   ///
   /// Defaults to [TextGranularity.character].
   final TextGranularity granularity;
+}
+
+/// Expands the selection to the given global position.
+///
+/// Either the base or extent will be moved to the last tapped position, whichever
+/// is closest. The selection will never shrink or pivot, only grow.
+///
+/// This event can be sent as the result of a shift + click gesture on desktop
+/// and mobile devices.
+class ExpandToPositionSelectionEvent extends SelectionEvent {
+  /// Creates an expand to position selection event at the [globalPosition].
+  const ExpandToPositionSelectionEvent({required this.globalPosition}): super._(SelectionEventType.expandToPosition);
+
+  /// The position in global coordinates to expand the selection to.
+  final Offset globalPosition;
 }
 
 /// Extends the start or end of the selection by a given [TextGranularity].

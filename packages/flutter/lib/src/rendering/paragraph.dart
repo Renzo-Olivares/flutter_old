@@ -1419,6 +1419,9 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
       case SelectionEventType.selectWord:
         final SelectWordSelectionEvent selectWord = event as SelectWordSelectionEvent;
         result = _handleSelectWord(selectWord.globalPosition);
+      case SelectionEventType.expandToPosition:
+        final ExpandToPositionSelectionEvent expandToPosition = event as ExpandToPositionSelectionEvent;
+        result = _handleExpandToPosition(expandToPosition.globalPosition);
       case SelectionEventType.granularlyExtendSelection:
         final GranularlyExtendSelectionEvent granularlyExtendSelection = event as GranularlyExtendSelectionEvent;
         result = _handleGranularlyExtendSelection(
@@ -1474,6 +1477,14 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
     );
 
     final TextPosition position = _clampTextPosition(paragraph.getPositionForOffset(adjustedOffset));
+    // TODO(chunhtai): The geometry information should not be used to determine
+    // selection result. This is a workaround to RenderParagraph, where it does
+    // not have a way to get accurate text length if its text is truncated due to
+    // layout constraint.
+    return _handleUpdatingSelectionEdge(position, isEnd) ?? SelectionUtils.getResultBasedOnRect(_rect, localPosition);
+  }
+
+  SelectionResult? _handleUpdatingSelectionEdge(TextPosition position, bool isEnd) {
     _setSelectionPosition(position, isEnd: isEnd);
     if (position.offset == range.end) {
       return SelectionResult.next;
@@ -1481,11 +1492,7 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
     if (position.offset == range.start) {
       return SelectionResult.previous;
     }
-    // TODO(chunhtai): The geometry information should not be used to determine
-    // selection result. This is a workaround to RenderParagraph, where it does
-    // not have a way to get accurate text length if its text is truncated due to
-    // layout constraint.
-    return SelectionUtils.getResultBasedOnRect(_rect, localPosition);
+    return null;
   }
 
   TextPosition _closestWordBoundary(
@@ -1666,19 +1673,11 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
     final _WordBoundaryRecord? wordBoundary = !_rect.contains(localPosition) ? null : _getWordBoundaryAtPosition(position);
     final TextPosition targetPosition = _clampTextPosition(isEnd ? _updateSelectionEndEdgeByWord(wordBoundary, position, existingSelectionStart, existingSelectionEnd) : _updateSelectionStartEdgeByWord(wordBoundary, position, existingSelectionStart, existingSelectionEnd));
 
-    _setSelectionPosition(targetPosition, isEnd: isEnd);
-    if (targetPosition.offset == range.end) {
-      return SelectionResult.next;
-    }
-
-    if (targetPosition.offset == range.start) {
-      return SelectionResult.previous;
-    }
     // TODO(chunhtai): The geometry information should not be used to determine
     // selection result. This is a workaround to RenderParagraph, where it does
     // not have a way to get accurate text length if its text is truncated due to
     // layout constraint.
-    return SelectionUtils.getResultBasedOnRect(_rect, localPosition);
+    return _handleUpdatingSelectionEdge(targetPosition, isEnd) ?? SelectionUtils.getResultBasedOnRect(_rect, localPosition);
   }
 
   TextPosition _clampTextPosition(TextPosition position) {
@@ -1712,6 +1711,38 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
     _textSelectionStart = TextPosition(offset: range.start);
     _textSelectionEnd = TextPosition(offset: range.end, affinity: TextAffinity.upstream);
     return SelectionResult.none;
+  }
+
+  SelectionResult _handleExpandToPosition(Offset globalPosition) {
+    final Matrix4 transform = paragraph.getTransformTo(null);
+    transform.invert();
+    final Offset localPosition = MatrixUtils.transformPoint(transform, globalPosition);
+    if (_rect.isEmpty) {
+      return SelectionUtils.getResultBasedOnRect(_rect, localPosition);
+    }
+    final Offset adjustedOffset = SelectionUtils.adjustDragOffset(
+      _rect,
+      localPosition,
+      direction: paragraph.textDirection,
+    );
+
+    final TextPosition position = _clampTextPosition(paragraph.getPositionForOffset(adjustedOffset));
+
+    final int differenceA = _textSelectionStart == null ? 0 : (position.offset - _textSelectionStart!.offset).abs();
+    final int differenceB = _textSelectionEnd == null ? 0 : (position.offset - _textSelectionEnd!.offset).abs();
+    late final bool isEnd;
+    if (differenceA < differenceB) {
+      isEnd = false;
+    } else {
+      isEnd = true;
+    }
+    debugPrint('$isEnd $_textSelectionStart $_textSelectionEnd');
+
+    // TODO(chunhtai): The geometry information should not be used to determine
+    // selection result. This is a workaround to RenderParagraph, where it does
+    // not have a way to get accurate text length if its text is truncated due to
+    // layout constraint.
+    return _handleUpdatingSelectionEdge(position, isEnd) ?? SelectionUtils.getResultBasedOnRect(_rect, localPosition);
   }
 
   SelectionResult _handleSelectWord(Offset globalPosition) {

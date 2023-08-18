@@ -461,6 +461,8 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
           () => TapAndPanGestureRecognizer(debugOwner:this, supportedDevices: <PointerDeviceKind>{ PointerDeviceKind.mouse }),
           (TapAndPanGestureRecognizer instance) {
         instance
+          ..onTapTrackStart = _handleMouseTapTrackStart
+          ..onTapTrackReset = _handleMouseTapTrackReset
           ..onTapDown = _startNewMouseSelectionGesture
           ..onTapUp = _handleMouseTapUp
           ..onDragStart = _handleMouseDragStart
@@ -484,6 +486,10 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     );
   }
 
+  // Whether the Shift key was pressed when the most recent [PointerDownEvent]
+  // was tracked by the [TapAndPanGestureRecognizer].
+  bool _isShiftPressed = false;
+
   void _startNewMouseSelectionGesture(TapDragDownDetails details) {
     switch (_getEffectiveConsecutiveTapCount(details.consecutiveTapCount)) {
       case 1:
@@ -497,12 +503,33 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
             break;
           case TargetPlatform.macOS:
           case TargetPlatform.linux:
+            if (_isShiftPressed) {
+              debugPrint('shift pressed');
+              if (_hasSelectionOverlayGeometry) {
+                debugPrint('both edges exist');
+                _expandSelectionToPosition(offset: details.globalPosition);
+              } else {
+                _selectPositionAt(offset: details.globalPosition);
+              }
+            } else {
+              _selectPositionAt(offset: details.globalPosition);
+            }
           case TargetPlatform.windows:
-            _selectPositionAt(offset: details.globalPosition);
+            _selectEndTo(offset: details.globalPosition);
         }
       case 2:
         _selectWordAt(offset: details.globalPosition);
     }
+  }
+
+  void _handleMouseTapTrackStart() {
+    _isShiftPressed = HardwareKeyboard.instance.logicalKeysPressed
+        .intersection(<LogicalKeyboardKey>{LogicalKeyboardKey.shiftLeft, LogicalKeyboardKey.shiftRight})
+        .isNotEmpty;
+  }
+
+  void _handleMouseTapTrackReset() {
+    _isShiftPressed = false;
   }
 
   void _handleMouseDragStart(TapDragStartDetails details) {
@@ -977,6 +1004,10 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
       _selectionStartPosition = offset;
       _triggerSelectionStartEdgeUpdate(textGranularity: textGranularity);
     }
+  }
+
+  void _expandSelectionToPosition({required Offset offset}) {
+    _selectable?.dispatchSelectionEvent(ExpandToPositionSelectionEvent(globalPosition: offset));
   }
 
   /// Selects a position at the `offset` location.
@@ -1537,6 +1568,7 @@ class _SelectableRegionContainerDelegate extends MultiSelectableSelectionContain
       case SelectionEventType.selectAll:
       case SelectionEventType.selectWord:
         break;
+      case SelectionEventType.expandToPosition:
       case SelectionEventType.granularlyExtendSelection:
       case SelectionEventType.directionallyExtendSelection:
         _hasReceivedStartEvent.add(selectable);
@@ -2107,6 +2139,47 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     return SelectionResult.end;
   }
 
+  /// Expands the selection to the location in a selectable
+  /// [ExpandToPositionSelectionEvent.globalPosition].
+  @protected
+  SelectionResult handleExpandToPosition(ExpandToPositionSelectionEvent event) {
+    SelectionResult? lastSelectionResult;
+    for (int index = 0; index < selectables.length; index += 1) {
+      final Rect localRect = Rect.fromLTWH(0, 0, selectables[index].size.width, selectables[index].size.height);
+      final Matrix4 transform = selectables[index].getTransformTo(null);
+      final Rect globalRect = MatrixUtils.transformRect(transform, localRect);
+      if (globalRect.contains(event.globalPosition)) {
+        final SelectionGeometry existingGeometry = selectables[index].value;
+        lastSelectionResult = dispatchSelectionEventToChild(selectables[index], event);
+        if (index == selectables.length - 1 && lastSelectionResult == SelectionResult.next) {
+          return SelectionResult.next;
+        }
+        if (lastSelectionResult == SelectionResult.next) {
+          continue;
+        }
+        if (index == 0 && lastSelectionResult == SelectionResult.previous) {
+          return SelectionResult.previous;
+        }
+        if (selectables[index].value != existingGeometry) {
+          // Geometry has changed as a result of select word, need to clear the
+          // selection of other selectables to keep selection in sync.
+          selectables
+            .where((Selectable target) => target != selectables[index])
+            .forEach((Selectable target) => dispatchSelectionEventToChild(target, const ClearSelectionEvent()));
+          currentSelectionStartIndex = currentSelectionEndIndex = index;
+        }
+        return SelectionResult.end;
+      } else {
+        if (lastSelectionResult == SelectionResult.next) {
+          currentSelectionStartIndex = currentSelectionEndIndex = index - 1;
+          return SelectionResult.end;
+        }
+      }
+    }
+    assert(lastSelectionResult == null);
+    return SelectionResult.end;
+  }
+
   /// Removes the selection of all selectables this delegate manages.
   @protected
   SelectionResult handleClearSelection(ClearSelectionEvent event) {
@@ -2240,6 +2313,9 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       case SelectionEventType.selectWord:
         _extendSelectionInProgress = false;
         result = handleSelectWord(event as SelectWordSelectionEvent);
+      case SelectionEventType.expandToPosition:
+        _extendSelectionInProgress = false;
+        result = handleExpandToPosition(event as ExpandToPositionSelectionEvent);
       case SelectionEventType.granularlyExtendSelection:
         _extendSelectionInProgress = true;
         result = handleGranularlyExtendSelection(event as GranularlyExtendSelectionEvent);
