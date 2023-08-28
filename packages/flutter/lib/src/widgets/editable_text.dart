@@ -766,6 +766,7 @@ class EditableText extends StatefulWidget {
     this.showSelectionHandles = false,
     this.selectionColor,
     this.selectionControls,
+    this.selectionRegistrar,
     TextInputType? keyboardType,
     this.textInputAction,
     this.textCapitalization = TextCapitalization.none,
@@ -814,6 +815,7 @@ class EditableText extends StatefulWidget {
   }) : assert(obscuringCharacter.length == 1),
        smartDashesType = smartDashesType ?? (obscureText ? SmartDashesType.disabled : SmartDashesType.enabled),
        smartQuotesType = smartQuotesType ?? (obscureText ? SmartQuotesType.disabled : SmartQuotesType.enabled),
+       assert(selectionRegistrar != null || selectionColor != null),
        assert(minLines == null || minLines > 0),
        assert(
          (maxLines == null) || (minLines == null) || (maxLines >= minLines),
@@ -1268,6 +1270,11 @@ class EditableText extends StatefulWidget {
   ///    shows the selection toolbar upon appropriate user events based on the
   ///    user's platform set in [ThemeData.platform].
   final TextSelectionControls? selectionControls;
+
+  /// The [SelectionRegistrar] this editable is subscribed to.
+  ///
+  /// If this is set, [selectionColor] must be non-null.
+  final SelectionRegistrar? selectionRegistrar;
 
   /// {@template flutter.widgets.editableText.keyboardType}
   /// The type of keyboard to use for editing the text.
@@ -4865,6 +4872,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                             selectionColor: _selectionOverlay?.spellCheckToolbarIsVisible ?? false
                                 ? _spellCheckConfiguration.misspelledSelectionColor ?? widget.selectionColor
                                 : widget.selectionColor,
+                            selectionRegistrar: widget.selectionRegistrar,
                             textScaler: effectiveTextScaler,
                             textAlign: widget.textAlign,
                             textDirection: _textDirection,
@@ -4991,6 +4999,7 @@ class _Editable extends MultiChildRenderObjectWidget {
     required this.expands,
     this.strutStyle,
     this.selectionColor,
+    this.selectionRegistrar,
     required this.textScaler,
     required this.textAlign,
     required this.textDirection,
@@ -5029,6 +5038,7 @@ class _Editable extends MultiChildRenderObjectWidget {
   final bool expands;
   final StrutStyle? strutStyle;
   final Color? selectionColor;
+  final SelectionRegistrar? selectionRegistrar;
   final TextScaler textScaler;
   final TextAlign textAlign;
   final TextDirection textDirection;
@@ -5070,6 +5080,7 @@ class _Editable extends MultiChildRenderObjectWidget {
       expands: expands,
       strutStyle: strutStyle,
       selectionColor: selectionColor,
+      registrar: selectionRegistrar,
       textScaler: textScaler,
       textAlign: textAlign,
       textDirection: textDirection,
@@ -5114,6 +5125,7 @@ class _Editable extends MultiChildRenderObjectWidget {
       ..expands = expands
       ..strutStyle = strutStyle
       ..selectionColor = selectionColor
+      ..registrar = selectionRegistrar
       ..textScaler = textScaler
       ..textAlign = textAlign
       ..textDirection = textDirection
