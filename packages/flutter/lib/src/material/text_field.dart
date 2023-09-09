@@ -350,6 +350,7 @@ class TextField extends StatefulWidget {
        enableInteractiveSelection = enableInteractiveSelection ?? (!readOnly || !obscureText),
        type = _TextFieldType.material;
 
+  /// A platform adaptive constructor for [TextField].
   const TextField.adaptive({
     super.key,
     this.controller,
