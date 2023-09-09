@@ -34,6 +34,7 @@ export 'package:flutter/services.dart' show SmartDashesType, SmartQuotesType, Te
 
 enum _TextFieldType {
   material,
+  cupertino,
   adaptive,
 }
 
@@ -349,7 +350,6 @@ class TextField extends StatefulWidget {
        enableInteractiveSelection = enableInteractiveSelection ?? (!readOnly || !obscureText),
        type = _TextFieldType.material;
 
-  /// A platform adaptive constructor for [TextField].
   const TextField.adaptive({
     super.key,
     this.controller,
