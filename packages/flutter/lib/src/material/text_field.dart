@@ -1059,11 +1059,23 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
         ? side
         : side.copyWith(color: CupertinoDynamicColor.resolve(side.color, context));
     }
+    final InputBorder cupertinoBorders = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(5.0)),
+      borderSide: resolveBorderSide(_kDefaultRoundedBorderSide), 
+    );
+    final InputBorder noBorder = InputBorder.none;
     final InputDecorationTheme cupertinoTheme = InputDecorationTheme(
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(5.0)),
-        borderSide: resolveBorderSide(_kDefaultRoundedBorderSide), 
+      // border: noBorder,
+      // focusedBorder: noBorder,
+      // enabledBorder: noBorder,
+      border: cupertinoBorders,
+      focusedBorder: cupertinoBorders,
+      enabledBorder: cupertinoBorders,
+      fillColor: CupertinoDynamicColor.withBrightness(
+        color: CupertinoColors.white,
+        darkColor: CupertinoColors.black,
       ),
+      filled: true,
       contentPadding: const EdgeInsets.all(7.0),
       hintStyle: _kDefaultPlaceholderStyle,
     );
@@ -1617,11 +1629,46 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
             isFocused: focusNode.hasFocus,
             isEmpty: controller.value.text.isEmpty,
             expands: widget.expands,
-            child: child,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.blue, // Set border color
+                  width: 1.0, // Set border width
+                ),
+                borderRadius: BorderRadius.all(
+                  Radius.circular(1.0), // Set rounded corners
+                ),
+              ),
+              child: child,
+            ),
           );
+          // return InputDecorator(
+          //   decoration: _getEffectiveDecoration(),
+          //   baseStyle: widget.style,
+          //   textAlign: widget.textAlign,
+          //   textAlignVertical: widget.textAlignVertical,
+          //   isHovering: _isHovering,
+          //   isFocused: focusNode.hasFocus,
+          //   isEmpty: controller.value.text.isEmpty,
+          //   expands: widget.expands,
+          //   child: child,
+          // );
         },
         child: child,
       );
+    } else {
+        child = Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Colors.blue, // Set border color
+              width: 1.0, // Set border width
+            ),
+            borderRadius: BorderRadius.all(
+              Radius.circular(1.0), // Set rounded corners
+            ),
+          ),
+          child: child,
+        );
     }
     final MouseCursor effectiveMouseCursor = MaterialStateProperty.resolveAs<MouseCursor>(
       widget.mouseCursor ?? MaterialStateMouseCursor.textable,
