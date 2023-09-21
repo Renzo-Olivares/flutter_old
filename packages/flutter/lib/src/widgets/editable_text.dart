@@ -5625,12 +5625,15 @@ class _ContextAwareTextAction extends ContextAction<ContextAwareTextIntent> {
 
   final EditableTextState state;
 
+  bool _consumesKey = false;
+
   @override
-  bool consumesKey(Intent intent) => state.widget.readOnly;
+  bool consumesKey(Intent intent) => _consumesKey;
 
   @override
   Object? invoke(ContextAwareTextIntent intent, [BuildContext? context]) {
     if (state.widget.readOnly) {
+      _consumesKey = true;
       return Actions.invoke(
         context!,
         intent.staticContextIntent,

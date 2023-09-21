@@ -1054,6 +1054,13 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     );
   }
 
+  bool _determineContext() {
+    // Determine the context of the receiving selectable.
+    return _selectable?.dispatchSelectionEvent(
+      const DetermineSelectableContextEvent(),
+    );
+  }
+
   bool? _adjustingSelectionEnd;
   bool _determineIsAdjustingSelectionEnd(bool forward) {
     if (_adjustingSelectionEnd != null) {
@@ -1343,6 +1350,37 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
       ),
     );
   }
+}
+
+class _ContextAwareTextAction extends ContextAction<ContextAwareTextIntent> {
+  _ContextAwareTextAction(this.state);
+
+  final SelectableRegionState state;
+
+  bool _consumesKey = false;
+
+  @override
+  bool consumesKey(Intent intent) => _consumesKey;
+
+  @override
+  Object? invoke(ContextAwareTextIntent intent, [BuildContext? context]) {
+    final bool isStaticContext = state._determineContext();
+    if (isStaticContext) {
+      _consumesKey = true;
+      return Actions.invoke(
+        context!,
+        intent.staticContextIntent,
+      );
+    } else {
+      return Actions.invoke(
+        context!,
+        intent.editableContextIntent,
+      );
+    }
+  }
+
+  @override
+  bool get isActionEnabled => true;
 }
 
 /// An action that does not override any [Action.overridable] in the subtree.
