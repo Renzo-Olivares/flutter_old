@@ -444,17 +444,52 @@ class DefaultTextEditingShortcuts extends StatelessWidget {
   static final Map<ShortcutActivator, Intent> _macDisablingTextShortcuts = <ShortcutActivator, Intent>{
     ..._commonDisablingTextShortcuts,
     ..._iOSDisablingTextShortcuts,
-    const SingleActivator(LogicalKeyboardKey.escape): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.tab): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.tab, shift: true): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.arrowDown, shift: true, alt: true): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.arrowUp, shift: true, alt: true): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true, alt: true): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true, alt: true): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true, meta: true): const DoNothingAndStopPropagationTextIntent(),
-    const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true, meta: true): const DoNothingAndStopPropagationTextIntent(),
+    // Context aware text shortcuts. These shortcuts behave differently when received by
+    // an editable input field vs static text.
+    const SingleActivator(LogicalKeyboardKey.escape): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: DismissIntent(),
+    ),
+    const SingleActivator(LogicalKeyboardKey.tab): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: NextFocusIntent(),
+    ),
+    const SingleActivator(LogicalKeyboardKey.tab, shift: true): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: PreviousFocusIntent(),
+    ),
+    const SingleActivator(LogicalKeyboardKey.arrowDown, shift: true, alt: true): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: ExtendSelectionToNextParagraphBoundaryOrCaretLocationIntent(forward: true),
+    ),
+    const SingleActivator(LogicalKeyboardKey.arrowUp, shift: true, alt: true): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: ExtendSelectionToNextParagraphBoundaryOrCaretLocationIntent(forward: false),
+    ),
+    const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: ExtendSelectionByCharacterIntent(forward: false, collapseSelection: false),
+    ),
+    const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: ExtendSelectionByCharacterIntent(forward: true, collapseSelection: false),
+    ),
+    const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true, alt: true): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: ExtendSelectionToNextWordBoundaryOrCaretLocationIntent(forward: false),
+    ),
+    const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true, alt: true): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: ExtendSelectionToNextWordBoundaryOrCaretLocationIntent(forward: true),
+    ),
+    const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true, meta: true): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: ExpandSelectionToLineBreakIntent(forward: false),
+    ),
+    const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true, meta: true): const ContextAwareTextIntent(
+      editableContextIntent: DoNothingAndStopPropagationTextIntent(),
+      staticContextIntent: ExpandSelectionToLineBreakIntent(forward: true),
+    ),
   };
 
   // Hand backspace/delete events that do not depend on text layout (delete
@@ -519,7 +554,7 @@ class DefaultTextEditingShortcuts extends StatelessWidget {
       //    _shortcuts assuming DoNothingAndStopPropagationTextIntent is
       //    unhandled elsewhere.
       result = Shortcuts(
-        debugLabel: '<Web Disabling Text Editing Shortcuts>',
+        debugLabel: '<Platform Disabling Text Editing Shortcuts>',
         shortcuts: disablingShortcut,
         child: result
       );

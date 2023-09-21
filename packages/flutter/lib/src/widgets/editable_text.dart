@@ -4723,6 +4723,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
     UpdateSelectionIntent: _updateSelectionAction,
     DirectionalFocusIntent: DirectionalFocusAction.forTextField(),
     DismissIntent: CallbackAction<DismissIntent>(onInvoke: _hideToolbarIfVisible),
+    ContextAwareTextIntent: _ContextAwareTextAction(this),
 
     // Delete
     DeleteCharacterIntent: _makeOverridable(_DeleteTextAction<DeleteCharacterIntent>(this, _characterBoundary, _moveBeyondTextBoundary)),
@@ -5617,6 +5618,33 @@ class _CopySelectionAction extends ContextAction<CopySelectionTextIntent> {
 
   @override
   bool get isActionEnabled => state._value.selection.isValid && !state._value.selection.isCollapsed;
+}
+
+class _ContextAwareTextAction extends ContextAction<ContextAwareTextIntent> {
+  _ContextAwareTextAction(this.state);
+
+  final EditableTextState state;
+
+  @override
+  bool consumesKey(Intent intent) => state.widget.readOnly;
+
+  @override
+  Object? invoke(ContextAwareTextIntent intent, [BuildContext? context]) {
+    if (state.widget.readOnly) {
+      return Actions.invoke(
+        context!,
+        intent.staticContextIntent,
+      );
+    } else {
+      return Actions.invoke(
+        context!,
+        intent.editableContextIntent,
+      );
+    }
+  }
+
+  @override
+  bool get isActionEnabled => true;
 }
 
 /// The start and end glyph heights of some range of text.

@@ -384,3 +384,25 @@ class TransposeCharactersIntent extends Intent {
   /// Creates a [TransposeCharactersIntent].
   const TransposeCharactersIntent();
 }
+
+/// An [Intent] that represents a user interaction that has a different
+/// outcome depending on the context of the receiver.
+///
+/// If the receiver is some editable field then it should evaluate [editableContextIntent].
+///
+/// If the receiver is static text then it should evaluate [staticContextIntent].
+class ContextAwareTextIntent extends Intent {
+  /// Creates a [ContextAwareTextIntent].
+  const ContextAwareTextIntent({
+    required this.editableContextIntent,
+    required this.staticContextIntent,
+  });
+
+  /// The intent that should be executed when the receiver is in an editable
+  /// context such as a [EditableText] that is not read only.
+  final Intent editableContextIntent;
+
+  /// The intent that should be executed when the receiver is in a static
+  /// context such as [Text].
+  final Intent staticContextIntent;
+}
