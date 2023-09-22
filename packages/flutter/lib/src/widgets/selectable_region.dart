@@ -1519,6 +1519,8 @@ class _SelectableRegionContainerDelegate extends MultiSelectableSelectionContain
         _hasReceivedStartEvent.add(selectable);
         _hasReceivedEndEvent.add(selectable);
         ensureChildUpdated(selectable);
+      case SelectionEventType.contextAware:
+        /// TODO.
     }
     return super.dispatchSelectionEventToChild(selectable, event);
   }
@@ -2230,6 +2232,10 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       case SelectionEventType.directionallyExtendSelection:
         _extendSelectionInProgress = true;
         result = handleDirectionallyExtendSelection(event as DirectionallyExtendSelectionEvent);
+      case SelectionEventType.contextAware:
+        /// TODO.
+        _extendSelectionInProgress = false;
+        result = 
     }
     _isHandlingSelectionEvent = false;
     _updateSelectionGeometry();

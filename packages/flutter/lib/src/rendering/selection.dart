@@ -300,6 +300,8 @@ enum SelectionEventType {
 
   /// An event that extends the selection in a specific direction.
   directionallyExtendSelection,
+
+  contextAware,
 }
 
 /// The unit of how selection handles move in text.
@@ -339,6 +341,27 @@ abstract class SelectionEvent {
   final SelectionEventType type;
 }
 
+class ContextAwareGestureSelectionEvent extends SelectionGestureEvent {
+  const ContextAwareGestureSelectionEvent({
+    required this.editableContextEvent,
+    required this.staticContextEvent,
+    required Offset globalPosition,
+  }) : super._(globalPosition, SelectionEventType.contextAware);
+
+  final SelectionGestureEvent editableContextEvent;
+  final SelectionGestureEvent staticContextEvent;
+}
+
+abstract class SelectionGestureEvent extends SelectionEvent {
+  const SelectionGestureEvent._(
+    this.globalPosition,
+    SelectionEventType type,
+  ) : super._(type);
+
+  /// The position in global coordinates of the receiving selectable.
+  final Offset globalPosition;
+}
+
 /// Selects all selectable contents.
 ///
 /// This event can be sent as the result of keyboard select-all, i.e.
@@ -358,12 +381,9 @@ class ClearSelectionEvent extends SelectionEvent {
 /// Selects the whole word at the location.
 ///
 /// This event can be sent as the result of mobile long press selection.
-class SelectWordSelectionEvent extends SelectionEvent {
+class SelectWordSelectionEvent extends SelectionGestureEvent {
   /// Creates a select word event at the [globalPosition].
-  const SelectWordSelectionEvent({required this.globalPosition}): super._(SelectionEventType.selectWord);
-
-  /// The position in global coordinates to select word at.
-  final Offset globalPosition;
+  const SelectWordSelectionEvent({required Offset globalPosition}): super._(globalPosition, SelectionEventType.selectWord);
 }
 
 /// Updates a selection edge.
@@ -381,7 +401,7 @@ class SelectWordSelectionEvent extends SelectionEvent {
 /// This event is dispatched when the framework detects [TapDragStartDetails] in
 /// [SelectionArea]'s gesture recognizers for mouse devices, or the selection
 /// handles have been dragged to new locations.
-class SelectionEdgeUpdateEvent extends SelectionEvent {
+class SelectionEdgeUpdateEvent extends SelectionGestureEvent {
   /// Creates a selection start edge update event.
   ///
   /// The [globalPosition] contains the location of the selection start edge.
@@ -389,9 +409,9 @@ class SelectionEdgeUpdateEvent extends SelectionEvent {
   /// The [granularity] contains the granularity which the selection edge should move by.
   /// This value defaults to [TextGranularity.character].
   const SelectionEdgeUpdateEvent.forStart({
-    required this.globalPosition,
-    TextGranularity? granularity
-  }) : granularity = granularity ?? TextGranularity.character, super._(SelectionEventType.startEdgeUpdate);
+    required Offset globalPosition,
+    TextGranularity? granularity,
+  }) : granularity = granularity ?? TextGranularity.character, super._(globalPosition, SelectionEventType.startEdgeUpdate);
 
   /// Creates a selection end edge update event.
   ///
@@ -400,12 +420,9 @@ class SelectionEdgeUpdateEvent extends SelectionEvent {
   /// The [granularity] contains the granularity which the selection edge should move by.
   /// This value defaults to [TextGranularity.character].
   const SelectionEdgeUpdateEvent.forEnd({
-    required this.globalPosition,
-    TextGranularity? granularity
-  }) : granularity = granularity ?? TextGranularity.character, super._(SelectionEventType.endEdgeUpdate);
-
-  /// The new location of the selection edge.
-  final Offset globalPosition;
+    required Offset globalPosition,
+    TextGranularity? granularity,
+  }) : granularity = granularity ?? TextGranularity.character, super._(globalPosition, SelectionEventType.endEdgeUpdate);
 
   /// The granularity for which the selection moves.
   ///

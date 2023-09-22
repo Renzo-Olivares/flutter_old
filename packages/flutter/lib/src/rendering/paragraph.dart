@@ -1393,6 +1393,11 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
     late final SelectionResult result;
     final TextPosition? existingSelectionStart = _textSelectionStart;
     final TextPosition? existingSelectionEnd = _textSelectionEnd;
+
+    if (event == SelectionEventType.contextAware) {
+      event = (event as ContextAwareGestureSelectionEvent).staticContextEvent;
+    }
+
     switch (event.type) {
       case SelectionEventType.startEdgeUpdate:
       case SelectionEventType.endEdgeUpdate:
@@ -1429,6 +1434,8 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
           directionallyExtendSelection.isEnd,
           directionallyExtendSelection.direction,
         );
+      case SelectionEventType.contextAware:
+        // Handled above.
     }
 
     if (existingSelectionStart != _textSelectionStart ||
