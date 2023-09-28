@@ -311,6 +311,7 @@ class TextField extends StatefulWidget {
     this.canRequestFocus = true,
     this.spellCheckConfiguration,
     this.magnifierConfiguration,
+    this.testNotifier,
   }) : assert(obscuringCharacter.length == 1),
        smartDashesType = smartDashesType ?? (obscureText ? SmartDashesType.disabled : SmartDashesType.enabled),
        smartQuotesType = smartQuotesType ?? (obscureText ? SmartQuotesType.disabled : SmartQuotesType.enabled),
@@ -336,6 +337,7 @@ class TextField extends StatefulWidget {
        keyboardType = keyboardType ?? (maxLines == 1 ? TextInputType.text : TextInputType.multiline),
        enableInteractiveSelection = enableInteractiveSelection ?? (!readOnly || !obscureText);
 
+  final ValueNotifier<Object>? testNotifier;
   /// {@macro flutter.widgets.magnifier.TextMagnifierConfiguration.intro}
   ///
   /// {@macro flutter.widgets.magnifier.intro}
@@ -1374,6 +1376,7 @@ class _TextFieldState extends State<TextField> with RestorationMixin implements 
         bucket: bucket,
         child: EditableText(
           key: editableTextKey,
+          testNotifier: widget.testNotifier, 
           readOnly: widget.readOnly || !_isEnabled,
           toolbarOptions: widget.toolbarOptions,
           showCursor: widget.showCursor,

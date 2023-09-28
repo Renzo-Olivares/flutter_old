@@ -811,6 +811,7 @@ class EditableText extends StatefulWidget {
     this.spellCheckConfiguration,
     this.magnifierConfiguration = TextMagnifierConfiguration.disabled,
     this.undoController,
+    this.testNotifier,
   }) : assert(obscuringCharacter.length == 1),
        smartDashesType = smartDashesType ?? (obscureText ? SmartDashesType.disabled : SmartDashesType.enabled),
        smartQuotesType = smartQuotesType ?? (obscureText ? SmartQuotesType.disabled : SmartQuotesType.enabled),
@@ -864,7 +865,7 @@ class EditableText extends StatefulWidget {
              ]
            : inputFormatters,
        showCursor = showCursor ?? !readOnly;
-
+  final ValueNotifier<Object>? testNotifier;
   /// Controls the text being edited.
   final TextEditingController controller;
 
@@ -4773,38 +4774,60 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
           cursor: widget.mouseCursor ?? SystemMouseCursors.text,
           child: Actions(
             actions: _actions,
-            child: UndoHistory<TextEditingValue>(
-              value: widget.controller,
-              onTriggered: (TextEditingValue value) {
-                userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
-              },
-              shouldChangeUndoStack: (TextEditingValue? oldValue, TextEditingValue newValue) {
-                if (!newValue.selection.isValid) {
-                  return false;
+            child: UndoHistory(
+              values: [
+                widget.controller,
+                widget.testNotifier!,
+              ],
+              onTriggered: (Object value) {
+                if (value is TextEditingValue) {
+                  debugPrint('Undo/Redo has been triggered the replacement value is text: $value');
+                  userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
+                } else {
+                  debugPrint('Undo/Redo has been triggered the replacement value is not text: $value');
                 }
+              },
+              shouldChangeUndoStack: (Object? oldValue, Object newValue) {
+                if (newValue is TextEditingValue) {
+                  debugPrint('Atempting to push text editing value $newValue onto undo stack');
+                  if (!newValue.selection.isValid) {
+                    debugPrint('invalid selection');
+                    return false;
+                  }
 
-                if (oldValue == null) {
+                  if (oldValue == null) {
+                    return true;
+                  }
+
+                  switch (defaultTargetPlatform) {
+                    case TargetPlatform.iOS:
+                    case TargetPlatform.macOS:
+                    case TargetPlatform.fuchsia:
+                    case TargetPlatform.linux:
+                    case TargetPlatform.windows:
+                      // Composing text is not counted in history coalescing.
+                      if (!widget.controller.value.composing.isCollapsed) {
+                        return false;
+                      }
+                    case TargetPlatform.android:
+                      // Gboard on Android puts non-CJK words in composing regions. Coalesce
+                      // composing text in order to allow the saving of partial words in that
+                      // case.
+                      break;
+                  }
+
+                  if (oldValue is TextEditingValue) {
+                    return oldValue.text != newValue.text || oldValue.composing != newValue.composing;
+                  }
+                  return true;
+                } else if (newValue is String) {
+                  if (oldValue == null) {
+                    return false;
+                  }
+                  debugPrint('Atempting to push non-text value $newValue onto undo stack');
                   return true;
                 }
-
-                switch (defaultTargetPlatform) {
-                  case TargetPlatform.iOS:
-                  case TargetPlatform.macOS:
-                  case TargetPlatform.fuchsia:
-                  case TargetPlatform.linux:
-                  case TargetPlatform.windows:
-                    // Composing text is not counted in history coalescing.
-                    if (!widget.controller.value.composing.isCollapsed) {
-                      return false;
-                    }
-                  case TargetPlatform.android:
-                    // Gboard on Android puts non-CJK words in composing regions. Coalesce
-                    // composing text in order to allow the saving of partial words in that
-                    // case.
-                    break;
-                }
-
-                return oldValue.text != newValue.text || oldValue.composing != newValue.composing;
+                return false;
               },
               focusNode: widget.focusNode,
               controller: widget.undoController,

@@ -24,24 +24,24 @@ import 'text_editing_intents.dart';
 ///
 /// The [child] must manage focus on the [focusNode]. For example, using a
 /// [TextField] or [Focus] widget.
-class UndoHistory<T> extends StatefulWidget {
+class UndoHistory extends StatefulWidget {
   /// Creates an instance of [UndoHistory].
   const UndoHistory({
     super.key,
     this.shouldChangeUndoStack,
-    required this.value,
+    required this.values,
     required this.onTriggered,
     required this.focusNode,
     this.controller,
     required this.child,
   });
 
-  /// The value to track over time.
-  final ValueNotifier<T> value;
+  /// The values to track over time.
+  final List<ValueNotifier<Object>> values;
 
   /// Called when checking whether a value change should be pushed onto
   /// the undo stack.
-  final bool Function(T? oldValue, T newValue)? shouldChangeUndoStack;
+  final bool Function(Object? oldValue, Object newValue)? shouldChangeUndoStack;
 
   /// Called when an undo or redo causes a state change.
   ///
@@ -53,7 +53,7 @@ class UndoHistory<T> extends StatefulWidget {
   /// on the undo stack. For example, a [TextInputFormatter] may change the value
   /// from what was on the undo stack, but this new value will not be recorded,
   /// as that would wipe out the redo history.
-  final void Function(T value) onTriggered;
+  final void Function(Object value) onTriggered;
 
   /// The [FocusNode] that will be used to listen for focus to set the initial
   /// undo state for the element.
@@ -70,7 +70,7 @@ class UndoHistory<T> extends StatefulWidget {
   final Widget child;
 
   @override
-  State<UndoHistory<T>> createState() => UndoHistoryState<T>();
+  State<UndoHistory> createState() => UndoHistoryState();
 }
 
 /// State for a [UndoHistory].
@@ -78,9 +78,9 @@ class UndoHistory<T> extends StatefulWidget {
 /// Provides [undo], [redo], [canUndo], and [canRedo] for programmatic access
 /// to the undo state for custom undo and redo UI implementations.
 @visibleForTesting
-class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
-  final _UndoStack<T> _stack = _UndoStack<T>();
-  late final _Throttled<T> _throttledPush;
+class UndoHistoryState extends State<UndoHistory> with UndoManagerClient {
+  final _UndoStack _stack = _UndoStack();
+  late final _Throttled<Object> _throttledPush;
   Timer? _throttleTimer;
   bool _duringTrigger = false;
 
@@ -92,7 +92,7 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
   // Record the last value to prevent pushing multiple
   // of the same value in a row onto the undo stack. For example, _push gets
   // called both in initState and when the EditableText receives focus.
-  T? _lastValue;
+  Object? _lastValue;
 
   UndoHistoryController? _controller;
 
@@ -108,9 +108,11 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
       return;
     }
     if (_throttleTimer?.isActive ?? false) {
+      debugPrint('throttling');
       _throttleTimer?.cancel(); // Cancel ongoing push, if any.
       _update(_stack.currentValue);
     } else {
+      debugPrint('undo');
       _update(_stack.undo());
     }
     _updateState();
@@ -148,7 +150,7 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
     redo();
   }
 
-  void _update(T? nextValue) {
+  void _update(Object? nextValue) {
     if (nextValue == null) {
       return;
     }
@@ -159,28 +161,36 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
     _duringTrigger = true;
     try {
       widget.onTriggered(nextValue);
-      assert(widget.value.value == nextValue);
+      // assert(widget.value.value == nextValue);
     } finally {
       _duringTrigger = false;
     }
   }
 
-  void _push() {
-    if (widget.value.value == _lastValue) {
+  VoidCallback _pushWrapper(ValueNotifier<Object> value) {
+    return () => _push(value.value);
+  }
+
+  void _push(Object value) {
+    if (value == _lastValue) {
       return;
     }
 
     if (_duringTrigger) {
+      debugPrint('should not change undo stack during trigger: $value');
       return;
     }
 
-    if (!(widget.shouldChangeUndoStack?.call(_lastValue, widget.value.value) ?? true)) {
+    if (!(widget.shouldChangeUndoStack?.call(_lastValue, value) ?? true)) {
+      debugPrint('should not change undo stack for: $value');
       return;
     }
 
-    _lastValue = widget.value.value;
+    debugPrint('value being pushed to undo stack: $value');
 
-    _throttleTimer = _throttledPush(widget.value.value);
+    _lastValue = value;
+
+    _throttleTimer = _throttledPush(value);
   }
 
   void _handleFocus() {
@@ -204,15 +214,19 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
   @override
   void initState() {
     super.initState();
-    _throttledPush = _throttle<T>(
+    _throttledPush = _throttle<Object>(
       duration: _kThrottleDuration,
-      function: (T currentValue) {
+      function: (Object currentValue) {
         _stack.push(currentValue);
         _updateState();
       },
     );
-    _push();
-    widget.value.addListener(_push);
+    for (ValueNotifier<Object> value in widget.values) {
+      _push(value.value);
+    }
+    for (ValueNotifier<Object> value in widget.values) {
+      value.addListener(_pushWrapper(value));
+    }
     _handleFocus();
     widget.focusNode.addListener(_handleFocus);
     _effectiveController.onUndo.addListener(undo);
@@ -220,12 +234,21 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
   }
 
   @override
-  void didUpdateWidget(UndoHistory<T> oldWidget) {
+  void didUpdateWidget(UndoHistory oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.value != oldWidget.value) {
+    if (widget.values.length != oldWidget.values.length) {
       _stack.clear();
-      oldWidget.value.removeListener(_push);
-      widget.value.addListener(_push);
+      for ((int index, ValueNotifier<Object> value) indexEntry in widget.values.indexed) {
+        oldWidget.values[indexEntry.$1].removeListener(_pushWrapper(oldWidget.values[indexEntry.$1]));
+        indexEntry.$2.addListener(_pushWrapper(indexEntry.$2));
+      }
+    } else {
+      for ((int index, ValueNotifier<Object> value) indexEntry in widget.values.indexed) {
+        if (oldWidget.values[indexEntry.$1] != indexEntry.$2) {
+          oldWidget.values[indexEntry.$1].removeListener(_pushWrapper(oldWidget.values[indexEntry.$1]));
+          indexEntry.$2.addListener(_pushWrapper(indexEntry.$2));
+        }
+      }
     }
     if (widget.focusNode != oldWidget.focusNode) {
       oldWidget.focusNode.removeListener(_handleFocus);
@@ -243,7 +266,9 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
 
   @override
   void dispose() {
-    widget.value.removeListener(_push);
+    for (ValueNotifier<Object> value in widget.values) {
+      value.removeListener(_pushWrapper(value));
+    }
     widget.focusNode.removeListener(_handleFocus);
     _effectiveController.onUndo.removeListener(undo);
     _effectiveController.onRedo.removeListener(redo);
@@ -359,17 +384,17 @@ class UndoHistoryController extends ValueNotifier<UndoHistoryValue> {
 
 /// A data structure representing a chronological list of states that can be
 /// undone and redone.
-class _UndoStack<T> {
+class _UndoStack {
   /// Creates an instance of [_UndoStack].
   _UndoStack();
 
-  final List<T> _list = <T>[];
+  final List<Object> _list = <Object>[];
 
   // The index of the current value, or -1 if the list is empty.
   int _index = -1;
 
   /// Returns the current value of the stack.
-  T? get currentValue => _list.isEmpty ? null : _list[_index];
+  Object? get currentValue => _list.isEmpty ? null : _list[_index];
 
   bool get canUndo => _list.isNotEmpty && _index > 0;
 
@@ -378,7 +403,7 @@ class _UndoStack<T> {
   /// Add a new state change to the stack.
   ///
   /// Pushing identical objects will not create multiple entries.
-  void push(T value) {
+  void push(Object value) {
     if (_list.isEmpty) {
       _index = 0;
       _list.add(value);
@@ -406,7 +431,8 @@ class _UndoStack<T> {
   /// if any.
   ///
   /// Iff the stack is completely empty, then returns null.
-  T? undo() {
+  Object? undo() {
+    debugPrint('undo $_list $_index');
     if (_list.isEmpty) {
       return null;
     }
@@ -414,8 +440,10 @@ class _UndoStack<T> {
     assert(_index < _list.length && _index >= 0);
 
     if (_index != 0) {
+      // This is assuming the previous item in the history stack is of the same type.
       _index = _index - 1;
     }
+    debugPrint('$_index ${_list[_index]} ${_list.length}');
 
     return currentValue;
   }
@@ -426,7 +454,7 @@ class _UndoStack<T> {
   /// undone, if any.
   ///
   /// Iff the stack is completely empty, then returns null.
-  T? redo() {
+  Object? redo() {
     if (_list.isEmpty) {
       return null;
     }
