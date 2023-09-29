@@ -4776,14 +4776,27 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
             child: UndoHistory<TextEditingValue>(
               value: widget.controller,
               onTriggered: (TextEditingValue value) {
+                debugPrint('Undo/Redo has been triggered and the replacement value is $value');
+                // if (defaultTargetPlatform == TargetPlatform.android) {
+                //   userUpdateTextEditingValue(
+                //     value.copyWith(
+                //       composing: TextRange.empty,
+                //     ),
+                //     SelectionChangedCause.keyboard,
+                //   );
+                //   return;
+                // }
                 userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
               },
               shouldChangeUndoStack: (TextEditingValue? oldValue, TextEditingValue newValue) {
+                debugPrint('shouldChangeUndoStack $oldValue $newValue');
                 if (!newValue.selection.isValid) {
+                  debugPrint('should not change undo stack because selection is not valid');
                   return false;
                 }
 
                 if (oldValue == null) {
+                  debugPrint('should change undo stack because no previous value');
                   return true;
                 }
 
@@ -4795,14 +4808,18 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                   case TargetPlatform.windows:
                     // Composing text is not counted in history coalescing.
                     if (!widget.controller.value.composing.isCollapsed) {
+                      debugPrint('should not change undo stack because actively composing');
                       return false;
                     }
                   case TargetPlatform.android:
                     // Gboard on Android puts non-CJK words in composing regions. Coalesce
                     // composing text in order to allow the saving of partial words in that
                     // case.
+                    debugPrint('Android coaleces edits even when composing');
                     break;
                 }
+
+                debugPrint('should we change the undo stack for $newValue? ${oldValue.text != newValue.text || oldValue.composing != newValue.composing}');
 
                 return oldValue.text != newValue.text || oldValue.composing != newValue.composing;
               },
