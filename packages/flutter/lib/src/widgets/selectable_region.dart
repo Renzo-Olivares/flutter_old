@@ -1830,10 +1830,13 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       b.getTransformTo(null),
       Rect.fromLTWH(0, 0, b.size.width, b.size.height),
     );
+    debugPrint('comparing $rectA, and $rectB');
     final int result = _compareVertically(rectA, rectB);
     if (result != 0) {
+      debugPrint('no need to compare horizontally decided vertically $result');
       return result;
     }
+    debugPrint('comparing horizontally');
     return _compareHorizontally(rectA, rectB);
   }
 
@@ -1843,12 +1846,12 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   /// Returns positive if a is lower, negative if a is higher, 0 if their
   /// order can't be determine solely by their vertical position.
   static int _compareVertically(Rect a, Rect b) {
+    if ((a.top - b.top).abs() > _kSelectableVerticalComparingThreshold) {
+      return a.top > b.top ? 1 : -1;
+    }
     if ((a.top - b.top < _kSelectableVerticalComparingThreshold && a.bottom - b.bottom > - _kSelectableVerticalComparingThreshold) ||
         (b.top - a.top < _kSelectableVerticalComparingThreshold && b.bottom - a.bottom > - _kSelectableVerticalComparingThreshold)) {
       return 0;
-    }
-    if ((a.top - b.top).abs() > _kSelectableVerticalComparingThreshold) {
-      return a.top > b.top ? 1 : -1;
     }
     return a.bottom > b.bottom ? 1 : -1;
   }
@@ -1860,8 +1863,10 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   static int _compareHorizontally(Rect a, Rect b) {
     // a encloses b.
     if (a.left - b.left < precisionErrorTolerance && a.right - b.right > - precisionErrorTolerance) {
+      debugPrint('a encloses b');
       // b ends before a.
       if (a.right - b.right > precisionErrorTolerance) {
+        debugPrint('b ends before a');
         return 1;
       }
       return -1;
@@ -1869,8 +1874,10 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
 
     // b encloses a.
     if (b.left - a.left < precisionErrorTolerance && b.right - a.right > - precisionErrorTolerance) {
+      debugPrint('b encloses a');
       // a ends before b.
       if (b.right - a.right > precisionErrorTolerance) {
+        debugPrint('a ends before b');
         return -1;
       }
       return 1;
@@ -2141,6 +2148,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       final Matrix4 transform = selectables[index].getTransformTo(null);
       final Rect globalRect = MatrixUtils.transformRect(transform, localRect);
       if (globalRect.contains(event.globalPosition)) {
+        debugPrint('$index');
         final SelectionGeometry existingGeometry = selectables[index].value;
         lastSelectionResult = dispatchSelectionEventToChild(selectables[index], event);
         if (index == selectables.length - 1 && lastSelectionResult == SelectionResult.next) {
@@ -2163,6 +2171,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
         return SelectionResult.end;
       } else {
         if (lastSelectionResult == SelectionResult.next) {
+          debugPrint('not in rect but said next weird');
           currentSelectionStartIndex = currentSelectionEndIndex = index - 1;
           return SelectionResult.end;
         }
