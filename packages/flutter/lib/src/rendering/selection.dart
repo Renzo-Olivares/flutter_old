@@ -53,9 +53,6 @@ enum SelectionResult {
   /// [SelectAllSelectionEvent], [ClearSelectionEvent], and
   /// [SelectWordSelectionEvent].
   none,
-  /// The selection may begin in this [Selectable], further selection should
-  /// continue to next [Selectable] in screen order.
-  forward,
 }
 
 /// The abstract interface to handle [SelectionEvent]s.
@@ -144,6 +141,9 @@ mixin Selectable implements SelectionHandler {
 
   /// The size of this [Selectable].
   Size get size;
+
+  /// A list of granular [Size]s.
+  List<(Size, Matrix4)> get granularSizesWithTransforms; 
 
   /// Disposes resources held by the mixer.
   void dispose();

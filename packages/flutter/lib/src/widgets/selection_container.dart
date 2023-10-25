@@ -201,6 +201,9 @@ class _SelectionContainerState extends State<SelectionContainer> with Selectable
   Size get size => (context.findRenderObject()! as RenderBox).size;
 
   @override
+  List<(Size, Matrix4)> get granularSizesWithTransforms => <(Size, Matrix4)>[((context.findRenderObject()! as RenderBox).size, getTransformTo(null))];
+
+  @override
   void dispose() {
     if (!widget._disabled) {
       widget.delegate!._selectionContainerContext = null;

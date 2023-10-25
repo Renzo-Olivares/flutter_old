@@ -1825,14 +1825,39 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   Comparator<Selectable> get compareOrder => _compareScreenOrder;
 
   int _compareScreenOrder(Selectable a, Selectable b) {
-    final Rect rectA = MatrixUtils.transformRect(
-      a.getTransformTo(null),
-      Rect.fromLTWH(0, 0, a.size.width, a.size.height),
-    );
-    final Rect rectB = MatrixUtils.transformRect(
-      b.getTransformTo(null),
-      Rect.fromLTWH(0, 0, b.size.width, b.size.height),
-    );
+    Rect _getFirstRect(Selectable selectable) {
+      if (selectable.granularSizesWithTransforms.isNotEmpty) {
+        final (Size, Matrix4) firstSizeAndTransform = selectable.granularSizesWithTransforms.first;
+        final Rect rect = MatrixUtils.transformRect(
+          firstSizeAndTransform.$2,
+          Rect.fromLTWH(0, 0, firstSizeAndTransform.$1.width, firstSizeAndTransform.$1.height),
+        );
+        return rect;
+      }
+      return MatrixUtils.transformRect(
+          selectable.getTransformTo(null),
+          Rect.fromLTWH(0, 0, selectable.size.width, selectable.size.height),
+        );
+    }
+
+    Rect _getRect((Size, Matrix4) sizeAndMatrix) {
+      return MatrixUtils.transformRect(
+        sizeAndMatrix.$2,
+        Rect.fromLTWH(0, 0, sizeAndMatrix.$1.width, sizeAndMatrix.$1.height),
+      );
+    }
+
+    // Build an encompassing rect for selectable a.
+    Rect rectA = _getFirstRect(a);
+    for (int index = 1; index < a.granularSizesWithTransforms.length; index += 1) {
+      rectA = rectA.expandToInclude(_getRect(a.granularSizesWithTransforms[index]));
+    }
+
+    // Build an encompassing rect for selectable b.
+    Rect rectB = _getFirstRect(b);
+    for (int index = 1; index < b.granularSizesWithTransforms.length; index += 1) {
+      rectB = rectB.expandToInclude(_getRect(b.granularSizesWithTransforms[index]));
+    }
     final int result = _compareVertically(rectA, rectB);
     if (result != 0) {
       return result;
@@ -1846,14 +1871,24 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   /// Returns positive if a is lower, negative if a is higher, 0 if their
   /// order can't be determine solely by their vertical position.
   static int _compareVertically(Rect a, Rect b) {
+    // if ((a.top - b.top).abs() > _kSelectableVerticalComparingThreshold) {
+    //   return a.top > b.top ? 1 : -1;
+    // }
+    // if ((a.top - b.top < _kSelectableVerticalComparingThreshold && a.bottom - b.bottom > - _kSelectableVerticalComparingThreshold) ||
+    //     (b.top - a.top < _kSelectableVerticalComparingThreshold && b.bottom - a.bottom > - _kSelectableVerticalComparingThreshold)) {
+    //   return 0;
+    // }
+    // return a.bottom > b.bottom ? 1 : -1;
+    // The difference between the top edges of the rectangles exceed the defined
+    // threshold.
     if ((a.top - b.top).abs() > _kSelectableVerticalComparingThreshold) {
+      // a and b have the same bottom edge so defer to horizontal comparison.
+      if ((a.bottom - b.bottom).abs() < _kSelectableVerticalComparingThreshold) {
+        return 0;
+      }
       return a.top > b.top ? 1 : -1;
     }
-    if ((a.top - b.top < _kSelectableVerticalComparingThreshold && a.bottom - b.bottom > - _kSelectableVerticalComparingThreshold) ||
-        (b.top - a.top < _kSelectableVerticalComparingThreshold && b.bottom - a.bottom > - _kSelectableVerticalComparingThreshold)) {
-      return 0;
-    }
-    return a.bottom > b.bottom ? 1 : -1;
+    return 0;
   }
 
   /// Compares two rectangles in the screen order by their horizontal positions
@@ -1863,19 +1898,22 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   static int _compareHorizontally(Rect a, Rect b) {
     // a encloses b.
     if (a.left - b.left < precisionErrorTolerance && a.right - b.right > - precisionErrorTolerance) {
+      // debugPrint('a encloses b');
       // b ends before a.
-      if (a.right - b.right > precisionErrorTolerance) {
-        return 1;
-      }
+      // if (a.right - b.right > precisionErrorTolerance) {
+      //   debugPrint('b ends before a');
+      //   return 1;
+      // }
+      // debugPrint('a ends before b');
       return -1;
     }
 
     // b encloses a.
     if (b.left - a.left < precisionErrorTolerance && b.right - a.right > - precisionErrorTolerance) {
       // a ends before b.
-      if (b.right - a.right > precisionErrorTolerance) {
-        return -1;
-      }
+      // if (b.right - a.right > precisionErrorTolerance) {
+      //   return -1;
+      // }
       return 1;
     }
     if ((a.left - b.left).abs() > precisionErrorTolerance) {
@@ -2139,18 +2177,27 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   @protected
   SelectionResult handleSelectWord(SelectWordSelectionEvent event) {
     SelectionResult? lastSelectionResult;
-    bool lookForwardWithoutRectConstraints = false;
     for (int index = 0; index < selectables.length; index += 1) {
-      final Rect localRect = Rect.fromLTWH(0, 0, selectables[index].size.width, selectables[index].size.height);
-      final Matrix4 transform = selectables[index].getTransformTo(null);
-      final Rect globalRect = MatrixUtils.transformRect(transform, localRect);
-      if (globalRect.contains(event.globalPosition) || lookForwardWithoutRectConstraints) {
+      bool globalRectsContainsPosition = false;
+      if (selectables[index].granularSizesWithTransforms.isNotEmpty) {
+        for (final (Size, Matrix4) sizeWithTransform in selectables[index].granularSizesWithTransforms) {
+          final Rect localRect = Rect.fromLTWH(0, 0, sizeWithTransform.$1.width, sizeWithTransform.$1.height);
+          final Matrix4 transform = sizeWithTransform.$2;
+          final Rect globalRect = MatrixUtils.transformRect(transform, localRect);
+          if (globalRect.contains(event.globalPosition)) {
+            globalRectsContainsPosition = true;
+            break;
+          }
+        }
+      } else {
+        final Rect localRect = Rect.fromLTWH(0, 0, selectables[index].size.width, selectables[index].size.height);
+        final Matrix4 transform = selectables[index].getTransformTo(null);
+        final Rect globalRect = MatrixUtils.transformRect(transform, localRect);
+        globalRectsContainsPosition = globalRect.contains(event.globalPosition);
+      }
+      if (globalRectsContainsPosition) {
         final SelectionGeometry existingGeometry = selectables[index].value;
         lastSelectionResult = dispatchSelectionEventToChild(selectables[index], event);
-        if (lastSelectionResult == SelectionResult.forward) {
-          lookForwardWithoutRectConstraints = true;
-          continue;
-        }
         if (index == selectables.length - 1 && lastSelectionResult == SelectionResult.next) {
           return SelectionResult.next;
         }
@@ -2375,7 +2422,6 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       final SelectionResult childResult = dispatchSelectionEventToChild(child, event);
       switch (childResult) {
         case SelectionResult.next:
-        case SelectionResult.forward:
         case SelectionResult.none:
           newIndex = index;
         case SelectionResult.end:
@@ -2474,7 +2520,6 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
         case SelectionResult.none:
           finalResult = currentSelectableResult;
         case SelectionResult.next:
-        case SelectionResult.forward:
           if (forward == false) {
             newIndex += 1;
             finalResult = SelectionResult.end;

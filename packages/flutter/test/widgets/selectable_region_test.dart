@@ -2113,7 +2113,6 @@ void main() {
                       WidgetSpan(
                         child: Text(
                           'Some text in a WidgetSpan. ',
-                          isInlineWidget: true,
                         ),
                       ),
                       TextSpan(text: 'Hello, world.'),
@@ -3136,7 +3135,7 @@ void main() {
         final TestGesture activateSelectionGesture = await tester
             .startGesture(textOffsetToPosition(paragraph, text.length ~/ 2));
         addTearDown(activateSelectionGesture.removePointer);
-        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pump(const Duration(milliseconds: 500)); 
         await activateSelectionGesture.up();
         await tester.pump(const Duration(milliseconds: 500));
 
@@ -3786,6 +3785,9 @@ class RenderSelectionSpy extends RenderProxyBox
   List<SelectionEvent> events = <SelectionEvent>[];
 
   @override
+  List<(Size, Matrix4)> get granularSizesWithTransforms => <(Size, Matrix4)>[];
+
+  @override
   Size get size => _size;
   Size _size = Size.zero;
 
@@ -3856,6 +3858,9 @@ class RenderSelectAll extends RenderProxyBox
   ) {
     this.registrar = registrar;
   }
+
+  @override
+  List<(Size, Matrix4)> get granularSizesWithTransforms => <(Size, Matrix4)>[];
 
   final Set<VoidCallback> listeners = <VoidCallback>{};
   LayerLink? startHandle;
