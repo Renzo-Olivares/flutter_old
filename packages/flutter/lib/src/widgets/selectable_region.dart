@@ -1733,7 +1733,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   }
 
   void _flushAdditions() {
-    final List<Selectable> mergingSelectables = _additions.toList()..sort(compareOrder);
+    final List<Selectable> mergingSelectables = sortPolicy.sortSelectables(_additions.toList());
     final List<Selectable> existingSelectables = selectables;
     selectables = <Selectable>[];
     int mergingIndex = 0;
@@ -1823,6 +1823,16 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   /// Defaults to screen order.
   @protected
   Comparator<Selectable> get compareOrder => _compareScreenOrder;
+  // user expects override of compareOrder changes sort order.
+  // How do we keep this contract with the new sortPolicy?
+
+  final SelectableSortPolicy _defaultSortPolicy = ScreenOrderSelectableSortPolicy();
+  /// The [SelectableSortPolicy] this delegate used for determining the selection
+  /// order of the selectables.
+  ///
+  /// Defaults to screen order.
+  @protected
+  SelectableSortPolicy get sortPolicy => _defaultSortPolicy;
 
   int _compareScreenOrder(Selectable a, Selectable b) {
     final Rect rectA = MatrixUtils.transformRect(
@@ -2143,9 +2153,11 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       final Rect localRect = Rect.fromLTWH(0, 0, selectables[index].size.width, selectables[index].size.height);
       final Matrix4 transform = selectables[index].getTransformTo(null);
       final Rect globalRect = MatrixUtils.transformRect(transform, localRect);
+      debugPrint('$index ${selectables.length}');
       if (globalRect.contains(event.globalPosition)) {
         final SelectionGeometry existingGeometry = selectables[index].value;
         lastSelectionResult = dispatchSelectionEventToChild(selectables[index], event);
+        debugPrint('inside $lastSelectionResult');
         if (index == selectables.length - 1 && lastSelectionResult == SelectionResult.next) {
           return SelectionResult.next;
         }
@@ -2289,7 +2301,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     final bool selectionWillbeInProgress = event is! ClearSelectionEvent;
     if (!_selectionInProgress && selectionWillbeInProgress) {
       // Sort the selectable every time a selection start.
-      selectables.sort(compareOrder);
+      selectables = sortPolicy.sortSelectables(selectables);
     }
     _selectionInProgress = selectionWillbeInProgress;
     _isHandlingSelectionEvent = true;
@@ -2510,3 +2522,84 @@ typedef SelectableRegionContextMenuBuilder = Widget Function(
   BuildContext context,
   SelectableRegionState selectableRegionState,
 );
+
+class ScreenOrderSelectableSortPolicy extends SelectableSortPolicy {
+  /// Constructs a sort policy that orders the selectables in "reading order".
+  ScreenOrderSelectableSortPolicy();
+
+  Selectable _pickNext(List<Selectable> candidates) {
+    // Find the topmost selectable by sorting on the top of the rectangles.
+    mergeSort<Selectable>(candidates, compare: (Selectable a, Selectable b) {
+      return _getRect(a).top.compareTo(_getRect(b).top);
+    });
+    final Selectable topmost = candidates.first;
+
+    // Find the candidates that are in the same horizontal band as the current one.
+    List<Selectable> inBand(Selectable current, Iterable<Selectable> candidates) {
+      final Rect currentRect = _getRect(current);
+      final Rect band = Rect.fromLTRB(double.negativeInfinity, currentRect.top, double.infinity, currentRect.bottom);
+      return candidates.where((Selectable item) {
+        return !_getRect(item).intersect(band).isEmpty;
+      }).toList();
+    }
+    final List<Selectable> inBandOfTop = inBand(topmost, candidates);
+    // It has to have at least topmost in it if the topmost is not degenerate.
+    assert(_getRect(topmost).isEmpty || inBandOfTop.isNotEmpty);
+
+    // The topmost rect is in a band by itself, so just return that one.
+    if (inBandOfTop.length <= 1) {
+      return topmost;
+    }
+
+    // Sort horizontally if there are multiple selectables in the band.
+    _sort(inBandOfTop);
+
+    return inBandOfTop.first;
+  }
+
+  void _sort(List<Selectable> list) {
+    mergeSort<Selectable>(list, compare: (Selectable a, Selectable b) {
+      return _getRect(a).left.compareTo(_getRect(b).left);
+    });
+  }
+
+  Rect _getRect(Selectable selectable) {
+    return MatrixUtils.transformRect(
+      selectable.getTransformTo(null),
+      Rect.fromLTWH(0, 0, selectable.size.width, selectable.size.height),
+    );
+  }
+
+  // Sorts the list of selectables based on their geometry.
+  @override
+  List<Selectable> sortSelectables(List<Selectable> selectables) {
+    if (selectables.length <= 1) {
+      return selectables;
+    }
+
+    final List<Selectable> sortedList = <Selectable>[];
+    final List<Selectable> unplaced = selectables;
+
+    // Pick the initial selectable as the one that is at the beginning of the band
+    // of the topmost, or the topmost, if there are no others in its band.
+    Selectable current = _pickNext(unplaced);
+    sortedList.add(current);
+    unplaced.remove(current);
+
+    // Go through each selectable, picking the next one after eliminating the previous
+    // one, since removing the previously picked selectable will expose a new band in
+    // which to choose candidates.
+    while (unplaced.isNotEmpty) {
+      final Selectable next = _pickNext(unplaced);
+      current = next;
+      sortedList.add(current);
+      unplaced.remove(current);
+    }
+    return sortedList;
+  }
+}
+
+abstract class SelectableSortPolicy {
+  @protected
+  List<Selectable> sortSelectables(List<Selectable> selectables);
+}

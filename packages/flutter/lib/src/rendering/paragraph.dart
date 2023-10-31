@@ -1396,6 +1396,7 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
 
   @override
   SelectionResult dispatchSelectionEvent(SelectionEvent event) {
+    debugPrint('${event.type},  ${range.textInside(fullText)} $range');
     late final SelectionResult result;
     final TextPosition? existingSelectionStart = _textSelectionStart;
     final TextPosition? existingSelectionEnd = _textSelectionEnd;
@@ -1724,6 +1725,7 @@ class _SelectableFragment with Selectable, ChangeNotifier implements TextLayoutM
       return SelectionResult.end;
     }
     final _WordBoundaryRecord wordBoundary = _getWordBoundaryAtPosition(position);
+    debugPrint('$wordBoundary $position');
     if (wordBoundary.wordStart.offset < range.start && wordBoundary.wordEnd.offset < range.start) {
       return SelectionResult.previous;
     } else if (wordBoundary.wordStart.offset > range.end && wordBoundary.wordEnd.offset > range.end) {
