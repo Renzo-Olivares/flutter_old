@@ -2,10 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'basic.dart';
+import 'container.dart';
 import 'framework.dart';
 import 'inherited_theme.dart';
 import 'navigator.dart';
 import 'overlay.dart';
+import 'tap_region.dart';
 
 /// Builds and manages a context menu at a given location.
 ///
@@ -59,10 +62,25 @@ class ContextMenuController {
       from: context,
       to: Navigator.maybeOf(context)?.context,
     );
-
+    const Color transparent = Color(0x00000000);
     _menuOverlayEntry = OverlayEntry(
       builder: (BuildContext context) {
-        return capturedThemes.wrap(contextMenuBuilder(context));
+        return Positioned(
+          top: 0.0,
+          left: 0.0,
+          right: 0.0,
+          bottom: 0.0,
+          child: Container(
+            color: transparent,
+            child: Center(
+              child: TapRegion(
+                onTapOutside: (PointerDownEvent event) => remove,
+                child: capturedThemes.wrap(contextMenuBuilder(context)),
+              ),
+            ),
+          ),
+        );
+        // return capturedThemes.wrap(contextMenuBuilder(context));
       },
     );
     overlayState.insert(_menuOverlayEntry!);
