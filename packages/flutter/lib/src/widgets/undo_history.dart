@@ -193,10 +193,10 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
       return;
     }
 
-    final StackChangeType? StackChangeType = widget.shouldChangeUndoStack?.call(_lastValue, widget.value.value);
-    final bool shouldPushAsCoalesced = StackChangeType == null ? true : StackChangeType == StackChangeType.coalesced;
+    final StackChangeType? stackChangeType = widget.shouldChangeUndoStack?.call(_lastValue, widget.value.value);
+    final bool shouldPushAsCoalesced = stackChangeType == null ? true : stackChangeType == StackChangeType.coalesced;
 
-    if (StackChangeType != null && StackChangeType == StackChangeType.invalid) {
+    if (stackChangeType != null && stackChangeType == StackChangeType.invalid) {
       debugPrint('invalid not pushing');
       return;
     }

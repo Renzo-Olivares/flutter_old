@@ -4828,7 +4828,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                   return StackChangeType.normal;
                 }
 
-                return StackChangeType.coalesced;
+                return StackChangeType.invalid;
               },
               undoStackModifier: (TextEditingValue value) {
                 // On Android we should discard the composing region when pushing
