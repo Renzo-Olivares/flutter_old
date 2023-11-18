@@ -4793,15 +4793,16 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
             child: UndoHistory<TextEditingValue>(
               value: widget.controller,
               onTriggered: (TextEditingValue value) {
+                debugPrint('on triggered');
                 userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
               },
               shouldChangeUndoStack: (TextEditingValue? oldValue, TextEditingValue newValue) {
                 if (!newValue.selection.isValid) {
-                  return false;
+                  return StackChangeType.invalid;
                 }
 
                 if (oldValue == null) {
-                  return true;
+                  return StackChangeType.normal;
                 }
 
                 switch (defaultTargetPlatform) {
@@ -4812,7 +4813,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                   case TargetPlatform.windows:
                     // Composing text is not counted in history coalescing.
                     if (!widget.controller.value.composing.isCollapsed) {
-                      return false;
+                      return StackChangeType.coalesced;
                     }
                   case TargetPlatform.android:
                     // Gboard on Android puts non-CJK words in composing regions. Coalesce
@@ -4821,7 +4822,13 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
                     break;
                 }
 
-                return oldValue.text != newValue.text || oldValue.composing != newValue.composing;
+                final bool shouldChangeUndoStack = oldValue.text != newValue.text || oldValue.composing != newValue.composing;
+
+                if (shouldChangeUndoStack) {
+                  return StackChangeType.normal;
+                }
+
+                return StackChangeType.coalesced;
               },
               undoStackModifier: (TextEditingValue value) {
                 // On Android we should discard the composing region when pushing

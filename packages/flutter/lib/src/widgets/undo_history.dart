@@ -12,6 +12,12 @@ import 'focus_manager.dart';
 import 'framework.dart';
 import 'text_editing_intents.dart';
 
+enum StackChangeType {
+  coalesced,
+  normal,
+  invalid,
+}
+
 /// Provides undo/redo capabilities for a [ValueNotifier].
 ///
 /// Listens to [value] and saves relevant values for undoing/redoing. The
@@ -42,7 +48,7 @@ class UndoHistory<T> extends StatefulWidget {
 
   /// Called when checking whether a value change should be pushed onto
   /// the undo stack.
-  final bool Function(T? oldValue, T newValue)? shouldChangeUndoStack;
+  final StackChangeType Function(T? oldValue, T newValue)? shouldChangeUndoStack;
 
   /// Called right before a new entry is pushed to the undo stack.
   ///
@@ -90,6 +96,7 @@ class UndoHistory<T> extends StatefulWidget {
 class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
   final _UndoStack<T> _stack = _UndoStack<T>();
   late final _Throttled<T> _throttledPush;
+  late final _Throttled<T> _throttledPushCoalesced;
   Timer? _throttleTimer;
   bool _duringTrigger = false;
 
@@ -120,6 +127,7 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
       _throttleTimer?.cancel(); // Cancel ongoing push, if any.
       _update(_stack.currentValue);
     } else {
+      debugPrint('undoing and updating');
       _update(_stack.undo());
     }
     _updateState();
@@ -158,10 +166,12 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
   }
 
   void _update(T? nextValue) {
+    debugPrint('_update with $nextValue');
     if (nextValue == null) {
       return;
     }
     if (nextValue == _lastValue) {
+      debugPrint('nextvalue = lastValue returning');
       return;
     }
     _lastValue = nextValue;
@@ -183,7 +193,11 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
       return;
     }
 
-    if (!(widget.shouldChangeUndoStack?.call(_lastValue, widget.value.value) ?? true)) {
+    final StackChangeType? StackChangeType = widget.shouldChangeUndoStack?.call(_lastValue, widget.value.value);
+    final bool shouldPushAsCoalesced = StackChangeType == null ? true : StackChangeType == StackChangeType.coalesced;
+
+    if (StackChangeType != null && StackChangeType == StackChangeType.invalid) {
+      debugPrint('invalid not pushing');
       return;
     }
 
@@ -193,6 +207,13 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
     }
 
     _lastValue = nextValue;
+
+    if (shouldPushAsCoalesced) {
+      debugPrint('push as coalesced');
+      _throttleTimer = _throttledPushCoalesced(nextValue);
+      return;
+    }
+    debugPrint('push as normal ${nextValue}');
 
     _throttleTimer = _throttledPush(nextValue);
   }
@@ -222,6 +243,13 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
       duration: _kThrottleDuration,
       function: (T currentValue) {
         _stack.push(currentValue);
+        _updateState();
+      },
+    );
+    _throttledPushCoalesced = _throttle<T>(
+      duration: _kThrottleDuration,
+      function: (T currentValue) {
+        _stack.pushCoalesced(currentValue);
         _updateState();
       },
     );
@@ -382,8 +410,14 @@ class _UndoStack<T> {
   // The index of the current value, or -1 if the list is empty.
   int _index = -1;
 
+  // The index of the last significant value, or -1 if the list is empty.
+  int _lastSignificantIndex = -1;
+
   /// Returns the current value of the stack.
   T? get currentValue => _list.isEmpty ? null : _list[_index];
+
+  /// Returns the last significant value of the stack.
+  T? get lastSignificantValue => _list.isEmpty ? null : _list[_lastSignificantIndex];
 
   bool get canUndo => _list.isNotEmpty && _index > 0;
 
@@ -394,6 +428,43 @@ class _UndoStack<T> {
   /// Pushing identical objects will not create multiple entries.
   void push(T value) {
     if (_list.isEmpty) {
+      debugPrint('list is empty index 0');
+      _index = 0;
+      _list.add(value);
+      _lastSignificantIndex = _index;
+      return;
+    }
+
+    assert(_index < _list.length && _index >= 0);
+
+    if (value == currentValue) {
+      return;
+    }
+
+    // If anything has been undone in this stack, remove those irrelevant states
+    // before adding the new one.
+    if (_index != _list.length - 1) {
+      _list.removeRange(_index + 1, _list.length);
+    }
+    // If there are coalesced changes between _lastSignificantIndex and the new
+    // _lastSignificantIndex then remove them.
+    if (_index != _lastSignificantIndex) {
+      for (int i = _index; i > _lastSignificantIndex; i--) {
+        _list.removeAt(i);
+      }
+    }
+    _list.add(value);
+    _index = _list.length - 1;
+    _lastSignificantIndex = _index;
+    debugPrint('push being added $_index $_lastSignificantIndex');
+  }
+
+  /// Add a new state change to the stack.
+  ///
+  /// Pushing identical objects will not create multiple entries.
+  void pushCoalesced(T value) {
+    if (_list.isEmpty) {
+      debugPrint('list is empty index, 0 coalesced');
       _index = 0;
       _list.add(value);
       return;
@@ -412,6 +483,7 @@ class _UndoStack<T> {
     }
     _list.add(value);
     _index = _list.length - 1;
+    debugPrint('coalesched being added $value index: $_index');
   }
 
   /// Returns the current value after an undo operation.
@@ -421,17 +493,37 @@ class _UndoStack<T> {
   ///
   /// Iff the stack is completely empty, then returns null.
   T? undo() {
+    debugPrint('undostack - undo ${_list.length} ${_list}');
     if (_list.isEmpty) {
+      debugPrint('list empty');
       return null;
     }
 
     assert(_index < _list.length && _index >= 0);
 
-    if (_index != 0) {
-      _index = _index - 1;
+    final int numOfPops = _index - _lastSignificantIndex;
+    debugPrint('$numOfPops $_index $_lastSignificantIndex');
+
+    // Remove all coalescing edits since we cannot redo them.
+    for (int i = 0; i < numOfPops; i++) {
+      debugPrint('pop');
+      _list.removeLast();
+    }
+    debugPrint('after undo ${_list.length}');
+
+    if (_lastSignificantIndex != 0) {
+      if (_index == _lastSignificantIndex) {
+        // If there are no coalescing edits then move backwards one.
+        _lastSignificantIndex = _lastSignificantIndex - 1;
+      }
+      // If there are coalescing edits then _lastSignificantIndex remains
+      // the same since a undo during coalescing should return to the previous state
+      // before coalescing began which is the _lastSignificantIndex.
     }
 
-    return currentValue;
+    _index = _lastSignificantIndex;
+
+    return lastSignificantValue;
   }
 
   /// Returns the current value after a redo operation.
@@ -441,17 +533,19 @@ class _UndoStack<T> {
   ///
   /// Iff the stack is completely empty, then returns null.
   T? redo() {
+    debugPrint('undostack - redo ${_list.length} ${_list}');
     if (_list.isEmpty) {
       return null;
     }
 
     assert(_index < _list.length && _index >= 0);
 
-    if (_index < _list.length - 1) {
-      _index = _index + 1;
+    if (_lastSignificantIndex < _list.length - 1) {
+      _lastSignificantIndex = _lastSignificantIndex + 1;
     }
+    _index = _lastSignificantIndex;
 
-    return currentValue;
+    return lastSignificantValue;
   }
 
   /// Remove everything from the stack.
