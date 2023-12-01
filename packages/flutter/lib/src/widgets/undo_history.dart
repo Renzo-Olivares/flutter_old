@@ -194,28 +194,30 @@ class UndoHistoryState<T> extends State<UndoHistory<T>> with UndoManagerClient {
     }
 
     final StackChangeType? stackChangeType = widget.shouldChangeUndoStack?.call(_lastValue, widget.value.value);
-    final bool shouldPushAsCoalesced = stackChangeType == null ? true : stackChangeType == StackChangeType.coalesced;
-
-    if (stackChangeType != null && stackChangeType == StackChangeType.invalid) {
-      debugPrint('invalid not pushing');
-      return;
-    }
-
     final T nextValue = widget.undoStackModifier?.call(widget.value.value) ?? widget.value.value;
     if (nextValue == _lastValue) {
       return;
     }
 
-    _lastValue = nextValue;
+    // should this value always be the unmodified value? This way shouldChangeUndoStack
+    // will always provide the actual previous value and not the modified one.
+    _lastValue = widget.value.value;
 
-    if (shouldPushAsCoalesced) {
-      debugPrint('push as coalesced');
-      _throttleTimer = _throttledPushCoalesced(nextValue);
+    _handleThrottledPush(nextValue, stackChangeType);
+  }
+
+  void _handleThrottledPush(T nextValue, StackChangeType? type) {
+    if (type == null) {
       return;
     }
-    debugPrint('push as normal ${nextValue}');
-
-    _throttleTimer = _throttledPush(nextValue);
+    switch(type) {
+      case StackChangeType.normal:
+        _throttleTimer = _throttledPush(nextValue);
+      case StackChangeType.coalesced:
+        _throttleTimer = _throttledPushCoalesced(nextValue);
+      case StackChangeType.invalid:
+        break;
+    }
   }
 
   void _handleFocus() {
