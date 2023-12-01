@@ -142,10 +142,6 @@ mixin Selectable implements SelectionHandler {
   /// The size of this [Selectable].
   Size get size;
 
-  /// A list of [Rect]s that represent the precise region covered by this [Selectable]
-  /// in global coordinates.
-  List<Rect> get granularRects;
-
   /// Disposes resources held by the mixer.
   void dispose();
 }

@@ -2140,16 +2140,10 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   SelectionResult handleSelectWord(SelectWordSelectionEvent event) {
     SelectionResult? lastSelectionResult;
     for (int index = 0; index < selectables.length; index += 1) {
-      bool globalRectsContainsPosition = false;
-      if (selectables[index].granularRects.isNotEmpty) {
-        for (final Rect rect in selectables[index].granularRects) {
-          if (rect.contains(event.globalPosition)) {
-            globalRectsContainsPosition = true;
-            break;
-          }
-        }
-      }
-      if (globalRectsContainsPosition) {
+      final Rect localRect = Rect.fromLTWH(0, 0, selectables[index].size.width, selectables[index].size.height);
+      final Matrix4 transform = selectables[index].getTransformTo(null);
+      final Rect globalRect = MatrixUtils.transformRect(transform, localRect);
+      if (globalRect.contains(event.globalPosition)) {
         final SelectionGeometry existingGeometry = selectables[index].value;
         lastSelectionResult = dispatchSelectionEventToChild(selectables[index], event);
         if (index == selectables.length - 1 && lastSelectionResult == SelectionResult.next) {
