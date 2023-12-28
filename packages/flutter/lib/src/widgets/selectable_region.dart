@@ -1328,7 +1328,9 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
 
   @override
   void add(Selectable selectable) {
+    debugPrint('add $selectable');
     assert(_selectable == null);
+    debugPrint('$selectable');
     _selectable = selectable;
     _selectable!.addListener(_updateSelectionStatus);
     _selectable!.pushHandleLayers(_startHandleLayerLink, _endHandleLayerLink);

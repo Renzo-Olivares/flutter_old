@@ -386,6 +386,7 @@ class RenderParagraph extends RenderBox with ContainerRenderObjectMixin<RenderBo
       return;
     }
     _lastSelectableFragments ??= _getSelectableFragments();
+    _lastSelectableFragments!.forEach(_registrar!.remove);
     _lastSelectableFragments!.forEach(_registrar!.add);
     if (_lastSelectableFragments!.isNotEmpty) {
       markNeedsCompositingBitsUpdate();

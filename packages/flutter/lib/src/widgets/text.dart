@@ -12,6 +12,7 @@ import 'framework.dart';
 import 'inherited_theme.dart';
 import 'media_query.dart';
 import 'selection_container.dart';
+import 'selectable_region.dart';
 
 // Examples can assume:
 // late String _name;
@@ -438,7 +439,7 @@ class DefaultTextHeightBehavior extends InheritedTheme {
 ///  * [RichText], which gives you more control over the text styles.
 ///  * [DefaultTextStyle], which sets default styles for [Text] widgets.
 ///  * [SelectableRegion], which provides an overview of the selection system.
-class Text extends StatelessWidget {
+class Text extends StatefulWidget {
   /// Creates a text widget.
   ///
   /// If the [style] argument is null, the text will use the style from the
@@ -637,17 +638,46 @@ class Text extends StatelessWidget {
   final Color? selectionColor;
 
   @override
+  State<Text> createState() => _TextState();
+}
+
+class _TextState extends State<Text> implements SelectionRegistrar {
+  final _SelectableTextContainerDelegate delegate =
+      _SelectableTextContainerDelegate();
+
+  // [SelectionRegistrar] override.
+  // there should only ever be one selectable, which is the SelectionContainer.
+  Selectable? _selectable;
+
+  @override
+  void add(Selectable selectable) {
+    debugPrint('local add $selectable $this');
+    // assert(_selectable == null);
+    _selectable = selectable;
+    // _selectable!.addListener(_updateSelectionStatus);
+    // _selectable!.pushHandleLayers(_startHandleLayerLink, _endHandleLayerLink);
+  }
+
+  @override
+  void remove(Selectable selectable) {
+    // assert(_selectable == selectable);
+    // _selectable!.removeListener(_updateSelectionStatus);
+    // _selectable!.pushHandleLayers(null, null);
+    _selectable = null;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final DefaultTextStyle defaultTextStyle = DefaultTextStyle.of(context);
-    TextStyle? effectiveTextStyle = style;
-    if (style == null || style!.inherit) {
-      effectiveTextStyle = defaultTextStyle.style.merge(style);
+    TextStyle? effectiveTextStyle = widget.style;
+    if (widget.style == null || widget.style!.inherit) {
+      effectiveTextStyle = defaultTextStyle.style.merge(widget.style);
     }
     if (MediaQuery.boldTextOf(context)) {
       effectiveTextStyle = effectiveTextStyle!.merge(const TextStyle(fontWeight: FontWeight.bold));
     }
     final SelectionRegistrar? registrar = SelectionContainer.maybeOf(context);
-    final TextScaler textScaler = switch ((this.textScaler, textScaleFactor)) {
+    final TextScaler textScaler = switch ((this.widget.textScaler, widget.textScaleFactor)) {
       (final TextScaler textScaler, _)     => textScaler,
       // For unmigrated apps, fall back to textScaleFactor.
       (null, final double textScaleFactor) => TextScaler.linear(textScaleFactor),
@@ -655,34 +685,34 @@ class Text extends StatelessWidget {
     };
 
     Widget result = RichText(
-      textAlign: textAlign ?? defaultTextStyle.textAlign ?? TextAlign.start,
-      textDirection: textDirection, // RichText uses Directionality.of to obtain a default if this is null.
-      locale: locale, // RichText uses Localizations.localeOf to obtain a default if this is null
-      softWrap: softWrap ?? defaultTextStyle.softWrap,
-      overflow: overflow ?? effectiveTextStyle?.overflow ?? defaultTextStyle.overflow,
+      textAlign: widget.textAlign ?? defaultTextStyle.textAlign ?? TextAlign.start,
+      textDirection: widget.textDirection, // RichText uses Directionality.of to obtain a default if this is null.
+      locale: widget.locale, // RichText uses Localizations.localeOf to obtain a default if this is null
+      softWrap: widget.softWrap ?? defaultTextStyle.softWrap,
+      overflow: widget.overflow ?? effectiveTextStyle?.overflow ?? defaultTextStyle.overflow,
       textScaler: textScaler,
-      maxLines: maxLines ?? defaultTextStyle.maxLines,
-      strutStyle: strutStyle,
-      textWidthBasis: textWidthBasis ?? defaultTextStyle.textWidthBasis,
-      textHeightBehavior: textHeightBehavior ?? defaultTextStyle.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
-      selectionRegistrar: registrar,
-      selectionColor: selectionColor ?? DefaultSelectionStyle.of(context).selectionColor ?? DefaultSelectionStyle.defaultColor,
+      maxLines: widget.maxLines ?? defaultTextStyle.maxLines,
+      strutStyle: widget.strutStyle,
+      textWidthBasis: widget.textWidthBasis ?? defaultTextStyle.textWidthBasis,
+      textHeightBehavior: widget.textHeightBehavior ?? defaultTextStyle.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
+      selectionRegistrar: registrar != null ? this : null,
+      selectionColor: widget.selectionColor ?? DefaultSelectionStyle.of(context).selectionColor ?? DefaultSelectionStyle.defaultColor,
       text: TextSpan(
         style: effectiveTextStyle,
-        text: data,
-        children: textSpan != null ? <InlineSpan>[textSpan!] : null,
+        text: widget.data,
+        children: widget.textSpan != null ? <InlineSpan>[widget.textSpan!] : null,
       ),
     );
     if (registrar != null) {
       result = MouseRegion(
         cursor: DefaultSelectionStyle.of(context).mouseCursor ?? SystemMouseCursors.text,
-        child: result,
+        child: SelectionContainer(registrar: this, delegate: delegate, child: result),
       );
     }
-    if (semanticsLabel != null) {
+    if (widget.semanticsLabel != null) {
       result = Semantics(
-        textDirection: textDirection,
-        label: semanticsLabel,
+        textDirection: widget.textDirection,
+        label: widget.semanticsLabel,
         child: ExcludeSemantics(
           child: result,
         ),
@@ -694,22 +724,109 @@ class Text extends StatelessWidget {
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(StringProperty('data', data, showName: false));
-    if (textSpan != null) {
-      properties.add(textSpan!.toDiagnosticsNode(name: 'textSpan', style: DiagnosticsTreeStyle.transition));
+    properties.add(StringProperty('data', widget.data, showName: false));
+    if (widget.textSpan != null) {
+      properties.add(widget.textSpan!.toDiagnosticsNode(name: 'textSpan', style: DiagnosticsTreeStyle.transition));
     }
-    style?.debugFillProperties(properties);
-    properties.add(EnumProperty<TextAlign>('textAlign', textAlign, defaultValue: null));
-    properties.add(EnumProperty<TextDirection>('textDirection', textDirection, defaultValue: null));
-    properties.add(DiagnosticsProperty<Locale>('locale', locale, defaultValue: null));
-    properties.add(FlagProperty('softWrap', value: softWrap, ifTrue: 'wrapping at box width', ifFalse: 'no wrapping except at line break characters', showName: true));
-    properties.add(EnumProperty<TextOverflow>('overflow', overflow, defaultValue: null));
-    properties.add(DoubleProperty('textScaleFactor', textScaleFactor, defaultValue: null));
-    properties.add(IntProperty('maxLines', maxLines, defaultValue: null));
-    properties.add(EnumProperty<TextWidthBasis>('textWidthBasis', textWidthBasis, defaultValue: null));
-    properties.add(DiagnosticsProperty<ui.TextHeightBehavior>('textHeightBehavior', textHeightBehavior, defaultValue: null));
-    if (semanticsLabel != null) {
-      properties.add(StringProperty('semanticsLabel', semanticsLabel));
+    widget.style?.debugFillProperties(properties);
+    properties.add(EnumProperty<TextAlign>('textAlign', widget.textAlign, defaultValue: null));
+    properties.add(EnumProperty<TextDirection>('textDirection', widget.textDirection, defaultValue: null));
+    properties.add(DiagnosticsProperty<Locale>('locale', widget.locale, defaultValue: null));
+    properties.add(FlagProperty('softWrap', value: widget.softWrap, ifTrue: 'wrapping at box width', ifFalse: 'no wrapping except at line break characters', showName: true));
+    properties.add(EnumProperty<TextOverflow>('overflow', widget.overflow, defaultValue: null));
+    properties.add(DoubleProperty('textScaleFactor', widget.textScaleFactor, defaultValue: null));
+    properties.add(IntProperty('maxLines', widget.maxLines, defaultValue: null));
+    properties.add(EnumProperty<TextWidthBasis>('textWidthBasis', widget.textWidthBasis, defaultValue: null));
+    properties.add(DiagnosticsProperty<ui.TextHeightBehavior>('textHeightBehavior', widget.textHeightBehavior, defaultValue: null));
+    if (widget.semanticsLabel != null) {
+      properties.add(StringProperty('semanticsLabel', widget.semanticsLabel));
     }
   }
+}
+
+class _SelectableTextContainer extends StatefulWidget {
+  const _SelectableTextContainer({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<StatefulWidget> createState() => _SelectableTextContainerState();
+}
+
+class _SelectableTextContainerState
+    extends State<_SelectableTextContainer> {
+  final _SelectableTextContainerDelegate delegate =
+      _SelectableTextContainerDelegate();
+
+  @override
+  void dispose() {
+    delegate.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SelectionContainer(
+      delegate: delegate,
+      child: widget.child,
+    );
+  }
+}
+
+class _SelectableTextContainerDelegate
+    extends MultiSelectableSelectionContainerDelegate {
+  // Offset? _adjustedStartEdge;
+  // Offset? _adjustedEndEdge;
+  bool _isSelected = false;
+
+  // This method is called when newly added selectable is in the current
+  // selected range.
+  @override
+  void ensureChildUpdated(Selectable selectable) {
+    if (_isSelected) {
+      dispatchSelectionEventToChild(
+          selectable, const SelectAllSelectionEvent());
+    }
+  }
+
+  @override
+  void add(Selectable selectable) {
+    debugPrint('add $selectable');
+    super.add(selectable);
+  }
+
+  // @override
+  // SelectionResult handleSelectWord(SelectWordSelectionEvent event) {
+  //   // Treat select word as select all.
+  //   return handleSelectAll(const SelectAllSelectionEvent());
+  // }
+
+  // @override
+  // SelectionResult handleSelectionEdgeUpdate(SelectionEdgeUpdateEvent event) {
+  //   final Rect containerRect =
+  //       Rect.fromLTWH(0, 0, containerSize.width, containerSize.height);
+  //   final Matrix4 globalToLocal = getTransformTo(null)..invert();
+  //   final Offset localOffset =
+  //       MatrixUtils.transformPoint(globalToLocal, event.globalPosition);
+  //   final Offset adjustOffset =
+  //       SelectionUtils.adjustDragOffset(containerRect, localOffset);
+  //   if (event.type == SelectionEventType.startEdgeUpdate) {
+  //     _adjustedStartEdge = adjustOffset;
+  //   } else {
+  //     _adjustedEndEdge = adjustOffset;
+  //   }
+  //   // Select all content if the selection rect intercepts with the rect.
+  //   if (_adjustedStartEdge != null && _adjustedEndEdge != null) {
+  //     final Rect selectionRect =
+  //         Rect.fromPoints(_adjustedStartEdge!, _adjustedEndEdge!);
+  //     if (!selectionRect.intersect(containerRect).isEmpty) {
+  //       handleSelectAll(const SelectAllSelectionEvent());
+  //     } else {
+  //       super.handleClearSelection(const ClearSelectionEvent());
+  //     }
+  //   } else {
+  //     super.handleClearSelection(const ClearSelectionEvent());
+  //   }
+  //   return SelectionUtils.getResultBasedOnRect(containerRect, localOffset);
+  // }
 }
