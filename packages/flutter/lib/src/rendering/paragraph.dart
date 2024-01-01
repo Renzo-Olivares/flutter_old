@@ -1436,6 +1436,9 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
       case SelectionEventType.selectWord:
         final SelectWordSelectionEvent selectWord = event as SelectWordSelectionEvent;
         result = _handleSelectWord(selectWord.globalPosition);
+      case SelectionEventType.selectParagraph:
+        final SelectParagraphSelectionEvent selectParagraph = event as SelectParagraphSelectionEvent;
+        result = _handleSelectParagraph(selectParagraph.globalPosition);
       case SelectionEventType.granularlyExtendSelection:
         final GranularlyExtendSelectionEvent granularlyExtendSelection = event as GranularlyExtendSelectionEvent;
         result = _handleGranularlyExtendSelection(
@@ -1776,6 +1779,30 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
       end = TextPosition(offset: word.end, affinity: TextAffinity.upstream);
     }
     return (wordStart: start, wordEnd: end);
+  }
+
+  SelectionResult _handleSelectParagraph(Offset globalPosition) {
+    final TextPosition position = paragraph.getPositionForOffset(paragraph.globalToLocal(globalPosition));
+    if (_positionIsWithinCurrentSelection(position) && _textSelectionStart != _textSelectionEnd) {
+      return SelectionResult.end;
+    }
+    final _WordBoundaryRecord wordBoundary = _getWordBoundaryAtPosition(position);
+    // This fragment may not contain the word, decide what direction the target
+    // fragment is located in. Because fragments are separated by placeholder
+    // spans, we also check if the beginning or end of the word is touching
+    // either edge of this fragment.
+    if (wordBoundary.wordStart.offset < range.start && wordBoundary.wordEnd.offset <= range.start) {
+      return SelectionResult.previous;
+    } else if (wordBoundary.wordStart.offset >= range.end && wordBoundary.wordEnd.offset > range.end) {
+      return SelectionResult.next;
+    }
+    // Fragments are separated by placeholder span, the word boundary shouldn't
+    // expand across fragments.
+    assert(wordBoundary.wordStart.offset >= range.start && wordBoundary.wordEnd.offset <= range.end);
+    _textSelectionStart = wordBoundary.wordStart;
+    _textSelectionEnd = wordBoundary.wordEnd;
+    _selectableContainsOriginWord = true;
+    return SelectionResult.end;
   }
 
   SelectionResult _handleDirectionallyExtendSelection(double horizontalBaseline, bool isExtent, SelectionExtendDirection movement) {

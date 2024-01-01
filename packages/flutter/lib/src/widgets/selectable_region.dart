@@ -444,7 +444,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   // This method should be used in all instances when details.consecutiveTapCount
   // would be used.
   static int _getEffectiveConsecutiveTapCount(int rawCount) {
-    const int maxConsecutiveTap = 2;
+    const int maxConsecutiveTap = 3;
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
       case TargetPlatform.fuchsia:
@@ -513,6 +513,8 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
         }
       case 2:
         _selectWordAt(offset: details.globalPosition);
+      case 3:
+        _selectParagraphAt(offset: details.globalPosition);
     }
     _updateSelectedContentIfNeeded();
   }
@@ -1047,6 +1049,12 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     _selectable?.dispatchSelectionEvent(SelectWordSelectionEvent(globalPosition: offset));
   }
 
+  void _selectParagraphAt({required Offset offset}) {
+    // There may be other selection ongoing.
+    _finalizeSelection();
+    _selectable?.dispatchSelectionEvent(SelectParagraphSelectionEvent(globalPosition: offset));
+  }
+
   /// Stops any ongoing selection updates.
   ///
   /// This method is different from [_clearSelection] that it does not remove
@@ -1529,6 +1537,22 @@ class _SelectableRegionContainerDelegate extends MultiSelectableSelectionContain
     return result;
   }
 
+  /// Selects a paragraph in a selectable at the location
+  /// [SelectParagraphSelectionEvent.globalPosition].
+  @override
+  SelectionResult handleSelectParagraph(SelectParagraphSelectionEvent event) {
+    debugPrint('select paragraphzzzzzz');
+    final SelectionResult result = super.handleSelectParagraph(event);
+    if (currentSelectionStartIndex != -1) {
+      _hasReceivedStartEvent.add(selectables[currentSelectionStartIndex]);
+    }
+    if (currentSelectionEndIndex != -1) {
+      _hasReceivedEndEvent.add(selectables[currentSelectionEndIndex]);
+    }
+    _updateLastEdgeEventsFromGeometries();
+    return result;
+  }
+
   @override
   SelectionResult handleClearSelection(ClearSelectionEvent event) {
     final SelectionResult result = super.handleClearSelection(event);
@@ -1570,6 +1594,7 @@ class _SelectableRegionContainerDelegate extends MultiSelectableSelectionContain
         _hasReceivedEndEvent.remove(selectable);
       case SelectionEventType.selectAll:
       case SelectionEventType.selectWord:
+      case SelectionEventType.selectParagraph:
         break;
       case SelectionEventType.granularlyExtendSelection:
       case SelectionEventType.directionallyExtendSelection:
@@ -2188,6 +2213,56 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     return SelectionResult.end;
   }
 
+  /// Selects a paragraph in a selectable at the location
+  /// [SelectParagraphSelectionEvent.globalPosition].
+  @protected
+  SelectionResult handleSelectParagraph(SelectParagraphSelectionEvent event) {
+    SelectionResult? lastSelectionResult;
+    debugPrint('handleselect paragraph multiverse');
+    for (int index = 0; index < selectables.length; index += 1) {
+      bool globalRectsContainsPosition = false;
+      if (selectables[index].boundingBoxes.isNotEmpty) {
+        for (final Rect rect in selectables[index].boundingBoxes) {
+          final Rect globalRect = MatrixUtils.transformRect(selectables[index].getTransformTo(null), rect);
+          if (globalRect.contains(event.globalPosition)) {
+            globalRectsContainsPosition = true;
+            break;
+          }
+        }
+      }
+      if (globalRectsContainsPosition) {
+        final SelectionGeometry existingGeometry = selectables[index].value;
+        debugPrint('dispatching event to child');
+        lastSelectionResult = dispatchSelectionEventToChild(selectables[index], event);
+        if (index == selectables.length - 1 && lastSelectionResult == SelectionResult.next) {
+          return SelectionResult.next;
+        }
+        if (lastSelectionResult == SelectionResult.next) {
+          continue;
+        }
+        if (index == 0 && lastSelectionResult == SelectionResult.previous) {
+          return SelectionResult.previous;
+        }
+        if (selectables[index].value != existingGeometry) {
+          // Geometry has changed as a result of select paragraph, need to clear the
+          // selection of other selectables to keep selection in sync.
+          selectables
+            .where((Selectable target) => target != selectables[index])
+            .forEach((Selectable target) => dispatchSelectionEventToChild(target, const ClearSelectionEvent()));
+          currentSelectionStartIndex = currentSelectionEndIndex = index;
+        }
+        return SelectionResult.end;
+      } else {
+        if (lastSelectionResult == SelectionResult.next) {
+          currentSelectionStartIndex = currentSelectionEndIndex = index - 1;
+          return SelectionResult.end;
+        }
+      }
+    }
+    assert(lastSelectionResult == null);
+    return SelectionResult.end;
+  }
+
   /// Removes the selection of all selectables this delegate manages.
   @protected
   SelectionResult handleClearSelection(ClearSelectionEvent event) {
@@ -2322,6 +2397,9 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       case SelectionEventType.selectWord:
         _extendSelectionInProgress = false;
         result = handleSelectWord(event as SelectWordSelectionEvent);
+      case SelectionEventType.selectParagraph:
+        _extendSelectionInProgress = false;
+        result = handleSelectParagraph(event as SelectParagraphSelectionEvent);
       case SelectionEventType.granularlyExtendSelection:
         _extendSelectionInProgress = true;
         result = handleGranularlyExtendSelection(event as GranularlyExtendSelectionEvent);
