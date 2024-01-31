@@ -106,6 +106,52 @@ class _TapTracker {
   }
 }
 
+class _TapTracker2 {
+  _TapTracker2({
+    required PointerDownEvent event,
+    required Duration doubleTapMinTime,
+    required this.gestureSettings,
+  }) : pointer = event.pointer,
+       _initialGlobalPosition = event.position,
+       initialButtons = event.buttons,
+       _doubleTapMinTimeCountdown = _CountdownZoned(duration: doubleTapMinTime);
+
+  final DeviceGestureSettings? gestureSettings;
+  final int pointer;
+  final Offset _initialGlobalPosition;
+  final int initialButtons;
+  final _CountdownZoned _doubleTapMinTimeCountdown;
+
+  bool _isTrackingPointer = false;
+
+  void startTrackingPointer(PointerRoute route, Matrix4? transform) {
+    if (!_isTrackingPointer) {
+      _isTrackingPointer = true;
+      GestureBinding.instance.pointerRouter.addRoute(pointer, route, transform);
+    }
+  }
+
+  void stopTrackingPointer(PointerRoute route) {
+    if (_isTrackingPointer) {
+      _isTrackingPointer = false;
+      GestureBinding.instance.pointerRouter.removeRoute(pointer, route);
+    }
+  }
+
+  bool isWithinGlobalTolerance(PointerEvent event, double tolerance) {
+    final Offset offset = event.position - _initialGlobalPosition;
+    return offset.distance <= tolerance;
+  }
+
+  bool hasElapsedMinTime() {
+    return _doubleTapMinTimeCountdown.timeout;
+  }
+
+  bool hasSameButton(PointerDownEvent event) {
+    return event.buttons == initialButtons;
+  }
+}
+
 /// Recognizes when the user has tapped the screen at the same location twice in
 /// quick succession.
 ///
@@ -193,8 +239,8 @@ class DoubleTapGestureRecognizer extends GestureRecognizer {
   GestureTapCancelCallback? onDoubleTapCancel;
 
   Timer? _doubleTapTimer;
-  _TapTracker? _firstTap;
-  final Map<int, _TapTracker> _trackers = <int, _TapTracker>{};
+  _TapTracker2? _firstTap;
+  final Map<int, _TapTracker2> _trackers = <int, _TapTracker2>{};
 
   @override
   bool isPointerAllowed(PointerDownEvent event) {
@@ -239,9 +285,8 @@ class DoubleTapGestureRecognizer extends GestureRecognizer {
 
   void _trackTap(PointerDownEvent event) {
     _stopDoubleTapTimer();
-    final _TapTracker tracker = _TapTracker(
+    final _TapTracker2 tracker = _TapTracker2(
       event: event,
-      entry: GestureBinding.instance.gestureArena.add(event.pointer, this),
       doubleTapMinTime: kDoubleTapMinTime,
       gestureSettings: gestureSettings,
     );
@@ -250,7 +295,7 @@ class DoubleTapGestureRecognizer extends GestureRecognizer {
   }
 
   void _handleEvent(PointerEvent event) {
-    final _TapTracker tracker = _trackers[event.pointer]!;
+    final _TapTracker2 tracker = _trackers[event.pointer]!;
     if (event is PointerUpEvent) {
       if (_firstTap == null) {
         _registerFirstTap(tracker);
@@ -271,7 +316,7 @@ class DoubleTapGestureRecognizer extends GestureRecognizer {
 
   @override
   void rejectGesture(int pointer) {
-    _TapTracker? tracker = _trackers[pointer];
+    _TapTracker2? tracker = _trackers[pointer];
     // If tracker isn't in the list, check if this is the first tap tracker
     if (tracker == null &&
         _firstTap != null &&
@@ -284,9 +329,9 @@ class DoubleTapGestureRecognizer extends GestureRecognizer {
     }
   }
 
-  void _reject(_TapTracker tracker) {
+  void _reject(_TapTracker2 tracker) {
     _trackers.remove(tracker.pointer);
-    tracker.entry.resolve(GestureDisposition.rejected);
+    // tracker.entry.resolve(GestureDisposition.rejected);
     _freezeTracker(tracker);
     if (_firstTap != null) {
       if (tracker == _firstTap) {
@@ -314,7 +359,7 @@ class DoubleTapGestureRecognizer extends GestureRecognizer {
       }
       // Note, order is important below in order for the resolve -> reject logic
       // to work properly.
-      final _TapTracker tracker = _firstTap!;
+      final _TapTracker2 tracker = _firstTap!;
       _firstTap = null;
       _reject(tracker);
       GestureBinding.instance.gestureArena.release(tracker.pointer);
@@ -322,9 +367,9 @@ class DoubleTapGestureRecognizer extends GestureRecognizer {
     _clearTrackers();
   }
 
-  void _registerFirstTap(_TapTracker tracker) {
+  void _registerFirstTap(_TapTracker2 tracker) {
     _startDoubleTapTimer();
-    GestureBinding.instance.gestureArena.hold(tracker.pointer);
+    // GestureBinding.instance.gestureArena.hold(tracker.pointer);
     // Note, order is important below in order for the clear -> reject logic to
     // work properly.
     _freezeTracker(tracker);
@@ -333,9 +378,9 @@ class DoubleTapGestureRecognizer extends GestureRecognizer {
     _firstTap = tracker;
   }
 
-  void _registerSecondTap(_TapTracker tracker) {
-    _firstTap!.entry.resolve(GestureDisposition.accepted);
-    tracker.entry.resolve(GestureDisposition.accepted);
+  void _registerSecondTap(_TapTracker2 tracker) {
+    // _firstTap!.entry.resolve(GestureDisposition.accepted);
+    // tracker.entry.resolve(GestureDisposition.accepted);
     _freezeTracker(tracker);
     _trackers.remove(tracker.pointer);
     _checkUp(tracker.initialButtons);
@@ -347,7 +392,7 @@ class DoubleTapGestureRecognizer extends GestureRecognizer {
     assert(_trackers.isEmpty);
   }
 
-  void _freezeTracker(_TapTracker tracker) {
+  void _freezeTracker(_TapTracker2 tracker) {
     tracker.stopTrackingPointer(_handleEvent);
   }
 

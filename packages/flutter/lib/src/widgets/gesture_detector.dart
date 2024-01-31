@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
@@ -1021,6 +1023,45 @@ class GestureDetector extends StatelessWidget {
     final Map<Type, GestureRecognizerFactory> gestures = <Type, GestureRecognizerFactory>{};
     final DeviceGestureSettings? gestureSettings = MediaQuery.maybeGestureSettingsOf(context);
 
+    // if (onTapDown != null ||
+    //     onTapUp != null ||
+    //     onTap != null ||
+    //     onTapCancel != null ||
+    //     onDoubleTapDown != null ||
+    //     onDoubleTap != null ||
+    //     onDoubleTapCancel != null ||
+    //     onSecondaryTap != null ||
+    //     onSecondaryTapDown != null ||
+    //     onSecondaryTapUp != null ||
+    //     onSecondaryTapCancel != null||
+    //     onTertiaryTapDown != null ||
+    //     onTertiaryTapUp != null ||
+    //     onTertiaryTapCancel != null
+    // ) {
+    //   gestures[_MyTapGestureRecognizer] = GestureRecognizerFactoryWithHandlers<_MyTapGestureRecognizer>(
+    //     () => _MyTapGestureRecognizer(debugOwner: this, supportedDevices: supportedDevices),
+    //     (_MyTapGestureRecognizer instance) {
+    //       instance
+    //         ..onTapDown = onTapDown
+    //         ..onTapUp = onTapUp
+    //         ..onTap = onTap
+    //         ..onTapCancel = onTapCancel
+    //         ..onDoubleTapDown = onDoubleTapDown
+    //         ..onDoubleTap = onDoubleTap
+    //         ..onDoubleTapCancel = onDoubleTapCancel
+    //         ..onSecondaryTap = onSecondaryTap
+    //         ..onSecondaryTapDown = onSecondaryTapDown
+    //         ..onSecondaryTapUp = onSecondaryTapUp
+    //         ..onSecondaryTapCancel = onSecondaryTapCancel
+    //         ..onTertiaryTapDown = onTertiaryTapDown
+    //         ..onTertiaryTapUp = onTertiaryTapUp
+    //         ..onTertiaryTapCancel = onTertiaryTapCancel
+    //         ..gestureSettings = gestureSettings
+    //         ..supportedDevices = supportedDevices;
+    //     },
+    //   );
+    // }
+
     if (onTapDown != null ||
         onTapUp != null ||
         onTap != null ||
@@ -1733,4 +1774,604 @@ class _DefaultSemanticsGestureDelegate extends SemanticsGestureDelegate {
       }
     };
   }
+}
+
+double _getGlobalDistance(PointerEvent event, OffsetPair? originPosition) {
+  assert(originPosition != null);
+  final Offset offset = event.position - originPosition!.global;
+  return offset.distance;
+}
+
+mixin _TapStatusTrackerMixin on PrimaryPointerGestureRecognizer {
+  // Public state available to [PrimaryPointerGestureRecognizer].
+
+  // The [PointerDownEvent] that was most recently tracked in [addAllowedPointer].
+  //
+  // This value will be null if a [PointerDownEvent] has not been tracked yet in
+  // [addAllowedPointer] or the timer between two taps has elapsed.
+  //
+  // This value is only reset when the timer between a [PointerUpEvent] and the
+  // [PointerDownEvent] times out or when a new [PointerDownEvent] is tracked in
+  // [addAllowedPointer].
+  PointerDownEvent? get currentDown => _down;
+
+  // The [PointerUpEvent] that was most recently tracked in [handleEvent].
+  //
+  // This value will be null if a [PointerUpEvent] has not been tracked yet in
+  // [handleEvent] or the timer between two taps has elapsed.
+  //
+  // This value is only reset when the timer between a [PointerUpEvent] and the
+  // [PointerDownEvent] times out or when a new [PointerDownEvent] is tracked in
+  // [addAllowedPointer].
+  PointerUpEvent? get currentUp => _up;
+
+  // The number of consecutive taps that the most recently tracked [PointerDownEvent]
+  // in [currentDown] represents.
+  //
+  // This value defaults to zero, meaning a tap series is not currently being tracked.
+  //
+  // When this value is greater than zero it means [addAllowedPointer] has run
+  // and at least one [PointerDownEvent] belongs to the current series of taps
+  // being tracked.
+  //
+  // [addAllowedPointer] will either increment this value by `1` or set the value to `1`
+  // depending if the new [PointerDownEvent] is determined to be in the same series as the
+  // tap that preceded it. If too much time has elapsed between two taps, the recognizer has lost
+  // in the arena, the gesture has been cancelled, or the recognizer is being disposed then
+  // this value will be set to `0`, and a new series will begin.
+  int get consecutiveTapCount => _consecutiveTapCount;
+
+  // The upper limit for the [consecutiveTapCount]. When this limit is reached
+  // all tap related state is reset and a new tap series is tracked.
+  //
+  // If this value is null, [consecutiveTapCount] can grow infinitely large.
+  int? get maxConsecutiveTap;
+
+  // Private tap state tracked.
+  PointerDownEvent? _down;
+  PointerUpEvent? _up;
+  int _consecutiveTapCount = 0;
+
+  OffsetPair? _originPosition;
+  int? _previousButtons;
+
+  // For timing taps.
+  Timer? _consecutiveTapTimer;
+  Offset? _lastTapOffset;
+
+  // When tracking a tap, the [consecutiveTapCount] is incremented if the given tap
+  // falls under the tolerance specifications and reset to 1 if not.
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    debugPrint('tap tracker -- addAllowedPointer');
+    if (_consecutiveTapTimer != null && !_consecutiveTapTimer!.isActive) {
+      debugPrint('tap tracker -- reset');
+      _tapTrackerReset();
+    }
+    if (maxConsecutiveTap == _consecutiveTapCount) {
+      debugPrint('tap tracker -- reset');
+      _tapTrackerReset();
+    }
+    _up = null;
+    if (_down != null && !_representsSameSeries(event)) {
+      // The given tap does not match the specifications of the series of taps being tracked,
+      // reset the tap count and related state.
+      _consecutiveTapCount = 1;
+      debugPrint('tap tracker - not same series');
+    } else {
+      debugPrint('tap tracker - same series');
+      _consecutiveTapCount += 1;
+      debugPrint('$consecutiveTapCount');
+    }
+    _consecutiveTapTimerStop();
+    // `_down` must be assigned in this method instead of [handleEvent],
+    // because [acceptGesture] might be called before [handleEvent],
+    // which may rely on `_down` to initiate a callback.
+    _trackTap(event);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    debugPrint('tap tracker -- handleEvent');
+    super.handleEvent(event);
+    if (event is PointerMoveEvent) {
+      debugPrint('tap tracker -- moveEvent');
+      final double computedSlop = computeHitSlop(event.kind, gestureSettings);
+      final bool isSlopPastTolerance = _getGlobalDistance(event, _originPosition) > computedSlop;
+
+      if (isSlopPastTolerance) {
+        _consecutiveTapTimerStop();
+        _previousButtons = null;
+        _lastTapOffset = null;
+      }
+    } else if (event is PointerUpEvent) {
+      debugPrint('tap tracker -- upEvent');
+      _up = event;
+      if (_down != null) {
+        _consecutiveTapTimerStop();
+        _consecutiveTapTimerStart();
+      }
+    } else if (event is PointerCancelEvent) {
+      debugPrint('tap tracker -- cancelEvent');
+      _tapTrackerReset();
+    }
+  }
+
+  @override
+  void rejectGesture(int pointer) {
+    debugPrint('tap tracker -- rejectGesture');
+    _tapTrackerReset();
+  }
+
+  @override
+  void dispose() {
+    debugPrint('tap tracker -- dispose');
+    _tapTrackerReset();
+    super.dispose();
+  }
+
+  void _trackTap(PointerDownEvent event) {
+    debugPrint('tap tracker -- _trackTap');
+    _down = event;
+    _previousButtons = event.buttons;
+    _lastTapOffset = event.position;
+    _originPosition = OffsetPair(local: event.localPosition, global: event.position);
+  }
+
+  bool _hasSameButton(int buttons) {
+    assert(_previousButtons != null);
+    if (buttons == _previousButtons!) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool _isWithinConsecutiveTapTolerance(Offset secondTapOffset) {
+    if (_lastTapOffset == null) {
+      return false;
+    }
+
+    final Offset difference = secondTapOffset - _lastTapOffset!;
+    return difference.distance <= kDoubleTapSlop;
+  }
+
+  bool _representsSameSeries(PointerDownEvent event) {
+    return _consecutiveTapTimer != null
+        && _isWithinConsecutiveTapTolerance(event.position)
+        && _hasSameButton(event.buttons);
+  }
+
+  void _consecutiveTapTimerStart() {
+    debugPrint('tap tracker -- timer start');
+    _consecutiveTapTimer ??= Timer(kDoubleTapTimeout, _consecutiveTapTimerTimeout);
+  }
+
+  void _consecutiveTapTimerStop() {
+    debugPrint('tap tracker -- timer stop');
+    if (_consecutiveTapTimer != null) {
+      _consecutiveTapTimer!.cancel();
+      _consecutiveTapTimer = null;
+    }
+  }
+
+  void _consecutiveTapTimerTimeout() {
+    // The consecutive tap timer may time out before a tap down/tap up event is
+    // fired. In this case we should not reset the tap tracker state immediately.
+    // Instead we should reset the tap tracker on the next call to [addAllowedPointer],
+    // if the timer is no longer active.
+    debugPrint('tap tracker -- timeout');
+  }
+
+  void _tapTrackerReset() {
+    // The timer has timed out, i.e. the time between a [PointerUpEvent] and the subsequent
+    // [PointerDownEvent] exceeded the duration of [kDoubleTapTimeout], so the tap belonging
+    // to the [PointerDownEvent] cannot be considered part of the same tap series as the
+    // previous [PointerUpEvent].
+    debugPrint('tap tracker -- reset');
+    _consecutiveTapTimerStop();
+    _previousButtons = null;
+    _originPosition = null;
+    _lastTapOffset = null;
+    _consecutiveTapCount = 0;
+    _down = null;
+    _up = null;
+  }
+}
+
+class _MyTapGestureRecognizer extends BaseTapGestureRecognizer with _TapStatusTrackerMixin {
+  /// Creates a tap gesture recognizer.
+  ///
+  /// {@macro flutter.gestures.GestureRecognizer.supportedDevices}
+  _MyTapGestureRecognizer({
+    super.debugOwner,
+    super.supportedDevices,
+    super.allowedButtonsFilter,
+  });
+
+  /// {@template flutter.gestures.tap.TapGestureRecognizer.onTapDown}
+  /// A pointer has contacted the screen at a particular location with a primary
+  /// button, which might be the start of a tap.
+  /// {@endtemplate}
+  ///
+  /// This triggers after the down event, once a short timeout ([deadline]) has
+  /// elapsed, or once the gestures has won the arena, whichever comes first.
+  ///
+  /// If this recognizer doesn't win the arena, [onTapCancel] is called next.
+  /// Otherwise, [onTapUp] is called next.
+  ///
+  /// See also:
+  ///
+  ///  * [kPrimaryButton], the button this callback responds to.
+  ///  * [onSecondaryTapDown], a similar callback but for a secondary button.
+  ///  * [onTertiaryTapDown], a similar callback but for a tertiary button.
+  ///  * [TapDownDetails], which is passed as an argument to this callback.
+  ///  * [GestureDetector.onTapDown], which exposes this callback.
+  GestureTapDownCallback? onTapDown;
+
+  /// {@template flutter.gestures.tap.TapGestureRecognizer.onTapUp}
+  /// A pointer has stopped contacting the screen at a particular location,
+  /// which is recognized as a tap of a primary button.
+  /// {@endtemplate}
+  ///
+  /// This triggers on the up event, if the recognizer wins the arena with it
+  /// or has previously won, immediately followed by [onTap].
+  ///
+  /// If this recognizer doesn't win the arena, [onTapCancel] is called instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kPrimaryButton], the button this callback responds to.
+  ///  * [onSecondaryTapUp], a similar callback but for a secondary button.
+  ///  * [onTertiaryTapUp], a similar callback but for a tertiary button.
+  ///  * [TapUpDetails], which is passed as an argument to this callback.
+  ///  * [GestureDetector.onTapUp], which exposes this callback.
+  GestureTapUpCallback? onTapUp;
+
+  /// A pointer has stopped contacting the screen, which is recognized as a tap
+  /// of a primary button.
+  ///
+  /// This triggers on the up event, if the recognizer wins the arena with it
+  /// or has previously won, immediately following [onTapUp].
+  ///
+  /// If this recognizer doesn't win the arena, [onTapCancel] is called instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kPrimaryButton], the button this callback responds to.
+  ///  * [onSecondaryTap], a similar callback but for a secondary button.
+  ///  * [onTapUp], which has the same timing but with details.
+  ///  * [GestureDetector.onTap], which exposes this callback.
+  GestureTapCallback? onTap;
+
+  /// {@template flutter.gestures.tap.TapGestureRecognizer.onTapCancel}
+  /// A pointer that previously triggered [onTapDown] will not end up causing
+  /// a tap.
+  /// {@endtemplate}
+  ///
+  /// This triggers once the gesture loses the arena if [onTapDown] has
+  /// previously been triggered.
+  ///
+  /// If this recognizer wins the arena, [onTapUp] and [onTap] are called
+  /// instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kPrimaryButton], the button this callback responds to.
+  ///  * [onSecondaryTapCancel], a similar callback but for a secondary button.
+  ///  * [onTertiaryTapCancel], a similar callback but for a tertiary button.
+  ///  * [GestureDetector.onTapCancel], which exposes this callback.
+  GestureTapCancelCallback? onTapCancel;
+
+  /// {@template flutter.gestures.tap.TapGestureRecognizer.onSecondaryTap}
+  /// A pointer has stopped contacting the screen, which is recognized as a tap
+  /// of a secondary button.
+  /// {@endtemplate}
+  ///
+  /// This triggers on the up event, if the recognizer wins the arena with it or
+  /// has previously won, immediately following [onSecondaryTapUp].
+  ///
+  /// If this recognizer doesn't win the arena, [onSecondaryTapCancel] is called
+  /// instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kSecondaryButton], the button this callback responds to.
+  ///  * [onSecondaryTapUp], which has the same timing but with details.
+  ///  * [GestureDetector.onSecondaryTap], which exposes this callback.
+  GestureTapCallback? onSecondaryTap;
+
+  /// {@template flutter.gestures.tap.TapGestureRecognizer.onSecondaryTapDown}
+  /// A pointer has contacted the screen at a particular location with a
+  /// secondary button, which might be the start of a secondary tap.
+  /// {@endtemplate}
+  ///
+  /// This triggers after the down event, once a short timeout ([deadline]) has
+  /// elapsed, or once the gestures has won the arena, whichever comes first.
+  ///
+  /// If this recognizer doesn't win the arena, [onSecondaryTapCancel] is called
+  /// next. Otherwise, [onSecondaryTapUp] is called next.
+  ///
+  /// See also:
+  ///
+  ///  * [kSecondaryButton], the button this callback responds to.
+  ///  * [onTapDown], a similar callback but for a primary button.
+  ///  * [onTertiaryTapDown], a similar callback but for a tertiary button.
+  ///  * [TapDownDetails], which is passed as an argument to this callback.
+  ///  * [GestureDetector.onSecondaryTapDown], which exposes this callback.
+  GestureTapDownCallback? onSecondaryTapDown;
+
+  /// {@template flutter.gestures.tap.TapGestureRecognizer.onSecondaryTapUp}
+  /// A pointer has stopped contacting the screen at a particular location,
+  /// which is recognized as a tap of a secondary button.
+  /// {@endtemplate}
+  ///
+  /// This triggers on the up event if the recognizer wins the arena with it
+  /// or has previously won.
+  ///
+  /// If this recognizer doesn't win the arena, [onSecondaryTapCancel] is called
+  /// instead.
+  ///
+  /// See also:
+  ///
+  ///  * [onSecondaryTap], a handler triggered right after this one that doesn't
+  ///    pass any details about the tap.
+  ///  * [kSecondaryButton], the button this callback responds to.
+  ///  * [onTapUp], a similar callback but for a primary button.
+  ///  * [onTertiaryTapUp], a similar callback but for a tertiary button.
+  ///  * [TapUpDetails], which is passed as an argument to this callback.
+  ///  * [GestureDetector.onSecondaryTapUp], which exposes this callback.
+  GestureTapUpCallback? onSecondaryTapUp;
+
+  /// {@template flutter.gestures.tap.TapGestureRecognizer.onSecondaryTapCancel}
+  /// A pointer that previously triggered [onSecondaryTapDown] will not end up
+  /// causing a tap.
+  /// {@endtemplate}
+  ///
+  /// This triggers once the gesture loses the arena if [onSecondaryTapDown]
+  /// has previously been triggered.
+  ///
+  /// If this recognizer wins the arena, [onSecondaryTapUp] is called instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kSecondaryButton], the button this callback responds to.
+  ///  * [onTapCancel], a similar callback but for a primary button.
+  ///  * [onTertiaryTapCancel], a similar callback but for a tertiary button.
+  ///  * [GestureDetector.onSecondaryTapCancel], which exposes this callback.
+  GestureTapCancelCallback? onSecondaryTapCancel;
+
+  /// A pointer has contacted the screen at a particular location with a
+  /// tertiary button, which might be the start of a tertiary tap.
+  ///
+  /// This triggers after the down event, once a short timeout ([deadline]) has
+  /// elapsed, or once the gestures has won the arena, whichever comes first.
+  ///
+  /// If this recognizer doesn't win the arena, [onTertiaryTapCancel] is called
+  /// next. Otherwise, [onTertiaryTapUp] is called next.
+  ///
+  /// See also:
+  ///
+  ///  * [kTertiaryButton], the button this callback responds to.
+  ///  * [onTapDown], a similar callback but for a primary button.
+  ///  * [onSecondaryTapDown], a similar callback but for a secondary button.
+  ///  * [TapDownDetails], which is passed as an argument to this callback.
+  ///  * [GestureDetector.onTertiaryTapDown], which exposes this callback.
+  GestureTapDownCallback? onTertiaryTapDown;
+
+  /// A pointer has stopped contacting the screen at a particular location,
+  /// which is recognized as a tap of a tertiary button.
+  ///
+  /// This triggers on the up event if the recognizer wins the arena with it
+  /// or has previously won.
+  ///
+  /// If this recognizer doesn't win the arena, [onTertiaryTapCancel] is called
+  /// instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kTertiaryButton], the button this callback responds to.
+  ///  * [onTapUp], a similar callback but for a primary button.
+  ///  * [onSecondaryTapUp], a similar callback but for a secondary button.
+  ///  * [TapUpDetails], which is passed as an argument to this callback.
+  ///  * [GestureDetector.onTertiaryTapUp], which exposes this callback.
+  GestureTapUpCallback? onTertiaryTapUp;
+
+  /// A pointer that previously triggered [onTertiaryTapDown] will not end up
+  /// causing a tap.
+  ///
+  /// This triggers once the gesture loses the arena if [onTertiaryTapDown]
+  /// has previously been triggered.
+  ///
+  /// If this recognizer wins the arena, [onTertiaryTapUp] is called instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kSecondaryButton], the button this callback responds to.
+  ///  * [onTapCancel], a similar callback but for a primary button.
+  ///  * [onSecondaryTapCancel], a similar callback but for a secondary button.
+  ///  * [GestureDetector.onTertiaryTapCancel], which exposes this callback.
+  GestureTapCancelCallback? onTertiaryTapCancel;
+
+  /// A pointer has contacted the screen with a primary button at the same
+  /// location twice in quick succession, which might be the start of a double
+  /// tap.
+  ///
+  /// This triggers immediately after the down event of the second tap.
+  ///
+  /// If this recognizer doesn't win the arena, [onDoubleTapCancel] is called
+  /// next. Otherwise, [onDoubleTap] is called next.
+  ///
+  /// See also:
+  ///
+  ///  * [allowedButtonsFilter], which decides which button will be allowed.
+  ///  * [TapDownDetails], which is passed as an argument to this callback.
+  ///  * [GestureDetector.onDoubleTapDown], which exposes this callback.
+  GestureTapDownCallback? onDoubleTapDown;
+
+  /// Called when the user has tapped the screen with a primary button at the
+  /// same location twice in quick succession.
+  ///
+  /// This triggers when the pointer stops contacting the device after the
+  /// second tap.
+  ///
+  /// See also:
+  ///
+  ///  * [allowedButtonsFilter], which decides which button will be allowed.
+  ///  * [GestureDetector.onDoubleTap], which exposes this callback.
+  GestureDoubleTapCallback? onDoubleTap;
+
+  /// A pointer that previously triggered [onDoubleTapDown] will not end up
+  /// causing a double tap.
+  ///
+  /// This triggers once the gesture loses the arena if [onDoubleTapDown] has
+  /// previously been triggered.
+  ///
+  /// If this recognizer wins the arena, [onDoubleTap] is called instead.
+  ///
+  /// See also:
+  ///
+  ///  * [allowedButtonsFilter], which decides which button will be allowed.
+  ///  * [GestureDetector.onDoubleTapCancel], which exposes this callback.
+  GestureTapCancelCallback? onDoubleTapCancel;
+
+  /// An upper bound for the amount of taps that can belong to one tap series.
+  ///
+  /// When this limit is reached the series of taps being tracked by this
+  /// recognizer will be reset.
+  @override
+  int? maxConsecutiveTap;
+
+  @override
+  bool isPointerAllowed(PointerDownEvent event) {
+    switch (event.buttons) {
+      case kPrimaryButton:
+        if (onTapDown == null &&
+            onTap == null &&
+            onTapUp == null &&
+            onTapCancel == null) {
+          return false;
+        }
+      case kSecondaryButton:
+        if (onSecondaryTap == null &&
+            onSecondaryTapDown == null &&
+            onSecondaryTapUp == null &&
+            onSecondaryTapCancel == null) {
+          return false;
+        }
+      case kTertiaryButton:
+        if (onTertiaryTapDown == null &&
+            onTertiaryTapUp == null &&
+            onTertiaryTapCancel == null) {
+          return false;
+        }
+      default:
+        return false;
+    }
+    return super.isPointerAllowed(event);
+  }
+
+  @protected
+  @override
+  void handleTapDown({required PointerDownEvent down}) {
+    debugPrint('recognizer - handleTapDown $consecutiveTapCount');
+    final TapDownDetails details = TapDownDetails(
+      globalPosition: down.position,
+      localPosition: down.localPosition,
+      kind: getKindForPointer(down.pointer),
+    );
+    switch (down.buttons) {
+      case kPrimaryButton:
+        if (consecutiveTapCount == 1) {
+          if (onTapDown != null) {
+            invokeCallback<void>('onTapDown', () => onTapDown!(details));
+          }
+        }
+        if (consecutiveTapCount == 2) {
+          if (onDoubleTapDown != null) {
+            debugPrint('actual down');
+            invokeCallback<void>('onDoubleTapDown', () => onDoubleTapDown!(details));
+          }
+        }
+      case kSecondaryButton:
+        if (onSecondaryTapDown != null) {
+          invokeCallback<void>('onSecondaryTapDown', () => onSecondaryTapDown!(details));
+        }
+      case kTertiaryButton:
+        if (onTertiaryTapDown != null) {
+          invokeCallback<void>('onTertiaryTapDown', () => onTertiaryTapDown!(details));
+        }
+      default:
+    }
+  }
+
+  @protected
+  @override
+  void handleTapUp({ required PointerDownEvent down, required PointerUpEvent up}) {
+    debugPrint('recognizer -- handle tap up $consecutiveTapCount');
+    final TapUpDetails details = TapUpDetails(
+      kind: up.kind,
+      globalPosition: up.position,
+      localPosition: up.localPosition,
+    );
+    switch (down.buttons) {
+      case kPrimaryButton:
+        debugPrint('primary ${consecutiveTapCount == 2}');
+        if (consecutiveTapCount == 1) {
+          debugPrint('single tap');
+          if (onTapUp != null) {
+            invokeCallback<void>('onTapUp', () => onTapUp!(details));
+          }
+          if (onTap != null) {
+            invokeCallback<void>('onTap', onTap!);
+          }
+        }
+        debugPrint('lol');
+
+        if (consecutiveTapCount == 2) {
+          debugPrint('double lol ${onDoubleTap != null}');
+          if (onDoubleTap != null) {
+            debugPrint('on double tap');
+            invokeCallback<void>('onDoubleTap', onDoubleTap!);
+          }
+        }
+      case kSecondaryButton:
+        if (onSecondaryTapUp != null) {
+          invokeCallback<void>('onSecondaryTapUp', () => onSecondaryTapUp!(details));
+        }
+        if (onSecondaryTap != null) {
+          invokeCallback<void>('onSecondaryTap', () => onSecondaryTap!());
+        }
+      case kTertiaryButton:
+        if (onTertiaryTapUp != null) {
+          invokeCallback<void>('onTertiaryTapUp', () => onTertiaryTapUp!(details));
+        }
+      default:
+    }
+  }
+
+  @protected
+  @override
+  void handleTapCancel({ required PointerDownEvent down, PointerCancelEvent? cancel, required String reason }) {
+    final String note = reason == '' ? reason : '$reason ';
+    switch (down.buttons) {
+      case kPrimaryButton:
+        if (onTapCancel != null) {
+          invokeCallback<void>('${note}onTapCancel', onTapCancel!);
+        }
+      case kSecondaryButton:
+        if (onSecondaryTapCancel != null) {
+          invokeCallback<void>('${note}onSecondaryTapCancel', onSecondaryTapCancel!);
+        }
+      case kTertiaryButton:
+        if (onTertiaryTapCancel != null) {
+          invokeCallback<void>('${note}onTertiaryTapCancel', onTertiaryTapCancel!);
+        }
+      default:
+    }
+  }
+
+  @override
+  String get debugDescription => 'tap';
 }

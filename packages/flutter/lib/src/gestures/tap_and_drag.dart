@@ -509,10 +509,12 @@ mixin _TapStatusTrackerMixin on OneSequenceGestureRecognizer {
     }
     _up = null;
     if (_down != null && !_representsSameSeries(event)) {
+      debugPrint('tap tracker - not same series');
       // The given tap does not match the specifications of the series of taps being tracked,
       // reset the tap count and related state.
       _consecutiveTapCount = 1;
     } else {
+      debugPrint('tap tracker - same series');
       _consecutiveTapCount += 1;
     }
     _consecutiveTapTimerStop();
