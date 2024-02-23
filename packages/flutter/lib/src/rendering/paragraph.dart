@@ -407,6 +407,7 @@ class RenderParagraph extends RenderBox with ContainerRenderObjectMixin<RenderBo
     while (start < plainText.length) {
       int end = plainText.indexOf(_placeholderCharacter, start);
       if (start != end) {
+        final bool placeholderFound = end != -1;
         if (end == -1) {
           end = plainText.length;
         }
@@ -418,11 +419,22 @@ class RenderParagraph extends RenderBox with ContainerRenderObjectMixin<RenderBo
           ),
         );
         start = end;
+        if (placeholderFound) {
+          // result.add(
+          //   _SelectableFragment(
+          //     paragraph: this,
+          //     range: TextRange(start: start, end: start + _placeholderCharacter.length),
+          //     fullText: plainText,
+          //   ),
+          // );
+        }
       }
       start += 1;
     }
     return result;
   }
+
+  List<Selectable>? get selectables => _lastSelectableFragments;
 
   void _disposeSelectableFragments() {
     if (_lastSelectableFragments == null) {

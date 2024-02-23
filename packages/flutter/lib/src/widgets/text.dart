@@ -2,8 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:math';
 import 'dart:ui' as ui show TextHeightBehavior;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
 import 'basic.dart';
@@ -11,6 +13,7 @@ import 'default_selection_style.dart';
 import 'framework.dart';
 import 'inherited_theme.dart';
 import 'media_query.dart';
+import 'selectable_region.dart';
 import 'selection_container.dart';
 
 // Examples can assume:
@@ -653,8 +656,18 @@ class Text extends StatelessWidget {
       (null, final double textScaleFactor) => TextScaler.linear(textScaleFactor),
       (null, null)                         => MediaQuery.textScalerOf(context),
     };
+    final GlobalKey _textKey = GlobalKey();
+    final _SelectableTextContainerDelegate? _selectionDelegate = registrar == null ? null : _SelectableTextContainerDelegate(
+      _textKey,
+      TextSpan(
+        style: effectiveTextStyle,
+        text: data,
+        children: textSpan != null ? <InlineSpan>[textSpan!] : null,
+      ),
+    );
 
     Widget result = RichText(
+      key: _textKey,
       textAlign: textAlign ?? defaultTextStyle.textAlign ?? TextAlign.start,
       textDirection: textDirection, // RichText uses Directionality.of to obtain a default if this is null.
       locale: locale, // RichText uses Localizations.localeOf to obtain a default if this is null
@@ -665,7 +678,7 @@ class Text extends StatelessWidget {
       strutStyle: strutStyle,
       textWidthBasis: textWidthBasis ?? defaultTextStyle.textWidthBasis,
       textHeightBehavior: textHeightBehavior ?? defaultTextStyle.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
-      selectionRegistrar: registrar,
+      selectionRegistrar: _selectionDelegate,
       selectionColor: selectionColor ?? DefaultSelectionStyle.of(context).selectionColor ?? DefaultSelectionStyle.defaultColor,
       text: TextSpan(
         style: effectiveTextStyle,
@@ -674,6 +687,10 @@ class Text extends StatelessWidget {
       ),
     );
     if (registrar != null) {
+      result = SelectionContainer(
+        delegate: _selectionDelegate!,
+        child: result,
+      );
       result = MouseRegion(
         cursor: DefaultSelectionStyle.of(context).mouseCursor ?? SystemMouseCursors.text,
         child: result,
@@ -712,4 +729,384 @@ class Text extends StatelessWidget {
       properties.add(StringProperty('semanticsLabel', semanticsLabel));
     }
   }
+}
+
+// In practice some selectables like widgetspan shift several pixels. So when
+// the vertical position diff is within the threshold, compare the horizontal
+// position to make the compareScreenOrder function more robust.
+const double _kSelectableVerticalComparingThreshold = 3.0;
+
+class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainerDelegate {
+  _SelectableTextContainerDelegate(
+    GlobalKey textKey,
+    InlineSpan text,
+  ) : _textKey = textKey {
+    _slots = _getSlots(text);
+  }
+
+  final GlobalKey _textKey;
+  RenderParagraph get paragraph => _textKey.currentContext!.findRenderObject()! as RenderParagraph;
+  late List<_SelectableSlot> _slots;
+
+  bool _isSlotsFilled() {
+    if (_slots.isEmpty) {
+      return false;
+    }
+    for (final _SelectableSlot slot in _slots) {
+      if (slot.selectable == null) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  List<_SelectableSlot> _getSlots(InlineSpan text) {
+    final String _placeholderCharacter = String.fromCharCode(PlaceholderSpan.placeholderCodeUnit);
+    final String plainText = text.toPlainText(includeSemanticsLabels: false);
+    final List<_SelectableSlot> result = <_SelectableSlot>[];
+    int start = 0;
+    while (start < plainText.length) {
+      int end = plainText.indexOf(_placeholderCharacter, start);
+      int prevEnd = end;
+      if (start != end) {
+        if (end == -1) {
+          end = plainText.length;
+          result.add(
+            _SelectableSlot(type: _SlotType.text),
+          );
+        } else {
+          result.add(
+            _SelectableSlot(type: _SlotType.text),
+          );
+          result.add(
+            _SelectableSlot(type: _SlotType.placeholder),
+          );
+        }
+        start = end;
+      } else {
+        result.add(
+          _SelectableSlot(type: _SlotType.placeholder),
+        );
+      }
+      start += 1;
+    }
+    return result;
+  }
+
+  void _fillNextSlot(Selectable selectable) {
+    // Iterate through slots.
+    debugPrint('fill next slot, $selectable');
+    for (int index = 0; index < _slots.length; index += 1) {
+      // Find an empty slot.
+      if (_slots[index].selectable == null) {
+        final bool isRootSelectable = paragraph.selectables?.contains(selectable) ?? false;
+        if (_slots[index].type == _SlotType.placeholder) {
+          debugPrint('filling placeholder');
+          if (isRootSelectable) {
+            continue;
+          }
+          debugPrint('filling placeholder2');
+          _slots[index] = _SelectableSlot(type: _SlotType.placeholder, selectable: selectable);
+          break;
+        }
+        if (_slots[index].type == _SlotType.text) {
+          debugPrint('filling text slot');
+          if (isRootSelectable) {
+          debugPrint('filling text slot2');
+            _slots[index] = _SelectableSlot(type: _SlotType.text, selectable: selectable);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  /// The compare function this delegate used for determining the selection
+  /// order of the selectables.
+  ///
+  /// Defaults to screen order.
+  @override
+  Comparator<Selectable> get compareOrder => _compareScreenOrder;
+
+  int _compareScreenOrder(Selectable a, Selectable b) {
+    final Rect rectA = MatrixUtils.transformRect(
+      a.getTransformTo(null),
+      a.boundingBoxes.first,
+    );
+    final Rect rectB = MatrixUtils.transformRect(
+      b.getTransformTo(null),
+      b.boundingBoxes.first,
+    );
+    final int result = _compareVertically(rectA, rectB);
+    if (result != 0) {
+      return result;
+    }
+    return _compareHorizontally(rectA, rectB);
+  }
+
+  /// Compares two rectangles in the screen order solely by their vertical
+  /// positions.
+  ///
+  /// Returns positive if a is lower, negative if a is higher, 0 if their
+  /// order can't be determine solely by their vertical position.
+  static int _compareVertically(Rect a, Rect b) {
+    // The rectangles overlap so defer to horizontal comparison.
+    if ((a.top - b.top < _kSelectableVerticalComparingThreshold && a.bottom - b.bottom > - _kSelectableVerticalComparingThreshold) ||
+        (b.top - a.top < _kSelectableVerticalComparingThreshold && b.bottom - a.bottom > - _kSelectableVerticalComparingThreshold)) {
+      return 0;
+    }
+    if ((a.top - b.top).abs() > _kSelectableVerticalComparingThreshold) {
+      return a.top > b.top ? 1 : -1;
+    }
+    return a.bottom > b.bottom ? 1 : -1;
+  }
+
+  /// Compares two rectangles in the screen order by their horizontal positions
+  /// assuming one of the rectangles enclose the other rect vertically.
+  ///
+  /// Returns positive if a is lower, negative if a is higher.
+  static int _compareHorizontally(Rect a, Rect b) {
+    // a encloses b.
+    if (a.left - b.left < precisionErrorTolerance && a.right - b.right > - precisionErrorTolerance) {
+      return -1;
+    }
+    // b encloses a.
+    if (b.left - a.left < precisionErrorTolerance && b.right - a.right > - precisionErrorTolerance) {
+      return 1;
+    }
+    if ((a.left - b.left).abs() > precisionErrorTolerance) {
+      return a.left > b.left ? 1 : -1;
+    }
+    return a.right > b.right ? 1 : -1;
+  }
+
+  // @override
+  // void add(Selectable selectable) {
+  //   debugPrint('add from container $selectable ${this.hashCode} $_textKey');
+  //   assert(!_isSlotsFilled());
+  //   super.add(selectable);
+  // }
+
+  // @override
+  // void processAdditions(List<Selectable> additions, VoidCallback listener) {
+  //   final List<Selectable> existingSelectables = selectables;
+  //   // Find selectables that belong to the Text widget that created this container.
+  //   final List<Selectable> rootSelectables = <Selectable>[];
+  //   final List<Selectable> placeholderSelectables = <Selectable>[];
+  //   for (final Selectable selectable in additions) {
+  //     if (paragraph.selectables?.contains(selectable) ?? false) {
+  //       rootSelectables.add(selectable);
+  //     } else {
+  //       placeholderSelectables.add(selectable);
+  //     }
+  //   }
+  //   rootSelectables.sort((Selectable a, Selectable b) {
+  //     if (paragraph.selectables == null) {
+  //       return 0;
+  //     }
+
+  //     final int indexOfA = paragraph.selectables!.indexOf(a);
+  //     final int indexOfB = paragraph.selectables!.indexOf(b);
+
+  //     if (indexOfA < indexOfB) {
+  //       return -1;
+  //     }
+  //     return 1;
+  //   });
+  //   for (final Selectable selectable in rootSelectables) {
+  //     _fillNextSlot(selectable);
+  //   }
+  //   for (final Selectable selectable in placeholderSelectables) {
+  //     _fillNextSlot(selectable);
+  //   }
+  //   selectables = <Selectable>[];
+  //   for (int index = 0; index < _slots.length; index += 1) {
+  //     final Selectable? selectable = _slots[index].selectable;
+  //     if (selectable != null) {
+  //       if (!existingSelectables.contains(selectable!)) {
+  //         if (index < max(currentSelectionStartIndex, currentSelectionEndIndex) &&
+  //             index > min(currentSelectionStartIndex, currentSelectionEndIndex)) {
+  //           ensureChildUpdated(selectable!);
+  //         }
+  //         selectable!.addListener(listener);
+  //       }
+  //       selectables.add(selectable!);
+  //     }
+  //   }
+  // }
+
+  // @override
+  // bool get sortAtSelectionStart => false;
+
+  @override
+  SelectionResult dispatchSelectionEvent(SelectionEvent event) {
+    debugPrint('this is the final list $selectables\n');
+    return super.dispatchSelectionEvent(event);
+  }
+
+  /// From [SelectableRegion].
+  final Set<Selectable> _hasReceivedStartEvent = <Selectable>{};
+  final Set<Selectable> _hasReceivedEndEvent = <Selectable>{};
+
+  Offset? _lastStartEdgeUpdateGlobalPosition;
+  Offset? _lastEndEdgeUpdateGlobalPosition;
+
+  @override
+  void remove(Selectable selectable) {
+    debugPrint('remove from container ${paragraph.text.toPlainText()}');
+    _hasReceivedStartEvent.remove(selectable);
+    _hasReceivedEndEvent.remove(selectable);
+    super.remove(selectable);
+  }
+
+  void _updateLastEdgeEventsFromGeometries() {
+    if (currentSelectionStartIndex != -1 && selectables[currentSelectionStartIndex].value.hasSelection) {
+      final Selectable start = selectables[currentSelectionStartIndex];
+      final Offset localStartEdge = start.value.startSelectionPoint!.localPosition +
+          Offset(0, - start.value.startSelectionPoint!.lineHeight / 2);
+      _lastStartEdgeUpdateGlobalPosition = MatrixUtils.transformPoint(start.getTransformTo(null), localStartEdge);
+    }
+    if (currentSelectionEndIndex != -1 && selectables[currentSelectionEndIndex].value.hasSelection) {
+      final Selectable end = selectables[currentSelectionEndIndex];
+      final Offset localEndEdge = end.value.endSelectionPoint!.localPosition +
+          Offset(0, -end.value.endSelectionPoint!.lineHeight / 2);
+      _lastEndEdgeUpdateGlobalPosition = MatrixUtils.transformPoint(end.getTransformTo(null), localEndEdge);
+    }
+  }
+
+  @override
+  SelectionResult handleSelectAll(SelectAllSelectionEvent event) {
+    final SelectionResult result = super.handleSelectAll(event);
+    for (final Selectable selectable in selectables) {
+      _hasReceivedStartEvent.add(selectable);
+      _hasReceivedEndEvent.add(selectable);
+    }
+    // Synthesize last update event so the edge updates continue to work.
+    _updateLastEdgeEventsFromGeometries();
+    return result;
+  }
+
+  /// Selects a word in a selectable at the location
+  /// [SelectWordSelectionEvent.globalPosition].
+  @override
+  SelectionResult handleSelectWord(SelectWordSelectionEvent event) {
+    final SelectionResult result = super.handleSelectWord(event);
+    if (currentSelectionStartIndex != -1) {
+      _hasReceivedStartEvent.add(selectables[currentSelectionStartIndex]);
+    }
+    if (currentSelectionEndIndex != -1) {
+      _hasReceivedEndEvent.add(selectables[currentSelectionEndIndex]);
+    }
+    _updateLastEdgeEventsFromGeometries();
+    return result;
+  }
+
+  @override
+  SelectionResult handleClearSelection(ClearSelectionEvent event) {
+    final SelectionResult result = super.handleClearSelection(event);
+    _hasReceivedStartEvent.clear();
+    _hasReceivedEndEvent.clear();
+    _lastStartEdgeUpdateGlobalPosition = null;
+    _lastEndEdgeUpdateGlobalPosition = null;
+    return result;
+  }
+
+  @override
+  SelectionResult handleSelectionEdgeUpdate(SelectionEdgeUpdateEvent event) {
+    if (event.type == SelectionEventType.endEdgeUpdate) {
+      _lastEndEdgeUpdateGlobalPosition = event.globalPosition;
+    } else {
+      _lastStartEdgeUpdateGlobalPosition = event.globalPosition;
+    }
+    return super.handleSelectionEdgeUpdate(event);
+  }
+
+  @override
+  void dispose() {
+    _hasReceivedStartEvent.clear();
+    _hasReceivedEndEvent.clear();
+    super.dispose();
+  }
+
+  @override
+  SelectionResult dispatchSelectionEventToChild(Selectable selectable, SelectionEvent event) {
+    switch (event.type) {
+      case SelectionEventType.startEdgeUpdate:
+        _hasReceivedStartEvent.add(selectable);
+        ensureChildUpdated(selectable);
+      case SelectionEventType.endEdgeUpdate:
+        _hasReceivedEndEvent.add(selectable);
+        ensureChildUpdated(selectable);
+      case SelectionEventType.clear:
+        _hasReceivedStartEvent.remove(selectable);
+        _hasReceivedEndEvent.remove(selectable);
+      case SelectionEventType.selectAll:
+      case SelectionEventType.selectWord:
+        break;
+      case SelectionEventType.granularlyExtendSelection:
+      case SelectionEventType.directionallyExtendSelection:
+        _hasReceivedStartEvent.add(selectable);
+        _hasReceivedEndEvent.add(selectable);
+        ensureChildUpdated(selectable);
+    }
+    return super.dispatchSelectionEventToChild(selectable, event);
+  }
+
+  @override
+  void ensureChildUpdated(Selectable selectable) {
+    if (_lastEndEdgeUpdateGlobalPosition != null && _hasReceivedEndEvent.add(selectable)) {
+      final SelectionEdgeUpdateEvent synthesizedEvent = SelectionEdgeUpdateEvent.forEnd(
+        globalPosition: _lastEndEdgeUpdateGlobalPosition!,
+      );
+      if (currentSelectionEndIndex == -1) {
+        handleSelectionEdgeUpdate(synthesizedEvent);
+      }
+      selectable.dispatchSelectionEvent(synthesizedEvent);
+    }
+    if (_lastStartEdgeUpdateGlobalPosition != null && _hasReceivedStartEvent.add(selectable)) {
+      final SelectionEdgeUpdateEvent synthesizedEvent = SelectionEdgeUpdateEvent.forStart(
+          globalPosition: _lastStartEdgeUpdateGlobalPosition!,
+      );
+      if (currentSelectionStartIndex == -1) {
+        handleSelectionEdgeUpdate(synthesizedEvent);
+      }
+      selectable.dispatchSelectionEvent(synthesizedEvent);
+    }
+  }
+
+  @override
+  void didChangeSelectables() {
+    if (_lastEndEdgeUpdateGlobalPosition != null) {
+      handleSelectionEdgeUpdate(
+        SelectionEdgeUpdateEvent.forEnd(
+          globalPosition: _lastEndEdgeUpdateGlobalPosition!,
+        ),
+      );
+    }
+    if (_lastStartEdgeUpdateGlobalPosition != null) {
+      handleSelectionEdgeUpdate(
+        SelectionEdgeUpdateEvent.forStart(
+          globalPosition: _lastStartEdgeUpdateGlobalPosition!,
+        ),
+      );
+    }
+    final Set<Selectable> selectableSet = selectables.toSet();
+    _hasReceivedEndEvent.removeWhere((Selectable selectable) => !selectableSet.contains(selectable));
+    _hasReceivedStartEvent.removeWhere((Selectable selectable) => !selectableSet.contains(selectable));
+    super.didChangeSelectables();
+  }
+}
+
+class _SelectableSlot {
+  const _SelectableSlot({
+    required this.type,
+    this.selectable,
+  });
+  final _SlotType type;
+  final Selectable? selectable;
+}
+
+enum _SlotType {
+  text,
+  placeholder,
 }

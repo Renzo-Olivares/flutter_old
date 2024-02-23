@@ -1756,7 +1756,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   bool _isHandlingSelectionEvent = false;
   bool _scheduledSelectableUpdate = false;
   bool _selectionInProgress = false;
-  Set<Selectable> _additions = <Selectable>{};
+  List<Selectable> _additions = <Selectable>[];
 
   bool _extendSelectionInProgress = false;
 
@@ -1819,8 +1819,11 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     didChangeSelectables();
   }
 
-  void _flushAdditions() {
-    final List<Selectable> mergingSelectables = _additions.toList()..sort(compareOrder);
+  ///  what private variables in here?
+  /// _additions - additions being added to selectables.
+  /// _handleSelectableGeometryChange - listener that should be attached to new selectables.
+  void processAdditions(List<Selectable> additions, VoidCallback listener) {
+    final List<Selectable> mergingSelectables = additions..sort(compareOrder);
     final List<Selectable> existingSelectables = selectables;
     selectables = <Selectable>[];
     int mergingIndex = 0;
@@ -1850,7 +1853,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
           existingIndex > min(currentSelectionStartIndex, currentSelectionEndIndex)) {
         ensureChildUpdated(mergingSelectable);
       }
-      mergingSelectable.addListener(_handleSelectableGeometryChange);
+      mergingSelectable.addListener(listener);
       selectables.add(mergingSelectable);
       mergingIndex += 1;
     }
@@ -1864,7 +1867,11 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     assert((currentSelectionEndIndex == -1) == (selectionEndIndex == -1));
     currentSelectionEndIndex = selectionEndIndex;
     currentSelectionStartIndex = selectionStartIndex;
-    _additions = <Selectable>{};
+  }
+
+  void _flushAdditions() {
+    processAdditions(_additions, _handleSelectableGeometryChange);
+    _additions = <Selectable>[];
   }
 
   void _removeSelectable(Selectable selectable) {
@@ -2374,10 +2381,12 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     return currentSelectionStartIndex == -1 ? _initSelection(event, isEnd: false) : _adjustSelection(event, isEnd: false);
   }
 
+  bool get sortAtSelectionStart => true;
+
   @override
   SelectionResult dispatchSelectionEvent(SelectionEvent event) {
     final bool selectionWillBeInProgress = event is! ClearSelectionEvent;
-    if (!_selectionInProgress && selectionWillBeInProgress) {
+    if (!_selectionInProgress && selectionWillBeInProgress && sortAtSelectionStart) {
       // Sort the selectable every time a selection start.
       selectables.sort(compareOrder);
     }
