@@ -149,11 +149,14 @@ abstract class BaseTapGestureRecognizer extends PrimaryPointerGestureRecognizer 
     super.debugOwner,
     super.supportedDevices,
     super.allowedButtonsFilter,
+    bool dispatchImmediately = false,
   })
-    : super(deadline: kPressTimeout);
+    : _dispatchWithoutVictory = dispatchImmediately,
+      super(deadline: kPressTimeout);
 
   bool _sentTapDown = false;
   bool _wonArenaForPrimaryPointer = false;
+  final bool _dispatchWithoutVictory;
 
   PointerDownEvent? _down;
   PointerUpEvent? _up;
@@ -215,6 +218,9 @@ abstract class BaseTapGestureRecognizer extends PrimaryPointerGestureRecognizer 
       // because `acceptGesture` might be called before `handlePrimaryPointer`,
       // which relies on `_down` to call `handleTapDown`.
       _down = event;
+      if (_dispatchWithoutVictory) {
+        _checkDown();
+      }
     }
     if (_down != null) {
       // This happens when this tap gesture has been rejected while the pointer
@@ -302,7 +308,7 @@ abstract class BaseTapGestureRecognizer extends PrimaryPointerGestureRecognizer 
   }
 
   void _checkUp() {
-    if (!_wonArenaForPrimaryPointer || _up == null) {
+    if ((!_wonArenaForPrimaryPointer && !_dispatchWithoutVictory) || _up == null) {
       return;
     }
     assert(_up!.pointer == _down!.pointer);
@@ -375,6 +381,7 @@ class TapGestureRecognizer extends BaseTapGestureRecognizer {
     super.debugOwner,
     super.supportedDevices,
     super.allowedButtonsFilter,
+    super.dispatchImmediately,
   });
 
   /// {@template flutter.gestures.tap.TapGestureRecognizer.onTapDown}

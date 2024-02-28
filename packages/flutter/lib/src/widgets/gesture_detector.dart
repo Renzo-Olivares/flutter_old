@@ -1034,7 +1034,7 @@ class GestureDetector extends StatelessWidget {
         onTertiaryTapCancel != null
     ) {
       gestures[TapGestureRecognizer] = GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-        () => TapGestureRecognizer(debugOwner: this, supportedDevices: supportedDevices),
+        () => TapGestureRecognizer(debugOwner: this, supportedDevices: supportedDevices, dispatchImmediately: true),
         (TapGestureRecognizer instance) {
           instance
             ..onTapDown = onTapDown
