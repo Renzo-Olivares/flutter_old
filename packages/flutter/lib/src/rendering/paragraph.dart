@@ -2300,7 +2300,7 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
 
     final SelectionResult? result;
     if (_isPlaceholder()) {
-      result = isEnd 
+      result = isEnd
           ? _updateSelectionEndEdgeAtPlaceholderByMultiSelectableTextBoundary(
               getTextBoundary,
               globalPosition,
@@ -2309,7 +2309,7 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
               position,
               existingSelectionStart,
               existingSelectionEnd,
-            ) 
+            )
           : _updateSelectionStartEdgeAtPlaceholderByMultiSelectableTextBoundary(
               getTextBoundary,
               globalPosition,
@@ -2320,7 +2320,7 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
               existingSelectionEnd,
             );
     } else {
-      result = isEnd 
+      result = isEnd
           ? _updateSelectionEndEdgeByMultiSelectableTextBoundary(
               getTextBoundary,
               paragraph.paintBounds.contains(localPosition),
@@ -2328,7 +2328,7 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
               positionInFullText,
               existingSelectionStart,
               existingSelectionEnd,
-            ) 
+            )
           : _updateSelectionStartEdgeByMultiSelectableTextBoundary(
               getTextBoundary,
               paragraph.paintBounds.contains(localPosition),
