@@ -754,6 +754,7 @@ class _RichText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final SelectionRegistrar? registrar = SelectionContainer.maybeOf(context);
+    debugPrint('rich text should register to selectabletextcontainer delegate $registrar');
     return RichText(
       key: textKey,
       textAlign: textAlign,
@@ -803,7 +804,9 @@ class _SelectableTextContainerState extends State<_SelectableTextContainer> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('text container registering to ${SelectionContainer.maybeOf(context)}');
     return SelectionContainer(
+      registrar: SelectionContainer.maybeOf(context),
       delegate: _selectionDelegate,
       child: widget.child,
     );

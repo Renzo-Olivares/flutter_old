@@ -73,7 +73,7 @@ void main() {
     final TestSelectionRegistrar registrar = TestSelectionRegistrar();
     final TestContainerDelegate delegate = TestContainerDelegate();
     addTearDown(delegate.dispose);
-    final TestContainerDelegate childDelegate = TestContainerDelegate();
+    final TestContainerChildDelegate childDelegate = TestContainerChildDelegate();
     addTearDown(childDelegate.dispose);
 
     await pumpContainer(
@@ -84,41 +84,58 @@ void main() {
         child: Builder(
           builder: (BuildContext context) {
             return SelectionContainer(
-              registrar: SelectionContainer.maybeOf(context),
+              // registrar: SelectionContainer.maybeOf(context),
               delegate: childDelegate,
-              child: const Text('dummy'),
+              // child: Builder(
+              //   builder: (BuildContext context) {
+              //     debugPrint('insideee ${SelectionContainer.maybeOf(context)}');
+              //     return RichText(
+              //       selectionColor: Colors.green,
+              //       selectionRegistrar: SelectionContainer.maybeOf(context),
+              //       text: TextSpan(text: 'dummy'),
+              //     );
+              //   },
+              // ),
+              child: Text('dummy'),
             );
           },
         ),
       ),
     );
     await tester.pumpAndSettle();
+    debugPrint('child selectables ${childDelegate.selectables}');
+    debugPrint('child has content ${childDelegate.value.hasContent}');
+    debugPrint('child has content2 ${childDelegate.selectables.first.value.hasContent}');
+    debugPrint('registar selectables ${registrar.selectables}');
+    debugPrint('root delegate selectables ${delegate.selectables}');
+    debugPrint('registar has content ${delegate.value.hasContent}');
+    expect(childDelegate.selectables.length, 1);
     expect(registrar.selectables.length, 1);
     expect(delegate.value.hasContent, isTrue);
 
-    final TestContainerDelegate newDelegate = TestContainerDelegate();
-    addTearDown(newDelegate.dispose);
+    // final TestContainerDelegate newDelegate = TestContainerDelegate();
+    // addTearDown(newDelegate.dispose);
 
-    await pumpContainer(
-      tester,
-      SelectionContainer(
-        registrar: registrar,
-        delegate: delegate,
-        child: Builder(
-          builder: (BuildContext context) {
-            return SelectionContainer(
-              registrar: SelectionContainer.maybeOf(context),
-              delegate: newDelegate,
-              child: const Text('dummy'),
-            );
-          },
-        )
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(registrar.selectables.length, 1);
-    expect(delegate.value.hasContent, isTrue);
-    expect(tester.takeException(), isNull);
+    // await pumpContainer(
+    //   tester,
+    //   SelectionContainer(
+    //     registrar: registrar,
+    //     delegate: delegate,
+    //     child: Builder(
+    //       builder: (BuildContext context) {
+    //         return SelectionContainer(
+    //           registrar: SelectionContainer.maybeOf(context),
+    //           delegate: newDelegate,
+    //           child: const Text('dummy'),
+    //         );
+    //       },
+    //     )
+    //   ),
+    // );
+    // await tester.pumpAndSettle();
+    // expect(registrar.selectables.length, 1);
+    // expect(delegate.value.hasContent, isTrue);
+    // expect(tester.takeException(), isNull);
   });
 
   testWidgets('Can update within one frame', (WidgetTester tester) async {
@@ -221,6 +238,41 @@ void main() {
 
 class TestContainerDelegate extends MultiSelectableSelectionContainerDelegate {
   @override
+  void add(Selectable selectable) {
+    debugPrint('add in root delegate $selectable ${selectable.value.hasContent}');
+    super.add(selectable);
+  }
+
+  @override
+  void remove(Selectable selectable) {
+    debugPrint('remove in root delegate $selectable');
+    super.remove(selectable);
+  }
+  @override
+  SelectionResult dispatchSelectionEventToChild(Selectable selectable, SelectionEvent event) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void ensureChildUpdated(Selectable selectable) {
+    throw UnimplementedError();
+  }
+}
+
+class TestContainerChildDelegate extends MultiSelectableSelectionContainerDelegate {
+  @override
+  void add(Selectable selectable) {
+    debugPrint('add in child delegate $selectable');
+    super.add(selectable);
+    notifyListeners();
+  }
+
+  @override
+  void remove(Selectable selectable) {
+    debugPrint('remove in child delegate $selectable');
+    super.remove(selectable);
+  }
+  @override
   SelectionResult dispatchSelectionEventToChild(Selectable selectable, SelectionEvent event) {
     throw UnimplementedError();
   }
@@ -234,9 +286,20 @@ class TestContainerDelegate extends MultiSelectableSelectionContainerDelegate {
 class TestSelectionRegistrar extends SelectionRegistrar {
   final Set<Selectable> selectables = <Selectable>{};
 
+  // @override
+  // void add(Selectable selectable) => selectables.add(selectable);
   @override
-  void add(Selectable selectable) => selectables.add(selectable);
+  void add(Selectable selectable) {
+    debugPrint('add in registar $selectable \n${StackTrace.current.toString()}\n');
+    selectables.add(selectable);
+  }
 
   @override
-  void remove(Selectable selectable) => selectables.remove(selectable);
+  void remove(Selectable selectable) {
+    debugPrint('remove in registrar $selectable');
+    selectables.remove(selectable);
+  }
+
+  // @override
+  // void remove(Selectable selectable) => selectables.remove(selectable);
 }

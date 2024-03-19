@@ -1816,6 +1816,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   @override
   void add(Selectable selectable) {
     assert(!selectables.contains(selectable));
+    debugPrint('add from $this');
     _additions.add(selectable);
     _scheduleSelectableUpdate();
   }
@@ -1839,23 +1840,31 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   }
 
   void _scheduleSelectableUpdate() {
+    debugPrint('inside schedule $this');
     if (!_scheduledSelectableUpdate) {
+      debugPrint('actually schedulinggggg from $this');
       _scheduledSelectableUpdate = true;
       void runScheduledTask([Duration? duration]) {
         if (!_scheduledSelectableUpdate) {
+          debugPrint('faileddd????? $this');
           return;
         }
         _scheduledSelectableUpdate = false;
+        debugPrint('running task $this');
         _updateSelectables();
       }
+
+      debugPrint('${SchedulerBinding.instance.schedulerPhase} from $this');
 
       if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.postFrameCallbacks) {
         // A new task can be scheduled as a result of running the scheduled task
         // from another MultiSelectableSelectionContainerDelegate. This can
         // happen if nesting two SelectionContainers. The selectable can be
         // safely updated in the same frame in this case.
+        debugPrint('run scheduled micro task $this');
         scheduleMicrotask(runScheduledTask);
       } else {
+        debugPrint('run scheduled task $this');
         SchedulerBinding.instance.addPostFrameCallback(
           runScheduledTask,
           debugLabel: 'SelectionContainer.runScheduledTask',
@@ -1866,7 +1875,9 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
 
   void _updateSelectables() {
     // Remove offScreen selectable.
+    debugPrint('are we ever updating selectables frm $this');
     if (_additions.isNotEmpty) {
+      debugPrint('flushing additions $this');
       _flushAdditions();
     }
     didChangeSelectables();
@@ -1937,6 +1948,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   @protected
   @mustCallSuper
   void didChangeSelectables() {
+    debugPrint('woahhhhh $this');
     _updateSelectionGeometry();
   }
 

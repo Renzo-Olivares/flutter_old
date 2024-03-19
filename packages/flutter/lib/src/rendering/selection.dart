@@ -165,6 +165,7 @@ mixin SelectionRegistrant on Selectable {
   SelectionRegistrar? get registrar => _registrar;
   SelectionRegistrar? _registrar;
   set registrar(SelectionRegistrar? value) {
+    debugPrint('registarr subscription to $value from $this');
     if (value == _registrar) {
       return;
     }
@@ -188,6 +189,7 @@ mixin SelectionRegistrant on Selectable {
 
   bool _subscribedToSelectionRegistrar = false;
   void _updateSelectionRegistrarSubscription() {
+    debugPrint('at $this updating subscription for registrar $_registrar');
     if (_registrar == null) {
       _subscribedToSelectionRegistrar = false;
       return;
@@ -196,6 +198,7 @@ mixin SelectionRegistrant on Selectable {
       _registrar!.remove(this);
       _subscribedToSelectionRegistrar = false;
     } else if (!_subscribedToSelectionRegistrar && value.hasContent) {
+      debugPrint('adding myself $this to $_registrar');
       _registrar!.add(this);
       _subscribedToSelectionRegistrar = true;
     }
