@@ -556,7 +556,11 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
       case 2:
         _selectWordAt(offset: details.globalPosition);
       case 3:
-        _selectParagraphAt(offset: details.globalPosition);
+        if (defaultTargetPlatform == TargetPlatform.linux) {
+          _selectLineAt(offset: details.globalPosition);
+        } else {
+          _selectParagraphAt(offset: details.globalPosition);
+        }
     }
     _updateSelectedContentIfNeeded();
   }
@@ -576,7 +580,11 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
       case 2:
         _selectEndTo(offset: details.globalPosition, continuous: true, textGranularity: TextGranularity.word);
       case 3:
-        _selectEndTo(offset: details.globalPosition, continuous: true, textGranularity: TextGranularity.paragraph);
+        if (defaultTargetPlatform == TargetPlatform.linux) {
+          _selectEndTo(offset: details.globalPosition, continuous: true, textGranularity: TextGranularity.line);
+        } else {
+          _selectEndTo(offset: details.globalPosition, continuous: true, textGranularity: TextGranularity.paragraph);
+        }
     }
     _updateSelectedContentIfNeeded();
   }
@@ -1000,9 +1008,10 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   ///  * [_selectStartTo], which sets or updates selection start edge.
   ///  * [_finalizeSelection], which stops the `continuous` updates.
   ///  * [_clearSelection], which clears the ongoing selection.
-  ///  * [_selectWordAt], which selects a whole word at the location.
-  ///  * [_selectParagraphAt], which selects an entire paragraph at the location.
   ///  * [_collapseSelectionAt], which collapses the selection at the location.
+  ///  * [_selectWordAt], which selects a whole word at the location.
+  ///  * [_selectLineAt], which selects a line at the location.
+  ///  * [_selectParagraphAt], which selects an entire paragraph at the location.
   ///  * [selectAll], which selects the entire content.
   void _selectEndTo({required Offset offset, bool continuous = false, TextGranularity? textGranularity}) {
     if (!continuous) {
@@ -1041,9 +1050,10 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   ///  * [_selectEndTo], which sets or updates selection end edge.
   ///  * [_finalizeSelection], which stops the `continuous` updates.
   ///  * [_clearSelection], which clears the ongoing selection.
-  ///  * [_selectWordAt], which selects a whole word at the location.
-  ///  * [_selectParagraphAt], which selects an entire paragraph at the location.
   ///  * [_collapseSelectionAt], which collapses the selection at the location.
+  ///  * [_selectWordAt], which selects a whole word at the location.
+  ///  * [_selectLineAt], which selects a line at the location.
+  ///  * [_selectParagraphAt], which selects an entire paragraph at the location.
   ///  * [selectAll], which selects the entire content.
   void _selectStartTo({required Offset offset, bool continuous = false, TextGranularity? textGranularity}) {
     if (!continuous) {
@@ -1066,6 +1076,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   ///  * [_finalizeSelection], which stops the `continuous` updates.
   ///  * [_clearSelection], which clears the ongoing selection.
   ///  * [_selectWordAt], which selects a whole word at the location.
+  ///  * [_selectLineAt], which selects a line at the location.
   ///  * [_selectParagraphAt], which selects an entire paragraph at the location.
   ///  * [selectAll], which selects the entire content.
   void _collapseSelectionAt({required Offset offset}) {
@@ -1090,12 +1101,39 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   ///  * [_finalizeSelection], which stops the `continuous` updates.
   ///  * [_clearSelection], which clears the ongoing selection.
   ///  * [_collapseSelectionAt], which collapses the selection at the location.
+  ///  * [_selectLineAt], which selects a line at the location.
   ///  * [_selectParagraphAt], which selects an entire paragraph at the location.
   ///  * [selectAll], which selects the entire content.
   void _selectWordAt({required Offset offset}) {
     // There may be other selection ongoing.
     _finalizeSelection();
     _selectable?.dispatchSelectionEvent(SelectWordSelectionEvent(globalPosition: offset));
+  }
+
+  /// Selects the line at the `offset` location.
+  ///
+  /// The `offset` is in global coordinates.
+  ///
+  /// If the line is already in the current selection, selection won't
+  /// change. One call [_clearSelection] first if the selection needs to be
+  /// updated even if the paragraph is already covered by the current selection.
+  ///
+  /// One can also use [_selectEndTo] or [_selectStartTo] to adjust the selection
+  /// edges after calling this method.
+  ///
+  /// See also:
+  ///  * [_selectStartTo], which sets or updates selection start edge.
+  ///  * [_selectEndTo], which sets or updates selection end edge.
+  ///  * [_finalizeSelection], which stops the `continuous` updates.
+  ///  * [_clearSelection], which clear the ongoing selection.
+  ///  * [_collapseSelectionAt], which collapses the selection at the location.
+  ///  * [_selectWordAt], which selects a whole word at the location.
+  ///  * [_selectParagraphAt], which selects an entire paragraph at the location.
+  ///  * [selectAll], which selects the entire content.
+  void _selectLineAt({required Offset offset}) {
+    // There may be other selection ongoing.
+    _finalizeSelection();
+    _selectable?.dispatchSelectionEvent(SelectLineSelectionEvent(globalPosition: offset));
   }
 
   /// Selects the entire paragraph at the `offset` location.
@@ -1114,7 +1152,9 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   ///  * [_selectEndTo], which sets or updates selection end edge.
   ///  * [_finalizeSelection], which stops the `continuous` updates.
   ///  * [_clearSelection], which clear the ongoing selection.
+  ///  * [_collapseSelectionAt], which collapses the selection at the location.
   ///  * [_selectWordAt], which selects a whole word at the location.
+  ///  * [_selectLineAt], which selects a line at the location.
   ///  * [selectAll], which selects the entire content.
   void _selectParagraphAt({required Offset offset}) {
     // There may be other selection ongoing.
@@ -1649,6 +1689,21 @@ class _SelectableRegionContainerDelegate extends MultiSelectableSelectionContain
     return result;
   }
 
+  /// Selects a line in a [Selectable] at the location
+  /// [SelectLineSelectionEvent.globalPosition].
+  @override
+  SelectionResult handleSelectLine(SelectLineSelectionEvent event) {
+    final SelectionResult result = super.handleSelectLine(event);
+    if (currentSelectionStartIndex != -1) {
+      _hasReceivedStartEvent.add(selectables[currentSelectionStartIndex]);
+    }
+    if (currentSelectionEndIndex != -1) {
+      _hasReceivedEndEvent.add(selectables[currentSelectionEndIndex]);
+    }
+    _updateLastEdgeEventsFromGeometries();
+    return result;
+  }
+
   /// Selects a paragraph in a [Selectable] at the location
   /// [SelectParagraphSelectionEvent.globalPosition].
   @override
@@ -1705,6 +1760,7 @@ class _SelectableRegionContainerDelegate extends MultiSelectableSelectionContain
         _hasReceivedEndEvent.remove(selectable);
       case SelectionEventType.selectAll:
       case SelectionEventType.selectWord:
+      case SelectionEventType.selectLine:
       case SelectionEventType.selectParagraph:
         break;
       case SelectionEventType.granularlyExtendSelection:
@@ -2272,12 +2328,14 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   }
 
   SelectionResult _handleSelectBoundary(SelectionEvent event) {
-    assert(event is SelectWordSelectionEvent || event is SelectParagraphSelectionEvent, 'This method should only be given selection events that select text boundaries.');
+    assert(event is SelectWordSelectionEvent || event is SelectParagraphSelectionEvent || event is SelectLineSelectionEvent, 'This method should only be given selection events that select text boundaries.');
     late final Offset effectiveGlobalPosition;
     if (event.type == SelectionEventType.selectWord) {
       effectiveGlobalPosition = (event as SelectWordSelectionEvent).globalPosition;
     } else if (event.type == SelectionEventType.selectParagraph) {
       effectiveGlobalPosition = (event as SelectParagraphSelectionEvent).globalPosition;
+    } else if (event.type == SelectionEventType.selectLine) {
+      effectiveGlobalPosition = (event as SelectLineSelectionEvent).globalPosition;
     }
     SelectionResult? lastSelectionResult;
     for (int index = 0; index < selectables.length; index += 1) {
@@ -2327,6 +2385,13 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   /// [SelectWordSelectionEvent.globalPosition].
   @protected
   SelectionResult handleSelectWord(SelectWordSelectionEvent event) {
+    return _handleSelectBoundary(event);
+  }
+
+  /// Selects a line in a [Selectable] at the location
+  /// [SelectLineSelectionEvent.globalPosition].
+  @protected
+  SelectionResult handleSelectLine(SelectLineSelectionEvent event) {
     return _handleSelectBoundary(event);
   }
 
@@ -2466,6 +2531,9 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       case SelectionEventType.selectWord:
         _extendSelectionInProgress = false;
         result = handleSelectWord(event as SelectWordSelectionEvent);
+      case SelectionEventType.selectLine:
+        _extendSelectionInProgress = false;
+        result = handleSelectLine(event as SelectLineSelectionEvent);
       case SelectionEventType.selectParagraph:
         _extendSelectionInProgress = false;
         result = handleSelectParagraph(event as SelectParagraphSelectionEvent);

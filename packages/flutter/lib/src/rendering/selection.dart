@@ -299,6 +299,12 @@ enum SelectionEventType {
   /// Used by [SelectWordSelectionEvent].
   selectWord,
 
+  /// An event to select a line at the location
+  /// [SelectLineSelectionEvent.globalPosition].
+  ///
+  /// Used by [SelectLineSelectionEvent].
+  selectLine,
+
   /// An event to select a paragraph at the location
   /// [SelectParagraphSelectionEvent.globalPosition].
   ///
@@ -377,6 +383,21 @@ class SelectWordSelectionEvent extends SelectionEvent {
 
   /// The position in global coordinates to select word at.
   final Offset globalPosition;
+}
+
+/// Selects the line at the location.
+///
+/// This event can be sent as the result of a triple click to select.
+class SelectLineSelectionEvent extends SelectionEvent {
+  /// Creates a select line event at the [globalPosition].
+  const SelectLineSelectionEvent({required this.globalPosition, this.absorb = false}): super._(SelectionEventType.selectLine);
+
+  /// The position in global coordinates to select the line at.
+  final Offset globalPosition;
+
+  /// Whether the selectable receiving the event should be absorbed into
+  /// an encompassing line.
+  final bool absorb;
 }
 
 /// Selects the entire paragraph at the location.
