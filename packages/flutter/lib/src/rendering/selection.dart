@@ -107,10 +107,15 @@ class SelectedContent {
   /// Creates a selected content object.
   ///
   /// Only supports plain text.
-  const SelectedContent({required this.plainText});
+  const SelectedContent({
+    required this.plainText,
+    this.commonSelectableAncestor,
+  });
 
   /// The selected content in plain text format.
   final String plainText;
+
+  final Selectable? commonSelectableAncestor;
 }
 
 /// A mixin that can be selected by users when under a [SelectionArea] widget.
