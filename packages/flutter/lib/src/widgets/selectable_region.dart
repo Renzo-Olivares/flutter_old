@@ -607,8 +607,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   void _updateSelectedContentIfNeeded() {
     if (_lastSelectedContent?.plainText != _selectable?.getSelectedContent()?.plainText) {
       _lastSelectedContent = _selectable?.getSelectedContent();
-      // widget.onSelectionChanged?.call(_lastSelectedContent);
-      widget.onSelectionChanged?.call(SelectedContent(plainText: _lastSelectedContent?.plainText ?? '', commonSelectableAncestor: _selectable));
+      widget.onSelectionChanged?.call(_lastSelectedContent);
     }
   }
 
@@ -2227,6 +2226,8 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     }
     return SelectedContent(
       plainText: buffer.toString(),
+      geometry: value,
+      transformTo: getTransformTo,
     );
   }
 

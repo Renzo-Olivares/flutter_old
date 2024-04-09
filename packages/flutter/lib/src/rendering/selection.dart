@@ -100,6 +100,8 @@ abstract class SelectionHandler implements ValueListenable<SelectionGeometry> {
   SelectionResult dispatchSelectionEvent(SelectionEvent event);
 }
 
+typedef SelectedContentGeometryTransformTo = Matrix4 Function(RenderObject? ancestor);
+
 /// The selected content in a [Selectable] or [SelectionHandler].
 // TODO(chunhtai): Add more support for rich content.
 // https://github.com/flutter/flutter/issues/104206.
@@ -109,13 +111,17 @@ class SelectedContent {
   /// Only supports plain text.
   const SelectedContent({
     required this.plainText,
-    this.commonSelectableAncestor,
+    required this.geometry,
+    required this.transformTo,
   });
 
   /// The selected content in plain text format.
   final String plainText;
 
-  final Selectable? commonSelectableAncestor;
+  /// The geometry of the selected content.
+  final SelectionGeometry geometry;
+
+  final SelectedContentGeometryTransformTo transformTo;
 }
 
 /// A mixin that can be selected by users when under a [SelectionArea] widget.
