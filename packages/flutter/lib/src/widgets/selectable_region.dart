@@ -216,6 +216,7 @@ class SelectableRegion extends StatefulWidget {
     required this.child,
     this.magnifierConfiguration = TextMagnifierConfiguration.disabled,
     this.onSelectionChanged,
+    this.controller,
   });
 
   /// The configuration for the magnifier used with selections in this region.
@@ -247,6 +248,8 @@ class SelectableRegion extends StatefulWidget {
 
   /// Called when the selected content changes.
   final ValueChanged<SelectedContent?>? onSelectionChanged;
+
+  final SelectionController? controller;
 
   /// Returns the [ContextMenuButtonItem]s representing the buttons in this
   /// platform's default selection menu.
@@ -373,6 +376,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
   void initState() {
     super.initState();
     widget.focusNode.addListener(_handleFocusChanged);
+    widget.controller?.addListener(_handleSelectionEventReceived);
     _initMouseGestureRecognizer();
     _initTouchGestureRecognizer();
     // Taps and right clicks.
@@ -458,6 +462,26 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
     }
     if (kIsWeb) {
       PlatformSelectableRegionContextMenu.attach(_selectionDelegate);
+    }
+  }
+
+  void _handleSelectionEventReceived() {
+    final SelectionEvent? event = widget.controller?.value;
+    if (event == null) {
+      return;
+    }
+    switch (event.type) {
+      case SelectionEventType.clear:
+        _clearSelection();
+      case SelectionEventType.selectAll:
+        selectAll();
+      case SelectionEventType.startEdgeUpdate:
+      case SelectionEventType.endEdgeUpdate:
+      case SelectionEventType.selectWord:
+      case SelectionEventType.selectParagraph:
+      case SelectionEventType.granularlyExtendSelection:
+      case SelectionEventType.directionallyExtendSelection:
+        break;
     }
   }
 
@@ -2672,3 +2696,11 @@ typedef SelectableRegionContextMenuBuilder = Widget Function(
   BuildContext context,
   SelectableRegionState selectableRegionState,
 );
+
+class SelectionController extends ValueNotifier<SelectionEvent?> {
+  SelectionController(super.value);
+
+  void dispatchSelectionEvent(SelectionEvent? event) {
+    value = event;
+  }
+}
