@@ -1474,6 +1474,8 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
       plainText: fullText.substring(start, end),
       geometry: value,
       transformTo: getTransformTo,
+      startOffset: _textSelectionStart!.offset,
+      endOffset: _textSelectionEnd!.offset,
     );
   }
 

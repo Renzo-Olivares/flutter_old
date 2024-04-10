@@ -472,6 +472,7 @@ class Text extends StatelessWidget {
     this.semanticsLabel,
     this.textWidthBasis,
     this.textHeightBehavior,
+    this.onSelectionChanged,
     this.selectionColor,
   }) : textSpan = null,
        assert(
@@ -508,6 +509,7 @@ class Text extends StatelessWidget {
     this.semanticsLabel,
     this.textWidthBasis,
     this.textHeightBehavior,
+    this.onSelectionChanged,
     this.selectionColor,
   }) : data = null,
        assert(
@@ -639,6 +641,8 @@ class Text extends StatelessWidget {
   /// (semi-transparent grey).
   final Color? selectionColor;
 
+  final SelectedContentChangedCallback? onSelectionChanged;
+
   @override
   Widget build(BuildContext context) {
     final DefaultTextStyle defaultTextStyle = DefaultTextStyle.of(context);
@@ -672,6 +676,7 @@ class Text extends StatelessWidget {
           textWidthBasis: textWidthBasis ?? defaultTextStyle.textWidthBasis,
           textHeightBehavior: textHeightBehavior ?? defaultTextStyle.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
           selectionColor: selectionColor ?? DefaultSelectionStyle.of(context).selectionColor ?? DefaultSelectionStyle.defaultColor,
+          onSelectionChanged: onSelectionChanged,
           text: TextSpan(
             style: effectiveTextStyle,
             text: data,
@@ -734,6 +739,8 @@ class Text extends StatelessWidget {
   }
 }
 
+typedef SelectedContentChangedCallback = void Function(SelectedContent? selectedContent);
+
 class _SelectableTextContainer extends StatefulWidget {
   const _SelectableTextContainer({
     required this.text,
@@ -748,6 +755,7 @@ class _SelectableTextContainer extends StatefulWidget {
     required this.textWidthBasis,
     this.textHeightBehavior,
     required this.selectionColor,
+    this.onSelectionChanged,
   });
 
   final InlineSpan text;
@@ -762,6 +770,7 @@ class _SelectableTextContainer extends StatefulWidget {
   final TextWidthBasis textWidthBasis;
   final ui.TextHeightBehavior? textHeightBehavior;
   final Color selectionColor;
+  final SelectedContentChangedCallback? onSelectionChanged;
 
   @override
   State<_SelectableTextContainer> createState() => _SelectableTextContainerState();
@@ -774,7 +783,7 @@ class _SelectableTextContainerState extends State<_SelectableTextContainer> {
   @override
   void initState() {
     super.initState();
-    _selectionDelegate = _SelectableTextContainerDelegate(_textKey);
+    _selectionDelegate = _SelectableTextContainerDelegate(_textKey, onSelectionChanged: widget.onSelectionChanged);
   }
 
   @override
@@ -869,10 +878,53 @@ const double _kSelectableVerticalComparingThreshold = 3.0;
 class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainerDelegate {
   _SelectableTextContainerDelegate(
     GlobalKey textKey,
+    {
+      this.onSelectionChanged,
+    }
   ) : _textKey = textKey;
 
   final GlobalKey _textKey;
+  final SelectedContentChangedCallback? onSelectionChanged;
   RenderParagraph get paragraph => _textKey.currentContext!.findRenderObject()! as RenderParagraph;
+
+  /// Copies the selected contents of all [Selectable]s.
+  @override
+  SelectedContent? getSelectedContent() {
+    if (currentSelectionStartIndex == -1 || currentSelectionEndIndex == -1) {
+      return null;
+    }
+    final List<SelectedContent> selections = <SelectedContent>[];
+    final int start = min(currentSelectionStartIndex, currentSelectionEndIndex);
+    final int end = max(currentSelectionStartIndex, currentSelectionEndIndex);
+    for (int index = start; index == end; index += 1) {
+      final SelectedContent? data = selectables[index].getSelectedContent();
+      if (data != null) {
+        selections.add(data);
+      }
+    }
+    if (selections.isEmpty) {
+      return null;
+    }
+    final StringBuffer buffer = StringBuffer();
+    final bool forwardSelection = currentSelectionEndIndex >= currentSelectionStartIndex;
+    for (final SelectedContent selection in selections) {
+      buffer.write(selection.plainText);
+    }
+    return SelectedContent(
+      plainText: buffer.toString(),
+      geometry: value,
+      transformTo: getTransformTo,
+      startOffset: forwardSelection ? selections.first.startOffset : selections.last.endOffset,
+      endOffset: forwardSelection ? selections.last.endOffset : selections.first.endOffset,
+    );
+  }
+
+  @override
+  SelectionResult dispatchSelectionEvent(SelectionEvent event) {
+    final SelectionResult result = super.dispatchSelectionEvent(event);
+    onSelectionChanged?.call(getSelectedContent());
+    return result;
+  }
 
   @override
   SelectionResult handleSelectParagraph(SelectParagraphSelectionEvent event) {

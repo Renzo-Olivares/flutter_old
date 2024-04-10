@@ -113,6 +113,8 @@ class SelectedContent {
     required this.plainText,
     required this.geometry,
     required this.transformTo,
+    required this.startOffset,
+    required this.endOffset,
   });
 
   /// The selected content in plain text format.
@@ -122,6 +124,21 @@ class SelectedContent {
   final SelectionGeometry geometry;
 
   final SelectedContentGeometryTransformTo transformTo;
+
+  final int startOffset;
+
+  final int endOffset;
+
+  @override
+  String toString() {
+    return 'SelectedContent(\n'
+           '  plainText: $plainText,\n'
+           '  geometry: $geometry,\n'
+           '  transformTo: $transformTo,\n'
+           '  startOffset: $startOffset,\n'
+           '  endOffset: $endOffset,\n'
+           ')';
+  }
 }
 
 /// A mixin that can be selected by users when under a [SelectionArea] widget.

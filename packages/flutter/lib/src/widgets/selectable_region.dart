@@ -2228,6 +2228,8 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       plainText: buffer.toString(),
       geometry: value,
       transformTo: getTransformTo,
+      startOffset: currentSelectionStartIndex,
+      endOffset: currentSelectionEndIndex,
     );
   }
 
