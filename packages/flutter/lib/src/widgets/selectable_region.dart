@@ -16,6 +16,7 @@ import 'actions.dart';
 import 'basic.dart';
 import 'context_menu_button_item.dart';
 import 'debug.dart';
+import 'editable_text.dart';
 import 'focus_manager.dart';
 import 'focus_scope.dart';
 import 'framework.dart';
@@ -2241,6 +2242,13 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       for (final Selectable selectable in selectables)
         if (selectable.getSelectedContent() case final SelectedContent data) data,
     ];
+    final List<TextSpanController> controllers = <TextSpanController>[];
+    for (final Selectable selectable in selectables) {
+      final SelectedContent? selectedContent = selectable.getSelectedContent();
+      if (selectedContent != null && selectedContent.controller != null) {
+        controllers.addAll(selectedContent.controller!);
+      }
+    }
     if (selections.isEmpty) {
       return null;
     }
@@ -2254,6 +2262,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       transformTo: getTransformTo,
       startOffset: currentSelectionStartIndex,
       endOffset: currentSelectionEndIndex,
+      controller: controllers,
     );
   }
 
@@ -2703,4 +2712,30 @@ class SelectionController extends ValueNotifier<SelectionEvent?> {
   void dispatchSelectionEvent(SelectionEvent? event) {
     value = event;
   }
+}
+
+class SelectedTextContentController<TextSpan> extends SelectedContentController {
+  SelectedTextContentController(super.value);
+
+  @override
+  void deleteContents() {
+  }
+
+  @override
+  void insertContents() {
+
+  }
+
+  @override
+  TextSpan buildContents() {
+    return value;
+  }
+}
+
+abstract class SelectedContentController<T> extends ValueNotifier {
+  SelectedContentController(super.value);
+
+  void deleteContents();
+  void insertContents();
+  T buildContents();
 }

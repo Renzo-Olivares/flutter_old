@@ -10,6 +10,7 @@ import 'package:flutter/rendering.dart';
 
 import 'basic.dart';
 import 'default_selection_style.dart';
+import 'editable_text.dart';
 import 'framework.dart';
 import 'inherited_theme.dart';
 import 'media_query.dart';
@@ -741,6 +742,29 @@ class Text extends StatelessWidget {
 
 typedef SelectedContentChangedCallback = void Function(SelectedContent? selectedContent);
 
+class _TextSpanEditingController extends TextEditingController {
+  _TextSpanEditingController({required TextSpan textSpan}):
+    _textSpan = textSpan,
+    super(text: textSpan.toPlainText(includeSemanticsLabels: false));
+
+  final TextSpan _textSpan;
+
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+    // This does not care about composing.
+    return TextSpan(
+      style: _textSpan.style,
+      text: value.text,
+    );
+  }
+
+  @override
+  set text(String? newText) {
+    // This should never be reached.
+    throw UnimplementedError();
+  }
+}
+
 class _SelectableTextContainer extends StatefulWidget {
   const _SelectableTextContainer({
     required this.text,
@@ -758,7 +782,7 @@ class _SelectableTextContainer extends StatefulWidget {
     this.onSelectionChanged,
   });
 
-  final InlineSpan text;
+  final TextSpan text;
   final TextAlign textAlign;
   final TextDirection? textDirection;
   final bool softWrap;
@@ -778,17 +802,37 @@ class _SelectableTextContainer extends StatefulWidget {
 
 class _SelectableTextContainerState extends State<_SelectableTextContainer> {
   late final _SelectableTextContainerDelegate _selectionDelegate;
+  late TextSpanController _controller;
   final GlobalKey _textKey = GlobalKey();
+
+  void _onControllerChanged() {
+    setState(() { /* We use _controller.value in build(). */ });
+  }
 
   @override
   void initState() {
     super.initState();
-    _selectionDelegate = _SelectableTextContainerDelegate(_textKey, onSelectionChanged: widget.onSelectionChanged);
+    _controller = TextSpanController(widget.text);
+    _controller.addListener(_onControllerChanged);
+    _selectionDelegate = _SelectableTextContainerDelegate(_textKey, onSelectionChanged: widget.onSelectionChanged, textController: _controller);
+  }
+
+  @override
+  void didUpdateWidget(_SelectableTextContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.text != oldWidget.text) {
+      _controller.removeListener(_onControllerChanged);
+      _controller.dispose();
+      _controller = TextSpanController(widget.text);
+      _controller.addListener(_onControllerChanged);
+    }
   }
 
   @override
   void dispose() {
     _selectionDelegate.dispose();
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
     super.dispose();
   }
 
@@ -811,7 +855,7 @@ class _SelectableTextContainerState extends State<_SelectableTextContainer> {
         textWidthBasis: widget.textWidthBasis,
         textHeightBehavior: widget.textHeightBehavior,
         selectionColor: widget.selectionColor,
-        text: widget.text,
+        text: _controller.buildContents(),
       ),
     );
   }
@@ -880,8 +924,11 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
     GlobalKey textKey,
     {
       this.onSelectionChanged,
+      required this.textController,
     }
   ) : _textKey = textKey;
+
+  final TextSpanController textController;
 
   final GlobalKey _textKey;
   final SelectedContentChangedCallback? onSelectionChanged;
@@ -910,12 +957,15 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
     for (final SelectedContent selection in selections) {
       buffer.write(selection.plainText);
     }
+    textController.startOffset = forwardSelection ? selections.first.startOffset : selections.last.endOffset;
+    textController.endOffset = forwardSelection ? selections.last.endOffset : selections.first.endOffset;
     return SelectedContent(
       plainText: buffer.toString(),
       geometry: value,
       transformTo: getTransformTo,
       startOffset: forwardSelection ? selections.first.startOffset : selections.last.endOffset,
       endOffset: forwardSelection ? selections.last.endOffset : selections.first.endOffset,
+      controller: [textController],
     );
   }
 
@@ -1453,3 +1503,4 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
     super.didChangeSelectables();
   }
 }
+

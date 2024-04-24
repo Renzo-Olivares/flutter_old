@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import 'layer.dart';
@@ -115,19 +116,22 @@ class SelectedContent {
     required this.transformTo,
     required this.startOffset,
     required this.endOffset,
+    this.controller,
   });
 
   /// The selected content in plain text format.
   final String plainText;
 
   /// The geometry of the selected content.
-  final SelectionGeometry geometry;
+  final SelectionGeometry geometry; 
 
   final SelectedContentGeometryTransformTo transformTo;
 
   final int startOffset;
 
   final int endOffset;
+
+  final List<TextSpanController>? controller;
 
   @override
   String toString() {
