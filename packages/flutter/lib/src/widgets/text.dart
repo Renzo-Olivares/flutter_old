@@ -473,7 +473,6 @@ class Text extends StatelessWidget {
     this.semanticsLabel,
     this.textWidthBasis,
     this.textHeightBehavior,
-    this.onSelectionChanged,
     this.selectionColor,
   }) : textSpan = null,
        assert(
@@ -510,7 +509,6 @@ class Text extends StatelessWidget {
     this.semanticsLabel,
     this.textWidthBasis,
     this.textHeightBehavior,
-    this.onSelectionChanged,
     this.selectionColor,
   }) : data = null,
        assert(
@@ -642,8 +640,6 @@ class Text extends StatelessWidget {
   /// (semi-transparent grey).
   final Color? selectionColor;
 
-  final SelectedContentChangedCallback? onSelectionChanged;
-
   @override
   Widget build(BuildContext context) {
     final DefaultTextStyle defaultTextStyle = DefaultTextStyle.of(context);
@@ -677,7 +673,6 @@ class Text extends StatelessWidget {
           textWidthBasis: textWidthBasis ?? defaultTextStyle.textWidthBasis,
           textHeightBehavior: textHeightBehavior ?? defaultTextStyle.textHeightBehavior ?? DefaultTextHeightBehavior.maybeOf(context),
           selectionColor: selectionColor ?? DefaultSelectionStyle.of(context).selectionColor ?? DefaultSelectionStyle.defaultColor,
-          onSelectionChanged: onSelectionChanged,
           text: TextSpan(
             style: effectiveTextStyle,
             text: data,
@@ -740,31 +735,6 @@ class Text extends StatelessWidget {
   }
 }
 
-typedef SelectedContentChangedCallback = void Function(SelectedContent? selectedContent);
-
-class _TextSpanEditingController extends TextEditingController {
-  _TextSpanEditingController({required TextSpan textSpan}):
-    _textSpan = textSpan,
-    super(text: textSpan.toPlainText(includeSemanticsLabels: false));
-
-  final TextSpan _textSpan;
-
-  @override
-  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
-    // This does not care about composing.
-    return TextSpan(
-      style: _textSpan.style,
-      text: value.text,
-    );
-  }
-
-  @override
-  set text(String? newText) {
-    // This should never be reached.
-    throw UnimplementedError();
-  }
-}
-
 class _SelectableTextContainer extends StatefulWidget {
   const _SelectableTextContainer({
     required this.text,
@@ -779,7 +749,6 @@ class _SelectableTextContainer extends StatefulWidget {
     required this.textWidthBasis,
     this.textHeightBehavior,
     required this.selectionColor,
-    this.onSelectionChanged,
   });
 
   final TextSpan text;
@@ -794,7 +763,6 @@ class _SelectableTextContainer extends StatefulWidget {
   final TextWidthBasis textWidthBasis;
   final ui.TextHeightBehavior? textHeightBehavior;
   final Color selectionColor;
-  final SelectedContentChangedCallback? onSelectionChanged;
 
   @override
   State<_SelectableTextContainer> createState() => _SelectableTextContainerState();
@@ -814,7 +782,7 @@ class _SelectableTextContainerState extends State<_SelectableTextContainer> {
     super.initState();
     _controller = TextSpanController(widget.text);
     _controller.addListener(_onControllerChanged);
-    _selectionDelegate = _SelectableTextContainerDelegate(_textKey, onSelectionChanged: widget.onSelectionChanged, textController: _controller);
+    _selectionDelegate = _SelectableTextContainerDelegate(_textKey, textController: _controller);
   }
 
   @override
@@ -923,7 +891,6 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
   _SelectableTextContainerDelegate(
     GlobalKey textKey,
     {
-      this.onSelectionChanged,
       required this.textController,
     }
   ) : _textKey = textKey;
@@ -931,7 +898,6 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
   final TextSpanController textController;
 
   final GlobalKey _textKey;
-  final SelectedContentChangedCallback? onSelectionChanged;
   RenderParagraph get paragraph => _textKey.currentContext!.findRenderObject()! as RenderParagraph;
 
   /// Copies the selected contents of all [Selectable]s.
@@ -972,7 +938,6 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
   @override
   SelectionResult dispatchSelectionEvent(SelectionEvent event) {
     final SelectionResult result = super.dispatchSelectionEvent(event);
-    onSelectionChanged?.call(getSelectedContent());
     return result;
   }
 
