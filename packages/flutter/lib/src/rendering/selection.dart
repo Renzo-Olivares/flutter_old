@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import 'layer.dart';
@@ -103,6 +102,15 @@ abstract class SelectionHandler implements ValueListenable<SelectionGeometry> {
 
 typedef SelectedContentGeometryTransformTo = Matrix4 Function(RenderObject? ancestor);
 
+abstract class SelectedContentController<T> extends ValueNotifier {
+  SelectedContentController(super.value);
+
+  int get startOffset;
+  int get endOffset;
+
+  T buildContents();
+}
+
 /// The selected content in a [Selectable] or [SelectionHandler].
 // TODO(chunhtai): Add more support for rich content.
 // https://github.com/flutter/flutter/issues/104206.
@@ -116,7 +124,7 @@ class SelectedContent {
     required this.transformTo,
     required this.startOffset,
     required this.endOffset,
-    this.controller,
+    this.controllers,
   });
 
   /// The selected content in plain text format.
@@ -131,7 +139,7 @@ class SelectedContent {
 
   final int endOffset;
 
-  final List<TextSpanController>? controller;
+  final List<SelectedContentController>? controllers;
 
   @override
   String toString() {

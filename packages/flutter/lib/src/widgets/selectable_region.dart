@@ -2242,11 +2242,11 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       for (final Selectable selectable in selectables)
         if (selectable.getSelectedContent() case final SelectedContent data) data,
     ];
-    final List<TextSpanController> controllers = <TextSpanController>[];
+    final List<SelectedContentController> controllers = <SelectedContentController>[];
     for (final Selectable selectable in selectables) {
       final SelectedContent? selectedContent = selectable.getSelectedContent();
-      if (selectedContent != null && selectedContent.controller != null) {
-        controllers.addAll(selectedContent.controller!);
+      if (selectedContent != null && selectedContent.controllers != null) {
+        controllers.addAll(selectedContent.controllers!);
       }
     }
     if (selections.isEmpty) {
@@ -2262,7 +2262,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       transformTo: getTransformTo,
       startOffset: currentSelectionStartIndex,
       endOffset: currentSelectionEndIndex,
-      controller: controllers,
+      controllers: controllers,
     );
   }
 
@@ -2712,30 +2712,4 @@ class SelectionController extends ValueNotifier<SelectionEvent?> {
   void dispatchSelectionEvent(SelectionEvent? event) {
     value = event;
   }
-}
-
-class SelectedTextContentController<TextSpan> extends SelectedContentController {
-  SelectedTextContentController(super.value);
-
-  @override
-  void deleteContents() {
-  }
-
-  @override
-  void insertContents() {
-
-  }
-
-  @override
-  TextSpan buildContents() {
-    return value;
-  }
-}
-
-abstract class SelectedContentController<T> extends ValueNotifier {
-  SelectedContentController(super.value);
-
-  void deleteContents();
-  void insertContents();
-  T buildContents();
 }

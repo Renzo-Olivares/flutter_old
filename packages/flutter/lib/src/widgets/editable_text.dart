@@ -359,33 +359,6 @@ class TextEditingController extends ValueNotifier<TextEditingValue> {
   }
 }
 
-class TextSpanController extends ValueNotifier<TextSpan> {
-  TextSpanController(super.value);
-
-  TextSpan buildContents() {
-    return value;
-  }
-
-  int get startOffset => _start;
-  int _start = -1;
-  set startOffset(int newValue) {
-    if (_start== newValue) {
-      return;
-    }
-    _start = newValue; 
-  }
-
-  int get endOffset => _end;
-  int _end = -1;
-
-  set endOffset(int newValue) {
-    if (_end == newValue) {
-      return;
-    }
-    _end = newValue; 
-  }
-}
-
 /// Toolbar configuration for [EditableText].
 ///
 /// Toolbar is a context menu that will show up when user right click or long
