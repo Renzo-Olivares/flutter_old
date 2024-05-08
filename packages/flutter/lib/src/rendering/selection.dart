@@ -105,6 +105,8 @@ typedef SelectedContentGeometryTransformTo = Matrix4 Function(RenderObject? ance
 abstract class SelectedContentController<T> extends ValueNotifier {
   SelectedContentController(super.value);
 
+  List<SelectedContentController> children = <SelectedContentController>[];
+
   int get startOffset;
   int get endOffset;
 

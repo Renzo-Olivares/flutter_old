@@ -767,39 +767,61 @@ class _SelectableTextContainer extends StatefulWidget {
   State<_SelectableTextContainer> createState() => _SelectableTextContainerState();
 }
 
-class _SelectableTextContainerState extends State<_SelectableTextContainer> {
-  late final _SelectableTextContainerDelegate _selectionDelegate;
-  late _TextSpanContentController _controller;
-  final GlobalKey _textKey = GlobalKey();
+mixin SelectableContentDelegate<S extends StatefulWidget> on State<S> {
+  SelectedContentController get contentController;
 
-  void _onControllerChanged() {
-    setState(() { /* We use _controller.value in build(). */ });
+  void onContentChanged() {
+    setState(() {});
   }
 
   @override
   void initState() {
     super.initState();
+    contentController.addListener(onContentChanged);
+  }
+
+  // @override
+  // void didUpdateWidget(S oldWidget) {
+  // }
+
+  @override
+  void dispose() {
+    contentController.removeListener(onContentChanged);
+    contentController.dispose();
+    super.dispose();
+  }
+}
+
+class _SelectableTextContainerState extends State<_SelectableTextContainer> with SelectableContentDelegate<_SelectableTextContainer> {
+  late final _SelectableTextContainerDelegate _selectionDelegate;
+  late _TextSpanContentController _controller;
+  final GlobalKey _textKey = GlobalKey();
+
+  @override
+  SelectedContentController get contentController => _controller;
+
+  @override
+  void initState() {
+    debugPrint('style ${widget.text}');
     _controller = _TextSpanContentController(widget.text);
-    _controller.addListener(_onControllerChanged);
-    _selectionDelegate = _SelectableTextContainerDelegate(_textKey, textController: _controller);
+    super.initState();
+    _selectionDelegate = _SelectableTextContainerDelegate(_textKey, selectedContentDelegate: this);
   }
 
   @override
   void didUpdateWidget(_SelectableTextContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.text != oldWidget.text) {
-      _controller.removeListener(_onControllerChanged);
+      _controller.removeListener(onContentChanged);
       _controller.dispose();
       _controller = _TextSpanContentController(widget.text);
-      _controller.addListener(_onControllerChanged);
+      _controller.addListener(onContentChanged);
     }
   }
 
   @override
   void dispose() {
     _selectionDelegate.dispose();
-    _controller.removeListener(_onControllerChanged);
-    _controller.dispose();
     super.dispose();
   }
 
@@ -890,11 +912,11 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
   _SelectableTextContainerDelegate(
     GlobalKey textKey,
     {
-      required this.textController,
+      required this.selectedContentDelegate,
     }
   ) : _textKey = textKey;
 
-  final _TextSpanContentController textController;
+  final SelectableContentDelegate selectedContentDelegate;
 
   final GlobalKey _textKey;
   RenderParagraph get paragraph => _textKey.currentContext!.findRenderObject()! as RenderParagraph;
@@ -922,15 +944,20 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
     for (final SelectedContent selection in selections) {
       buffer.write(selection.plainText);
     }
-    textController.startOffset = forwardSelection ? selections.first.startOffset : selections.last.endOffset;
-    textController.endOffset = forwardSelection ? selections.last.endOffset : selections.first.endOffset;
+    (selectedContentDelegate.contentController as _TextSpanContentController).startOffset = forwardSelection ? selections.first.startOffset : selections.last.endOffset;
+    (selectedContentDelegate.contentController as _TextSpanContentController).endOffset = forwardSelection ? selections.last.endOffset : selections.first.endOffset;
+    for (final SelectedContent selection in selections) {
+      if (selection.controllers != null) {
+        selectedContentDelegate.contentController.children.addAll(selection.controllers!);
+      }
+    }
     return SelectedContent(
       plainText: buffer.toString(),
       geometry: value,
       transformTo: getTransformTo,
       startOffset: forwardSelection ? selections.first.startOffset : selections.last.endOffset,
       endOffset: forwardSelection ? selections.last.endOffset : selections.first.endOffset,
-      controllers: [textController],
+      controllers: [selectedContentDelegate.contentController],
     );
   }
 
