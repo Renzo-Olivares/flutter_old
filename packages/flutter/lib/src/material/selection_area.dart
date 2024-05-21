@@ -52,6 +52,7 @@ class SelectionArea extends StatefulWidget {
     this.contextMenuBuilder = _defaultContextMenuBuilder,
     this.magnifierConfiguration,
     this.onSelectionChanged,
+    this.controller,
     required this.child,
   });
 
@@ -91,6 +92,10 @@ class SelectionArea extends StatefulWidget {
 
   /// Called when the selected content changes.
   final ValueChanged<SelectedContent?>? onSelectionChanged;
+
+  /// An optional controller to clear or select all contents under this
+  /// [SelectableRegion].
+  final SelectionController? controller;
 
   /// The child widget this selection area applies to.
   ///
@@ -132,6 +137,7 @@ class _SelectionAreaState extends State<SelectionArea> {
       contextMenuBuilder: widget.contextMenuBuilder,
       magnifierConfiguration: widget.magnifierConfiguration ?? TextMagnifier.adaptiveMagnifierConfiguration,
       onSelectionChanged: widget.onSelectionChanged,
+      controller: widget.controller,
       child: widget.child,
     );
   }
