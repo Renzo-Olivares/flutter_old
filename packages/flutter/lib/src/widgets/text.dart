@@ -1247,9 +1247,9 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
     }
     // A [_SelectableFragment] does not typically provide a [SelectedContentController],
     // so this pass should collect all [PlaceholderSpan] child controllers.
-    final List<SelectedContentController> childControllers = <SelectedContentController>[
+    final List<SelectedContentController<Object>> childControllers = <SelectedContentController<Object>>[
       for (final SelectedContent selectedContent in selections)
-        if (selectedContent.controllers case final List<SelectedContentController> data) ...data,
+        if (selectedContent.controllers case final List<SelectedContentController<Object>> data) ...data,
     ];
     // Question: Should we add the root text controller, if only the children
     // are selected? For example, say we have the following:
@@ -1276,9 +1276,9 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
     // that are selected? Or should we only return the selected children controllers.
     // The former might be more confusing to the user?
     textContentController.children.clear(); // To prevent from adding duplicate controllers to children list.
-    childControllers.forEach((SelectedContentController childController) {
-      textContentController.addChild(childController);
-    });
+    for (int index = 0; index < childControllers.length; index += 1) {
+      textContentController.addChild(childControllers[index]);
+    }
     // Accurately find the selection endpoints, selections.first.startOffset and
     // selections.last.endOffset are only accurate when the selections.first and
     // selections.last are root selectables with regards to the text. When the
@@ -1290,15 +1290,19 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
     if (paragraph.selectableBelongsToParagraph(selectables[currentSelectionStartIndex])) {
       textContentController.startOffset = selections.first.startOffset;
     } else {
-      // TODO: Determine inverted selection?
-      final TextPosition positionBeforeStart = paragraph.getPositionForOffset(selectables[currentSelectionStartIndex].boundingBoxes.first.bottomLeft);
+      // TODO(Renzo-Olivares): Determine inverted selection
+      // final TextPosition positionBeforeStart = paragraph.getPositionForOffset(selectables[currentSelectionStartIndex].boundingBoxes.first.bottomLeft);
+      // textContentController.startOffset = positionBeforeStart.offset;
+      final TextPosition positionBeforeStart = paragraph.getPositionForOffset(selectables[currentSelectionStartIndex].value.startSelectionPoint!.localPosition);
       textContentController.startOffset = positionBeforeStart.offset;
     }
     if (paragraph.selectableBelongsToParagraph(selectables[currentSelectionEndIndex])) {
       textContentController.endOffset = selections.last.endOffset;
     } else {
-      // TODO: Determine inverted selection?
-      final TextPosition positionAfterEnd = paragraph.getPositionForOffset(selectables[currentSelectionEndIndex].boundingBoxes.last.bottomRight);
+      // TODO(Renzo-Olivares): Determine inverted selection?
+      // final TextPosition positionAfterEnd = paragraph.getPositionForOffset(selectables[currentSelectionEndIndex].boundingBoxes.last.bottomRight);
+      // textContentController.endOffset = positionAfterEnd.offset;
+      final TextPosition positionAfterEnd = paragraph.getPositionForOffset(selectables[currentSelectionEndIndex].value.endSelectionPoint!.localPosition);
       textContentController.endOffset = positionAfterEnd.offset;
     }
     final StringBuffer buffer = StringBuffer();
@@ -1310,7 +1314,7 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
       geometry: value,
       startOffset: textContentController.startOffset,
       endOffset: textContentController.endOffset,
-      controllers: <SelectedContentController>[textContentController],
+      controllers: <SelectedContentController<Object>>[textContentController],
     );
   }
 
@@ -1519,7 +1523,7 @@ class _TextSpanContentController extends SelectedContentController<TextSpan> {
     if (_start== newValue) {
       return;
     }
-    _start = newValue; 
+    _start = newValue;
   }
 
   @override
@@ -1529,6 +1533,6 @@ class _TextSpanContentController extends SelectedContentController<TextSpan> {
     if (_end == newValue) {
       return;
     }
-    _end = newValue; 
+    _end = newValue;
   }
 }
