@@ -464,6 +464,7 @@ class Text extends StatelessWidget {
   const Text(
     String this.data, {
     super.key,
+    this.selectableId,
     this.style,
     this.strutStyle,
     this.textAlign,
@@ -500,6 +501,7 @@ class Text extends StatelessWidget {
   const Text.rich(
     InlineSpan this.textSpan, {
     super.key,
+    this.selectableId,
     this.style,
     this.strutStyle,
     this.textAlign,
@@ -524,6 +526,12 @@ class Text extends StatelessWidget {
          textScaler == null || textScaleFactor == null,
          'textScaleFactor is deprecated and cannot be specified when textScaler is specified.',
        );
+
+  /// A unique id used to identify this [Selectable] widget.
+  ///
+  /// When this widget is created you can request a unique id
+  /// through [SelectableRegionState.nextSelectableId].
+  final int? selectableId;
 
   /// The text to display.
   ///
@@ -671,6 +679,7 @@ class Text extends StatelessWidget {
       result = MouseRegion(
         cursor: DefaultSelectionStyle.of(context).mouseCursor ?? SystemMouseCursors.text,
         child: _SelectableTextContainer(
+          selectableId: selectableId,
           textAlign: textAlign ?? defaultTextStyle.textAlign ?? TextAlign.start,
           textDirection: textDirection, // RichText uses Directionality.of to obtain a default if this is null.
           locale: locale, // RichText uses Localizations.localeOf to obtain a default if this is null
@@ -746,6 +755,7 @@ class Text extends StatelessWidget {
 
 class _SelectableTextContainer extends StatefulWidget {
   const _SelectableTextContainer({
+    this.selectableId,
     required this.text,
     required this.textAlign,
     this.textDirection,
@@ -760,6 +770,7 @@ class _SelectableTextContainer extends StatefulWidget {
     required this.selectionColor,
   });
 
+  final int? selectableId;
   final TextSpan text;
   final TextAlign textAlign;
   final TextDirection? textDirection;
@@ -782,22 +793,15 @@ class _SelectableTextContainerState extends State<_SelectableTextContainer> {
   late final _TextSpanContentController _textContentController;
   final GlobalKey _textKey = GlobalKey();
 
-  void contentsChanged() {
-    setState(() {});
-  }
-
   @override
   void initState() {
     super.initState();
-    _textContentController = _TextSpanContentController(widget.text);
-    _textContentController.addListener(contentsChanged);
+    _textContentController = _TextSpanContentController(selectableId: widget.selectableId, content: widget.text);
     _selectionDelegate = _SelectableTextContainerDelegate(_textKey, _textContentController);
   }
 
   @override
   void dispose() {
-    _textContentController.removeListener(contentsChanged);
-    _textContentController.dispose();
     _selectionDelegate.dispose();
     super.dispose();
   }
@@ -821,7 +825,7 @@ class _SelectableTextContainerState extends State<_SelectableTextContainer> {
         textWidthBasis: widget.textWidthBasis,
         textHeightBehavior: widget.textHeightBehavior,
         selectionColor: widget.selectionColor,
-        text: _textContentController.buildContents(),
+        text: widget.text,
       ),
     );
   }
@@ -1509,12 +1513,10 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
 }
 
 class _TextSpanContentController extends SelectedContentController<TextSpan> {
-  _TextSpanContentController(super.value);
-
-  @override
-  TextSpan buildContents() {
-    return value;
-  }
+  _TextSpanContentController({
+    super.selectableId,
+    required super.content,
+  });
 
   @override
   int get startOffset => _start;
