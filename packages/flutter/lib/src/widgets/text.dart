@@ -915,6 +915,7 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
   final GlobalKey _textKey;
   RenderParagraph get paragraph => _textKey.currentContext!.findRenderObject()! as RenderParagraph;
 
+  // ignore: avoid_setters_without_getters
   set _attachController(_TextSpanContentController newController) {
     textContentController = newController;
   }
@@ -1297,7 +1298,7 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
       textContentController.startOffset = selections[currentSelectionStartIndex]!.startOffset;
     } else {
       final bool localSelectionForward = selections[currentSelectionStartIndex]!.endOffset >= selections[currentSelectionStartIndex]!.startOffset;
-      final TextPosition positionBeforeStart = localSelectionForward 
+      final TextPosition positionBeforeStart = localSelectionForward
                                              ? paragraph.getPositionForOffset(selectables[currentSelectionStartIndex].boundingBoxes.first.bottomLeft)
                                              : paragraph.getPositionForOffset(selectables[currentSelectionStartIndex].boundingBoxes.last.bottomRight);
       textContentController.startOffset = positionBeforeStart.offset;
