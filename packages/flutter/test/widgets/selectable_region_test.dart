@@ -4863,7 +4863,7 @@ void main() {
     expect(content!.controllers![0].children![0].endOffset, 3);
     expect((content!.controllers![0].children![0].content as TextSpan).text, isNotNull);
     expect((content!.controllers![0].children![0].content as TextSpan).text, 'how are you today.');
-    
+
     // Backwards selection.
     await mouseGesture.down(textOffsetToPosition(paragraph2, 4));
     await tester.pump();
@@ -5025,7 +5025,7 @@ void main() {
     expect(content!.controllers![0].endOffset, 3);
     expect((content!.controllers![0].content as TextSpan).text, isNotNull);
     expect((content!.controllers![0].content as TextSpan).text, 'How are you?');
-    
+
     // Backwards selection.
     await mouseGesture.down(textOffsetToPosition(paragraph3, 4));
     await tester.pump();
