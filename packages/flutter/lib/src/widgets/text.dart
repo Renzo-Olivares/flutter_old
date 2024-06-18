@@ -1333,6 +1333,7 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
       selectableId: selectableId,
       start: startOffset,
       end: endOffset,
+      children: childRanges,
     );
     final StringBuffer buffer = StringBuffer();
     for (final SelectedContent selection in selections.values) {
@@ -1539,11 +1540,11 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
 
 class _TextSpanContentRange extends SelectedContentRange<TextSpan> {
   _TextSpanContentRange({
+    this.start = -1,
+    this.end = -1,
     super.selectableId,
     required super.content,
     super.children,
-    this.start = -1,
-    this.end = -1,
   });
 
   @override
