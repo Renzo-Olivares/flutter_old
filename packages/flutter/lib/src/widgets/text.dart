@@ -1345,6 +1345,7 @@ class _SelectableTextContainerDelegate extends MultiSelectableSelectionContainer
     }
     final _TextSpanContentRange range = _TextSpanContentRange(
       content: textState,
+      contentLength: paragraph.text.toPlainText(includeSemanticsLabels: false).length,
       selectableId: selectableId,
       start: startOffset,
       end: endOffset,
@@ -1549,6 +1550,7 @@ class _TextSpanContentRange extends SelectedContentRange<TextSpan> {
     int end = -1,
     super.selectableId,
     required super.content,
+    required super.contentLength,
     super.children,
   }) : _start = start,
        _end = end;
