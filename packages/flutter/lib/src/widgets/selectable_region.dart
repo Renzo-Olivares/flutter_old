@@ -2998,13 +2998,7 @@ class SelectionListener extends StatefulWidget {
 }
 
 class _SelectionListenerState extends State<SelectionListener> {
-  late _SelectionListenerDelegate _selectionDelegate;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectionDelegate = _SelectionListenerDelegate(onSelectionChanged: widget.onSelectionChanged);
-  }
+  late _SelectionListenerDelegate _selectionDelegate = _SelectionListenerDelegate(onSelectionChanged: widget.onSelectionChanged);
 
   @override
   void didUpdateWidget(SelectionListener oldWidget) {
