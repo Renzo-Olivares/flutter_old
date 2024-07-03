@@ -2885,7 +2885,7 @@ typedef SelectableRegionContextMenuBuilder = Widget Function(
 
 /// Signature for the callback that reports when the user changes the selection
 /// under a [SelectionListener].
-typedef SelectionListenerSelectionChangedCallback = void Function(List<SelectedContentRange<Object>>? selections);
+typedef SelectionListenerSelectionChangedCallback<T extends Object> = void Function(List<SelectedContentRange<T>>? selections);
 
 /// A [SelectionContainer] that allows the user to listen to selection changes
 /// for the child subtree it wraps under a [SelectionArea] or [SelectableRegion].
@@ -2915,7 +2915,7 @@ typedef SelectionListenerSelectionChangedCallback = void Function(List<SelectedC
 ///
 ///   * [SelectionArea], which provides an overview of the selection system.
 ///   * [SelectableRegion], which provides an overview of the selection system.
-class SelectionListener extends StatefulWidget {
+class SelectionListener<T extends Object> extends StatefulWidget {
   /// Create a new [SelectionListener] widget.
   const SelectionListener({
     super.key,
@@ -2925,7 +2925,7 @@ class SelectionListener extends StatefulWidget {
 
   /// Called when the user changes the selection of children selectables
   /// registered to its local [SelectionRegistrar].
-  final SelectionListenerSelectionChangedCallback onSelectionChanged;
+  final SelectionListenerSelectionChangedCallback<T> onSelectionChanged;
 
   /// The child widget this selection listener applies to.
   ///
@@ -2933,14 +2933,14 @@ class SelectionListener extends StatefulWidget {
   final Widget child;
 
   @override
-  State<SelectionListener> createState() => _SelectionListenerState();
+  State<SelectionListener<T>> createState() => _SelectionListenerState<T>();
 }
 
-class _SelectionListenerState extends State<SelectionListener> {
-  late final _SelectionListenerDelegate _selectionDelegate = _SelectionListenerDelegate(onSelectionChanged: widget.onSelectionChanged);
+class _SelectionListenerState<T extends Object> extends State<SelectionListener<T>> {
+  late final _SelectionListenerDelegate<T> _selectionDelegate = _SelectionListenerDelegate<T>(onSelectionChanged: widget.onSelectionChanged);
 
   @override
-  void didUpdateWidget(SelectionListener oldWidget) {
+  void didUpdateWidget(SelectionListener<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.onSelectionChanged != widget.onSelectionChanged) {
       _selectionDelegate.onSelectionChanged = widget.onSelectionChanged;
@@ -2962,15 +2962,15 @@ class _SelectionListenerState extends State<SelectionListener> {
   }
 }
 
-class _SelectionListenerDelegate extends _SelectableRegionContainerDelegate {
+class _SelectionListenerDelegate<T extends Object> extends _SelectableRegionContainerDelegate {
   _SelectionListenerDelegate({required this.onSelectionChanged});
 
-  SelectionListenerSelectionChangedCallback onSelectionChanged;
+  SelectionListenerSelectionChangedCallback<T> onSelectionChanged;
 
   @override
   SelectionResult dispatchSelectionEvent(SelectionEvent event) {
     final SelectionResult result = super.dispatchSelectionEvent(event);
-    onSelectionChanged(getSelections());
+    onSelectionChanged(getSelections() as List<SelectedContentRange<T>>?);
     return result;
   }
 }
