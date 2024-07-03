@@ -2998,14 +2998,13 @@ class SelectionListener extends StatefulWidget {
 }
 
 class _SelectionListenerState extends State<SelectionListener> {
-  late _SelectionListenerDelegate _selectionDelegate = _SelectionListenerDelegate(onSelectionChanged: widget.onSelectionChanged);
+  late final _SelectionListenerDelegate _selectionDelegate = _SelectionListenerDelegate(onSelectionChanged: widget.onSelectionChanged);
 
   @override
   void didUpdateWidget(SelectionListener oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.onSelectionChanged != widget.onSelectionChanged) {
-      _selectionDelegate.dispose();
-      _selectionDelegate = _SelectionListenerDelegate(onSelectionChanged: widget.onSelectionChanged);
+      _selectionDelegate.onSelectionChanged = widget.onSelectionChanged;
     }
   }
 
@@ -3027,7 +3026,7 @@ class _SelectionListenerState extends State<SelectionListener> {
 class _SelectionListenerDelegate extends _SelectableRegionContainerDelegate {
   _SelectionListenerDelegate({required this.onSelectionChanged});
 
-  final SelectionListenerSelectionChangedCallback onSelectionChanged;
+  SelectionListenerSelectionChangedCallback onSelectionChanged;
 
   @override
   SelectionResult dispatchSelectionEvent(SelectionEvent event) {
