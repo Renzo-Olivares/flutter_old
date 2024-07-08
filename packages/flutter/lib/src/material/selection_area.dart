@@ -52,7 +52,6 @@ class SelectionArea extends StatefulWidget {
     this.contextMenuBuilder = _defaultContextMenuBuilder,
     this.magnifierConfiguration,
     this.onSelectionChanged,
-    this.controller,
     required this.child,
   });
 
@@ -93,10 +92,6 @@ class SelectionArea extends StatefulWidget {
   /// Called when the selected content changes.
   final ValueChanged<SelectedContent?>? onSelectionChanged;
 
-  /// An optional controller to clear or select all contents under this
-  /// [SelectableRegion].
-  final SelectionController? controller;
-
   /// The child widget this selection area applies to.
   ///
   /// {@macro flutter.widgets.ProxyWidget.child}
@@ -109,12 +104,16 @@ class SelectionArea extends StatefulWidget {
   }
 
   @override
-  State<StatefulWidget> createState() => _SelectionAreaState();
+  State<StatefulWidget> createState() => SelectionAreaState();
 }
 
-class _SelectionAreaState extends State<SelectionArea> {
+/// State for a [SelectionArea].
+class SelectionAreaState extends State<SelectionArea> {
   FocusNode get _effectiveFocusNode => widget.focusNode ?? (_internalNode ??= FocusNode());
   FocusNode? _internalNode;
+  final GlobalKey<SelectableRegionState> _selectableRegionKey = GlobalKey<SelectableRegionState>();
+  /// The [State] of the [SelectableRegion] for which this [SelectionArea] wraps.
+  SelectableRegionState get selectableRegion => _selectableRegionKey.currentState!;
 
   @override
   void dispose() {
@@ -132,12 +131,12 @@ class _SelectionAreaState extends State<SelectionArea> {
       TargetPlatform.macOS                             => cupertinoDesktopTextSelectionHandleControls,
     };
     return SelectableRegion(
+      key: _selectableRegionKey,
       selectionControls: controls,
       focusNode: _effectiveFocusNode,
       contextMenuBuilder: widget.contextMenuBuilder,
       magnifierConfiguration: widget.magnifierConfiguration ?? TextMagnifier.adaptiveMagnifierConfiguration,
       onSelectionChanged: widget.onSelectionChanged,
-      controller: widget.controller,
       child: widget.child,
     );
   }
