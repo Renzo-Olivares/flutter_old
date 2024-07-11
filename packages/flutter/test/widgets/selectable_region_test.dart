@@ -5493,10 +5493,7 @@ class RenderSelectionSpy extends RenderProxyBox
 
   @override
   SelectedContent? getSelectedContent() {
-    return SelectedContent(
-      plainText: 'content',
-      geometry: value,
-    );
+    return const SelectedContent(plainText: 'content');
   }
 
   @override
@@ -5583,10 +5580,7 @@ class RenderSelectAll extends RenderProxyBox
 
   @override
   SelectedContent? getSelectedContent() {
-    return SelectedContent(
-      plainText: 'content',
-      geometry: value,
-    );
+    return const SelectedContent(plainText: 'content');
   }
 
   @override

@@ -2453,7 +2453,6 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     }
     return SelectedContent(
       plainText: buffer.toString(),
-      geometry: value,
     );
   }
 
