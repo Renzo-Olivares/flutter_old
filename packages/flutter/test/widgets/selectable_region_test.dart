@@ -4813,7 +4813,11 @@ void main() {
     final FocusNode focusNode = FocusNode();
     final Key textId1 = UniqueKey();
     final Key textId2 = UniqueKey();
-    final List<SelectedContentRange<Object>> activeSelections = <SelectedContentRange<Object>>[];
+    final Map<Key, String> dataModel = <Key, String>{
+      textId1: 'Hello world, ',
+      textId2: 'how are you today.',
+    };
+    final List<SelectedContentRange> activeSelections = <SelectedContentRange>[];
     addTearDown(focusNode.dispose);
 
     await tester.pumpWidget(
@@ -4822,9 +4826,9 @@ void main() {
           focusNode: focusNode,
           selectionControls: materialTextSelectionControls,
           child: SelectionListener(
-            onSelectionChanged: (List<SelectedContentRange<Object>>? selections) {
+            onSelectionChanged: (List<SelectedContentRange> selections) {
               activeSelections.clear();
-              if (selections == null || selections.isEmpty) {
+              if (selections.isEmpty) {
                 return;
               }
               activeSelections.addAll(selections);
@@ -4833,11 +4837,11 @@ void main() {
               children: <Widget>[
                 Text.rich(
                   TextSpan(
-                    text: 'Hello world, ',
+                    text: dataModel[textId1],
                     children: <InlineSpan>[
                       WidgetSpan(
                         child: Text(
-                          'how are you today.',
+                          dataModel[textId2]!,
                           key: textId2,
                         ),
                       ),
@@ -4866,9 +4870,9 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 0);
     expect(activeSelections[0].endOffset, 1);
-    expect((activeSelections[0].content as TextSpan).children, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, 'Hello world, ');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textId1);
+    expect(dataModel[activeSelections[0].selectableId], 'Hello world, ');
 
     // Selection on paragraph1.
     await mouseGesture.moveTo(textOffsetToPosition(paragraph1, 10));
@@ -4877,9 +4881,9 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 0);
     expect(activeSelections[0].endOffset, 10);
-    expect((activeSelections[0].content as TextSpan).children, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, 'Hello world, ');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textId1);
+    expect(dataModel[activeSelections[0].selectableId], 'Hello world, ');
 
     // Selection on paragraph1 and paragraph2.
     await mouseGesture.moveTo(textOffsetToPosition(paragraph2, 10));
@@ -4888,15 +4892,16 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 0);
     expect(activeSelections[0].endOffset, 14);
-    expect((activeSelections[0].content as TextSpan).children, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, 'Hello world, ');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textId1);
+    expect(dataModel[activeSelections[0].selectableId], 'Hello world, ');
     expect(activeSelections[0].children, isNotNull);
     expect(activeSelections[0].children!.length, 1);
     expect(activeSelections[0].children![0].startOffset, 0);
     expect(activeSelections[0].children![0].endOffset, 10);
-    expect((activeSelections[0].children![0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].children![0].content as TextSpan).text, 'how are you today.');
+    expect(activeSelections[0].children![0].selectableId, isNotNull);
+    expect(activeSelections[0].children![0].selectableId, textId2);
+    expect(dataModel[activeSelections[0].children![0].selectableId], 'how are you today.');
     await mouseGesture.up();
     await tester.pump();
     expect(activeSelections, isNotEmpty);
@@ -4911,15 +4916,16 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 13);
     expect(activeSelections[0].endOffset, 14);
-    expect((activeSelections[0].content as TextSpan).children, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, 'Hello world, ');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textId1);
+    expect(dataModel[activeSelections[0].selectableId], 'Hello world, ');
     expect(activeSelections[0].children, isNotNull);
     expect(activeSelections[0].children!.length, 1);
     expect(activeSelections[0].children![0].startOffset, 3);
     expect(activeSelections[0].children![0].endOffset, 3);
-    expect((activeSelections[0].children![0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].children![0].content as TextSpan).text, 'how are you today.');
+    expect(activeSelections[0].children![0].selectableId, isNotNull);
+    expect(activeSelections[0].children![0].selectableId, textId2);
+    expect(dataModel[activeSelections[0].children![0].selectableId], 'how are you today.');
 
     // Backwards selection.
     await mouseGesture.down(textOffsetToPosition(paragraph2, 4));
@@ -4930,15 +4936,16 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 14);
     expect(activeSelections[0].endOffset, 0);
-    expect((activeSelections[0].content as TextSpan).children, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, 'Hello world, ');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textId1);
+    expect(dataModel[activeSelections[0].selectableId], 'Hello world, ');
     expect(activeSelections[0].children, isNotNull);
     expect(activeSelections[0].children!.length, 1);
     expect(activeSelections[0].children![0].startOffset, 4);
     expect(activeSelections[0].children![0].endOffset, 0);
-    expect((activeSelections[0].children![0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].children![0].content as TextSpan).text, 'how are you today.');
+    expect(activeSelections[0].children![0].selectableId, isNotNull);
+    expect(activeSelections[0].children![0].selectableId, textId2);
+    expect(dataModel[activeSelections[0].children![0].selectableId], 'how are you today.');
     await mouseGesture.up();
     await tester.pump();
     expect(activeSelections, isNotEmpty);
@@ -4953,9 +4960,9 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 0);
     expect(activeSelections[0].endOffset, 0);
-    expect((activeSelections[0].content as TextSpan).children, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, isNotNull);
-    expect(((activeSelections[0].content as TextSpan).children!.first as TextSpan).text, 'Hello world, ');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textId1);
+    expect(dataModel[activeSelections[0].selectableId], 'Hello world, ');
   });
 
   testWidgets('onSelectionChanged SelectedContentRange is accurate', (WidgetTester tester) async {
@@ -4963,7 +4970,12 @@ void main() {
     final Key textKey1 = UniqueKey();
     final Key textKey2 = UniqueKey();
     final Key textKey3 = UniqueKey();
-    final List<SelectedContentRange<Object>> activeSelections = <SelectedContentRange<Object>>[];
+    final Map<Key, String> dataModel = <Key, String>{
+      textKey1: 'How are you?',
+      textKey2: 'Good, and you?',
+      textKey3: 'Fine, thank you.',
+    };
+    final List<SelectedContentRange> activeSelections = <SelectedContentRange>[];
     addTearDown(focusNode.dispose);
 
     await tester.pumpWidget(
@@ -4972,9 +4984,9 @@ void main() {
           focusNode: focusNode,
           selectionControls: materialTextSelectionControls,
           child: SelectionListener(
-            onSelectionChanged: (List<SelectedContentRange<Object>>? selections) {
+            onSelectionChanged: (List<SelectedContentRange> selections) {
               activeSelections.clear();
-              if (selections == null || selections.isEmpty) {
+              if (selections.isEmpty) {
                 return;
               }
               activeSelections.addAll(selections);
@@ -4982,15 +4994,15 @@ void main() {
             child: Column(
               children: <Widget>[
                 Text(
-                  'How are you?',
+                  dataModel[textKey1]!,
                   key: textKey1,
                 ),
                 Text(
-                  'Good, and you?',
+                  dataModel[textKey2]!,
                   key: textKey2,
                 ),
                 Text(
-                  'Fine, thank you.',
+                  dataModel[textKey3]!,
                   key: textKey3,
                 ),
               ],
@@ -5015,8 +5027,9 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 4);
     expect(activeSelections[0].endOffset, 7);
-    expect((activeSelections[0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].content as TextSpan).text, 'How are you?');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textKey1);
+    expect(dataModel[activeSelections[0].selectableId], 'How are you?');
 
     // Selection on paragraph1.
     await mouseGesture.moveTo(textOffsetToPosition(paragraph1, 10));
@@ -5025,8 +5038,9 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 4);
     expect(activeSelections[0].endOffset, 10);
-    expect((activeSelections[0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].content as TextSpan).text, 'How are you?');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textKey1);
+    expect(dataModel[activeSelections[0].selectableId], 'How are you?');
 
     // Selection on paragraph1 and paragraph2.
     await mouseGesture.moveTo(textOffsetToPosition(paragraph2, 10));
@@ -5035,12 +5049,14 @@ void main() {
     expect(activeSelections.length, 2);
     expect(activeSelections[0].startOffset, 4);
     expect(activeSelections[0].endOffset, 12);
-    expect((activeSelections[0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].content as TextSpan).text, 'How are you?');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textKey1);
+    expect(dataModel[activeSelections[0].selectableId], 'How are you?');
     expect(activeSelections[1].startOffset, 0);
     expect(activeSelections[1].endOffset, 10);
-    expect((activeSelections[1].content as TextSpan).text, isNotNull);
-    expect((activeSelections[1].content as TextSpan).text, 'Good, and you?');
+    expect(activeSelections[1].selectableId, isNotNull);
+    expect(activeSelections[1].selectableId, textKey2);
+    expect(dataModel[activeSelections[1].selectableId], 'Good, and you?');
 
     // Selection on paragraph1, paragraph2, and paragraph3.
     await mouseGesture.moveTo(textOffsetToPosition(paragraph3, 10));
@@ -5049,16 +5065,19 @@ void main() {
     expect(activeSelections.length, 3);
     expect(activeSelections[0].startOffset, 4);
     expect(activeSelections[0].endOffset, 12);
-    expect((activeSelections[0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].content as TextSpan).text, 'How are you?');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textKey1);
+    expect(dataModel[activeSelections[0].selectableId], 'How are you?');
     expect(activeSelections[1].startOffset, 0);
     expect(activeSelections[1].endOffset, 14);
-    expect((activeSelections[1].content as TextSpan).text, isNotNull);
-    expect((activeSelections[1].content as TextSpan).text, 'Good, and you?');
+    expect(activeSelections[1].selectableId, isNotNull);
+    expect(activeSelections[1].selectableId, textKey2);
+    expect(dataModel[activeSelections[1].selectableId], 'Good, and you?');
     expect(activeSelections[2].startOffset, 0);
     expect(activeSelections[2].endOffset, 10);
-    expect((activeSelections[2].content as TextSpan).text, isNotNull);
-    expect((activeSelections[2].content as TextSpan).text, 'Fine, thank you.');
+    expect(activeSelections[2].selectableId, isNotNull);
+    expect(activeSelections[2].selectableId, textKey3);
+    expect(dataModel[activeSelections[2].selectableId], 'Fine, thank you.');
     await mouseGesture.up();
     await tester.pump();
     expect(activeSelections, isNotEmpty);
@@ -5073,8 +5092,9 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 3);
     expect(activeSelections[0].endOffset, 3);
-    expect((activeSelections[0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].content as TextSpan).text, 'How are you?');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textKey1);
+    expect(dataModel[activeSelections[0].selectableId], 'How are you?');
 
     // Backwards selection.
     await mouseGesture.down(textOffsetToPosition(paragraph3, 4));
@@ -5085,16 +5105,19 @@ void main() {
     expect(activeSelections.length, 3);
     expect(activeSelections[0].startOffset, 12);
     expect(activeSelections[0].endOffset, 0);
-    expect((activeSelections[0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].content as TextSpan).text, 'How are you?');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textKey1);
+    expect(dataModel[activeSelections[0].selectableId], 'How are you?');
     expect(activeSelections[1].startOffset, 14);
     expect(activeSelections[1].endOffset, 0);
-    expect((activeSelections[1].content as TextSpan).text, isNotNull);
-    expect((activeSelections[1].content as TextSpan).text, 'Good, and you?');
+    expect(activeSelections[1].selectableId, isNotNull);
+    expect(activeSelections[1].selectableId, textKey2);
+    expect(dataModel[activeSelections[1].selectableId], 'Good, and you?');
     expect(activeSelections[2].startOffset, 4);
     expect(activeSelections[2].endOffset, 0);
-    expect((activeSelections[2].content as TextSpan).text, isNotNull);
-    expect((activeSelections[2].content as TextSpan).text, 'Fine, thank you.');
+    expect(activeSelections[2].selectableId, isNotNull);
+    expect(activeSelections[2].selectableId, textKey3);
+    expect(dataModel[activeSelections[2].selectableId], 'Fine, thank you.');
     await mouseGesture.up();
     await tester.pump();
     expect(activeSelections, isNotEmpty);
@@ -5109,8 +5132,9 @@ void main() {
     expect(activeSelections.length, 1);
     expect(activeSelections[0].startOffset, 0);
     expect(activeSelections[0].endOffset, 0);
-    expect((activeSelections[0].content as TextSpan).text, isNotNull);
-    expect((activeSelections[0].content as TextSpan).text, 'How are you?');
+    expect(activeSelections[0].selectableId, isNotNull);
+    expect(activeSelections[0].selectableId, textKey1);
+    expect(dataModel[activeSelections[0].selectableId], 'How are you?');
   });
 
   testWidgets('onSelectionChange is called when the selection changes through gestures', (WidgetTester tester) async {
@@ -5555,8 +5579,8 @@ class RenderSelectionSpy extends RenderProxyBox
   }
 
   @override
-  List<SelectedContentRange<Object>> getSelections() {
-    return <SelectedContentRange<Object>>[];
+  List<SelectedContentRange> getSelections() {
+    return <SelectedContentRange>[];
   }
 
   @override
@@ -5642,8 +5666,8 @@ class RenderSelectAll extends RenderProxyBox
   }
 
   @override
-  List<SelectedContentRange<Object>> getSelections() {
-    return <SelectedContentRange<Object>>[];
+  List<SelectedContentRange> getSelections() {
+    return <SelectedContentRange>[];
   }
 
   @override
