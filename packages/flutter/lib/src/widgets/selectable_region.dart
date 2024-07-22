@@ -607,7 +607,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
           ..onDragStart = _handleMouseDragStart
           ..onDragUpdate = _handleMouseDragUpdate
           ..onDragEnd = _handleMouseDragEnd
-          ..onCancel = _clearSelection
+          ..onCancel = clearSelection
           ..dragStartBehavior = DragStartBehavior.down;
       },
     );
