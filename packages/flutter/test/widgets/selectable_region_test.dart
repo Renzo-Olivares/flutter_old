@@ -4826,12 +4826,12 @@ void main() {
           focusNode: focusNode,
           selectionControls: materialTextSelectionControls,
           child: SelectionListener(
-            onSelectionChanged: (List<SelectedContentRange> selections) {
+            onSelectionChanged: (SelectionDetails selectionDetails) {
               activeSelections.clear();
-              if (selections.isEmpty) {
+              if (selectionDetails.ranges.isEmpty) {
                 return;
               }
-              activeSelections.addAll(selections);
+              activeSelections.addAll(selectionDetails.ranges);
             },
             child: Column(
               children: <Widget>[
@@ -4984,12 +4984,12 @@ void main() {
           focusNode: focusNode,
           selectionControls: materialTextSelectionControls,
           child: SelectionListener(
-            onSelectionChanged: (List<SelectedContentRange> selections) {
+            onSelectionChanged: (SelectionDetails selectionDetails) {
               activeSelections.clear();
-              if (selections.isEmpty) {
+              if (selectionDetails.ranges.isEmpty) {
                 return;
               }
-              activeSelections.addAll(selections);
+              activeSelections.addAll(selectionDetails.ranges);
             },
             child: Column(
               children: <Widget>[
