@@ -904,20 +904,14 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
         if (!lastSecondaryTapDownPositionWasOnActiveSelection) {
           _collapseSelectionAt(offset: _lastSecondaryTapDownPosition!);
         }
-        _showHandles();
-        _showToolbar(location: _lastSecondaryTapDownPosition);
       case TargetPlatform.iOS:
         _selectWordAt(offset: _lastSecondaryTapDownPosition!);
-        _showHandles();
-        _showToolbar(location: _lastSecondaryTapDownPosition);
       case TargetPlatform.macOS:
         if (previousSecondaryTapDownPosition == _lastSecondaryTapDownPosition && toolbarIsVisible) {
           hideToolbar();
           return;
         }
         _selectWordAt(offset: _lastSecondaryTapDownPosition!);
-        _showHandles();
-        _showToolbar(location: _lastSecondaryTapDownPosition);
       case TargetPlatform.linux:
         if (toolbarIsVisible) {
           hideToolbar();
@@ -929,11 +923,14 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
         if (!lastSecondaryTapDownPositionWasOnActiveSelection) {
           _collapseSelectionAt(offset: _lastSecondaryTapDownPosition!);
         }
-        _showHandles();
-        _showToolbar(location: _lastSecondaryTapDownPosition);
     }
-    _updateSelectedContentIfNeeded();
     _selectable?.dispatchSelectionEvent(const SelectionFinalizedSelectionEvent());
+    // Restore _lastSecondaryTapDownPosition since it may be cleared if a user
+    // accesses contextMenuAnchors.
+    _lastSecondaryTapDownPosition = details.globalPosition;
+    _showHandles();
+    _showToolbar(location: _lastSecondaryTapDownPosition);
+    _updateSelectedContentIfNeeded();
   }
 
   // Selection update helper methods.
@@ -1415,6 +1412,8 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
       final TextSelectionToolbarAnchors anchors = TextSelectionToolbarAnchors(
         primaryAnchor: _lastSecondaryTapDownPosition!,
       );
+      // Clear the state of _lastSecondaryTapDownPosition after use since a user may
+      // access contextMenuAnchors and receive invalid anchors for their context menu.
       _lastSecondaryTapDownPosition = null;
       return anchors;
     }
