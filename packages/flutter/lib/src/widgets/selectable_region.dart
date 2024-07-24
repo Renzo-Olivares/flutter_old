@@ -1442,7 +1442,7 @@ class SelectableRegionState extends State<SelectableRegion> with TextSelectionDe
       isReversed = false;
     } else {
       isReversed = start.localPosition.dx > end.localPosition.dx;
-    } 
+    }
     // Always move the selection edge that increases the selection range.
     return _adjustingSelectionEnd = forward != isReversed;
   }
