@@ -2482,15 +2482,15 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
 
   /// Copies the selections of all [Selectable]s.
   @override
-  List<SelectedContentRange> getSelections() {
+  List<SelectedContentRange<Object>> getSelections() {
     if (currentSelectionStartIndex == -1 || currentSelectionEndIndex == -1) {
-      return <SelectedContentRange>[];
+      return <SelectedContentRange<Object>>[];
     }
     final int selectionStart = min(currentSelectionStartIndex, currentSelectionEndIndex);
     final int selectionEnd = max(currentSelectionStartIndex, currentSelectionEndIndex);
-    final List<SelectedContentRange> selections = <SelectedContentRange>[];
+    final List<SelectedContentRange<Object>> selections = <SelectedContentRange<Object>>[];
     for (int index = selectionStart; index <= selectionEnd; index += 1) {
-      final List<SelectedContentRange> selectedContentRanges = selectables[index].getSelections();
+      final List<SelectedContentRange<Object>> selectedContentRanges = selectables[index].getSelections();
       if (selectedContentRanges.isNotEmpty) {
         selections.addAll(selectedContentRanges);
       }
@@ -2500,7 +2500,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
         true,
         'This selection container delegate has an active selection, indicated by its currentSelectionStartIndex and currentSelectionEndIndex, but it provides no SelectedContentRanges to represent this selection.',
       );
-      return <SelectedContentRange>[];
+      return <SelectedContentRange<Object>>[];
     }
     return selections;
   }
@@ -2963,7 +2963,7 @@ typedef SelectableRegionContextMenuBuilder = Widget Function(
 ///
 /// The [selectionDetails] object provides information about the active
 /// selection contained under the [SelectionListener] this callback is provided to.
-typedef SelectionListenerSelectionChangedCallback = void Function(SelectionDetails selectionDetails);
+typedef SelectionListenerSelectionChangedCallback<T extends Object> = void Function(SelectionDetails<T> selectionDetails);
 
 /// A [SelectionContainer] that allows the user to listen to selection changes
 /// for the child subtree it wraps under a [SelectionArea] or [SelectableRegion].
@@ -2993,7 +2993,7 @@ typedef SelectionListenerSelectionChangedCallback = void Function(SelectionDetai
 ///
 ///   * [SelectionArea], which provides an overview of the selection system.
 ///   * [SelectableRegion], which provides an overview of the selection system.
-class SelectionListener extends StatefulWidget {
+class SelectionListener<T extends Object> extends StatefulWidget {
   /// Create a new [SelectionListener] widget.
   const SelectionListener({
     super.key,
@@ -3003,7 +3003,7 @@ class SelectionListener extends StatefulWidget {
 
   /// Called when the user changes the selection of children selectables
   /// registered to its local [SelectionRegistrar].
-  final SelectionListenerSelectionChangedCallback onSelectionChanged;
+  final SelectionListenerSelectionChangedCallback<T> onSelectionChanged;
 
   /// The child widget this selection listener applies to.
   ///
@@ -3011,14 +3011,14 @@ class SelectionListener extends StatefulWidget {
   final Widget child;
 
   @override
-  State<SelectionListener> createState() => _SelectionListenerState();
+  State<SelectionListener<T>> createState() => _SelectionListenerState<T>();
 }
 
-class _SelectionListenerState extends State<SelectionListener> {
-  late final _SelectionListenerDelegate _selectionDelegate = _SelectionListenerDelegate(onSelectionChanged: widget.onSelectionChanged);
+class _SelectionListenerState<T extends Object> extends State<SelectionListener<T>> {
+  late final _SelectionListenerDelegate<T> _selectionDelegate = _SelectionListenerDelegate<T>(onSelectionChanged: widget.onSelectionChanged);
 
   @override
-  void didUpdateWidget(SelectionListener oldWidget) {
+  void didUpdateWidget(SelectionListener<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.onSelectionChanged != widget.onSelectionChanged) {
       _selectionDelegate.onSelectionChanged = widget.onSelectionChanged;
@@ -3040,12 +3040,12 @@ class _SelectionListenerState extends State<SelectionListener> {
   }
 }
 
-class _SelectionListenerDelegate extends _SelectableRegionContainerDelegate {
+class _SelectionListenerDelegate<T extends Object> extends _SelectableRegionContainerDelegate {
   _SelectionListenerDelegate({required this.onSelectionChanged});
 
-  SelectionListenerSelectionChangedCallback onSelectionChanged;
+  SelectionListenerSelectionChangedCallback<T> onSelectionChanged;
 
-  SelectionDetails? _lastFinalizedDetails;
+  SelectionDetails<T>? _lastFinalizedDetails;
 
   @override
   SelectionResult dispatchSelectionEvent(SelectionEvent event) {
@@ -3058,7 +3058,7 @@ class _SelectionListenerDelegate extends _SelectableRegionContainerDelegate {
     // geometry, so we compare the selection details at the last finalized event
     // to determine if we should call our onSelectionChanged callback.
     if (event is SelectionFinalizedSelectionEvent) {
-      final SelectionDetails currentFinalizedDetails = _getDetails();
+      final SelectionDetails<T> currentFinalizedDetails = _getDetails();
       if (_lastFinalizedDetails != currentFinalizedDetails) {
         onSelectionChanged.call(currentFinalizedDetails);
         _lastFinalizedDetails = currentFinalizedDetails;
@@ -3067,11 +3067,12 @@ class _SelectionListenerDelegate extends _SelectableRegionContainerDelegate {
     return result;
   }
 
-  SelectionDetails _getDetails() {
-    return SelectionDetails(
+  SelectionDetails<T> _getDetails() {
+    final List<SelectedContentRange<T>> acceptedSelections = getSelections().whereType<SelectedContentRange<T>>().toList();
+    return SelectionDetails<T>(
       status: value.status,
       selectionFinalized: selectionIsFinalized,
-      ranges: getSelections(),
+      ranges: acceptedSelections,
     );
   }
 }

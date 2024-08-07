@@ -97,7 +97,7 @@ abstract class SelectionHandler implements ValueListenable<SelectionGeometry> {
   /// this [SelectionHandler].
   ///
   /// Return an empty list if nothing is selected.
-  List<SelectedContentRange> getSelections();
+  List<SelectedContentRange<Object>> getSelections();
 
   /// Handles the [SelectionEvent] sent to this object.
   ///
@@ -130,14 +130,13 @@ abstract class SelectionHandler implements ValueListenable<SelectionGeometry> {
 ///   the form of [SelectedContentRange]s for the subtree it wraps,
 ///   contained under a [SelectionArea] or [SelectableRegion].
 @immutable
-class SelectedContentRange {
+class SelectedContentRange<T extends Object> {
   /// Creates a [SelectedContentRange] with the given values.
   const SelectedContentRange({
     this.selectableId,
     required this.contentLength,
     required this.startOffset,
     required this.endOffset,
-    this.children,
   });
 
   /// An optional identifier for the [Selectable] that created the range.
@@ -205,12 +204,6 @@ class SelectedContentRange {
   /// {@macro flutter.rendering.selection.SelectedContentRange.selectionOffsets}
   final int endOffset;
 
-  /// Additional ranges to include as children.
-  ///
-  /// Children of a given range enable more granular modification of the
-  /// selection.
-  final List<SelectedContentRange>? children;
-
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) {
@@ -220,6 +213,59 @@ class SelectedContentRange {
       return false;
     }
     return other is SelectedContentRange
+        && other.selectableId == selectableId
+        && other.contentLength == contentLength
+        && other.startOffset == startOffset
+        && other.endOffset == endOffset;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      selectableId,
+      contentLength,
+      startOffset,
+      endOffset,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'SelectedContentRange(\n'
+           '  selectableId: $selectableId,\n'
+           '  contentLength: $contentLength,\n'
+           '  startOffset: $startOffset,\n'
+           '  endOffset: $endOffset,\n'
+           ')';
+  }
+}
+
+@immutable
+class TextSpanContentRange extends SelectedContentRange<TextSpan> {
+  /// Creates a [TextSpanContentRange] with the given values.
+  const TextSpanContentRange({
+    required super.contentLength,
+    required super.startOffset,
+    required super.endOffset,
+    super.selectableId,
+    this.children,
+  });
+
+  /// Additional ranges collected from [WidgetSpan]s to include as children.
+  ///
+  /// Children of a given range enable more granular modification of the
+  /// selection.
+  final List<SelectedContentRange<Object>>? children;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    if (other.runtimeType != runtimeType) {
+      return false;
+    }
+    return other is TextSpanContentRange
         && other.selectableId == selectableId
         && other.contentLength == contentLength
         && other.startOffset == startOffset
@@ -240,7 +286,7 @@ class SelectedContentRange {
 
   @override
   String toString() {
-    return 'SelectedContentRange(\n'
+    return 'TextSpanContentRange(\n'
            '  selectableId: $selectableId,\n'
            '  contentLength: $contentLength,\n'
            '  startOffset: $startOffset,\n'
@@ -806,7 +852,7 @@ enum SelectionStatus {
 ///   for the selection under its subtree in its [SelectionListener.onSelectionChanged]
 ///   callback.
 @immutable
-class SelectionDetails {
+class SelectionDetails<T extends Object> {
   /// Creates a selection details object.
   const SelectionDetails({
     required this.status,
@@ -831,7 +877,7 @@ class SelectionDetails {
   /// that created this object.
   ///
   /// [ranges] will be an empty list if nothing is selected.
-  final List<SelectedContentRange> ranges;
+  final List<SelectedContentRange<T>> ranges;
 
   @override
   bool operator ==(Object other) {

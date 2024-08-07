@@ -5527,8 +5527,8 @@ class RenderSelectionSpy extends RenderProxyBox
   }
 
   @override
-  List<SelectedContentRange> getSelections() {
-    return <SelectedContentRange>[];
+  List<SelectedContentRange<Object>> getSelections() {
+    return <SelectedContentRange<Object>>[];
   }
 
   @override
@@ -5614,8 +5614,8 @@ class RenderSelectAll extends RenderProxyBox
   }
 
   @override
-  List<SelectedContentRange> getSelections() {
-    return <SelectedContentRange>[];
+  List<SelectedContentRange<Object>> getSelections() {
+    return <SelectedContentRange<Object>>[];
   }
 
   @override
