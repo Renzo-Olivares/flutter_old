@@ -2996,6 +2996,7 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
     if (_cachedBoundingBoxes == null) {
       final List<TextBox> boxes = paragraph.getBoxesForSelection(
         TextSelection(baseOffset: range.start, extentOffset: range.end),
+        boxHeightStyle: ui.BoxHeightStyle.includeLineSpacingMiddle,
       );
       if (boxes.isNotEmpty) {
         _cachedBoundingBoxes = <Rect>[];
