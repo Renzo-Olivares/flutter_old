@@ -8,6 +8,7 @@ library;
 
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui show lerpDouble;
 
 import 'package:characters/characters.dart';
 import 'package:flutter/foundation.dart';
@@ -320,6 +321,7 @@ class TextSelectionOverlay {
   ///
   /// The [context] must have an [Overlay] as an ancestor.
   TextSelectionOverlay({
+    TickerProvider? tickerProvider,
     required TextEditingValue value,
     required this.context,
     Widget? debugRequiredFor,
@@ -350,6 +352,7 @@ class TextSelectionOverlay {
     renderObject.selectionEndInViewport.addListener(_updateTextSelectionOverlayVisibilities);
     _updateTextSelectionOverlayVisibilities();
     _selectionOverlay = SelectionOverlay(
+      tickerProvider: tickerProvider,
       magnifierConfiguration: magnifierConfiguration,
       context: context,
       debugRequiredFor: debugRequiredFor,
@@ -1000,6 +1003,7 @@ class SelectionOverlay {
   ///
   /// The [context] must have an [Overlay] as an ancestor.
   SelectionOverlay({
+    TickerProvider? tickerProvider,
     required this.context,
     this.debugRequiredFor,
     required TextSelectionHandleType startHandleType,
@@ -1040,6 +1044,11 @@ class SelectionOverlay {
        _lineHeightAtEnd = lineHeightAtEnd,
        _selectionEndpoints = selectionEndpoints,
        _toolbarLocation = toolbarLocation,
+       _sharedMagnifierHandleTransitionController = tickerProvider == null ? null : AnimationController(
+        duration: const Duration(milliseconds: 300),
+        vsync: tickerProvider!,
+        value: 0.0,
+       ),
        assert(debugCheckHasOverlay(context)) {
     // TODO(polina-c): stop duplicating code across disposables
     // https://github.com/flutter/flutter/issues/137435
@@ -1083,6 +1092,8 @@ class SelectionOverlay {
         : _toolbar != null || _spellCheckToolbarController.isShown;
   }
 
+  final AnimationController? _sharedMagnifierHandleTransitionController;
+
   /// {@template flutter.widgets.SelectionOverlay.showMagnifier}
   /// Shows the magnifier, and hides the toolbar if it was showing when [showMagnifier]
   /// was called. This is safe to call on platforms not mobile, since
@@ -1104,7 +1115,7 @@ class SelectionOverlay {
     // Pre-build the magnifiers so we can tell if we've built something
     // or not. If we don't build a magnifiers, then we should not
     // insert anything in the overlay.
-    final Widget? builtMagnifier = magnifierConfiguration.magnifierBuilder(
+    Widget? builtMagnifier = magnifierConfiguration.magnifierBuilder(
       context,
       _magnifierController,
       _magnifierInfo,
@@ -1114,12 +1125,19 @@ class SelectionOverlay {
       return;
     }
 
+    if (defaultTargetPlatform == TargetPlatform.iOS && _sharedMagnifierHandleTransitionController != null) {
+      // builtMagnifier = _AnimatedMagnifier(
+      //   sharedAnimationController: _sharedMagnifierHandleTransitionController,
+      //   magnifier: builtMagnifier!,
+      // );
+    }
+
     _magnifierController.show(
       context: context,
       below: magnifierConfiguration.shouldDisplayHandlesInMagnifier
           ? null
           : _handles?.start,
-      builder: (_) => builtMagnifier,
+      builder: (_) => builtMagnifier!,
     );
   }
 
@@ -1269,6 +1287,7 @@ class SelectionOverlay {
       return;
     }
     _isDraggingEndHandle = details.kind == PointerDeviceKind.touch;
+    _sharedMagnifierHandleTransitionController?.forward();
     onEndHandleDragStart?.call(details);
   }
 
@@ -1296,6 +1315,7 @@ class SelectionOverlay {
     if (_handles == null) {
       return;
     }
+    _sharedMagnifierHandleTransitionController?.reverse();
     onEndHandleDragEnd?.call(details);
   }
 
@@ -1608,6 +1628,7 @@ class SelectionOverlay {
     if (kFlutterMemoryAllocationsEnabled) {
       FlutterMemoryAllocations.instance.dispatchObjectDisposed(object: this);
     }
+    _sharedMagnifierHandleTransitionController?.dispose();
     hide();
     _magnifierInfo.dispose();
   }
@@ -1622,6 +1643,7 @@ class SelectionOverlay {
       handle = const SizedBox.shrink();
     } else {
       handle = _SelectionHandleOverlay(
+        sharedMagnifierHandleTransitionController: _sharedMagnifierHandleTransitionController,
         type: _startHandleType,
         handleLayerLink: startHandleLayerLink,
         onSelectionHandleTapped: onSelectionHandleTapped,
@@ -1652,6 +1674,7 @@ class SelectionOverlay {
       handle = const SizedBox.shrink();
     } else {
       handle = _SelectionHandleOverlay(
+        sharedMagnifierHandleTransitionController: _sharedMagnifierHandleTransitionController,
         type: _endHandleType,
         handleLayerLink: endHandleLayerLink,
         onSelectionHandleTapped: onSelectionHandleTapped,
@@ -1822,10 +1845,54 @@ class _SelectionToolbarWrapperState extends State<_SelectionToolbarWrapper> with
   }
 }
 
+class _AnimatedMagnifier extends StatefulWidget {
+  const _AnimatedMagnifier({
+    required this.sharedAnimationController,
+    required this.magnifier,
+  });
+
+  final AnimationController sharedAnimationController;
+  final Widget magnifier;
+
+  @override
+  State<_AnimatedMagnifier> createState() => _AnimatedMagnifierState();
+}
+
+class _AnimatedMagnifierState extends State<_AnimatedMagnifier> {
+  @override
+  Widget build(BuildContext context) {
+    final animation =
+        CurvedAnimation(parent: widget.sharedAnimationController, curve: Curves.easeInOut);
+    final t = animation.value;
+
+    final endSize = const Size(100, 100);
+    final currentWidth =
+        ui.lerpDouble(10.0 * 2, endSize.width, t)!;
+    final currentHeight =
+        ui.lerpDouble(10.0 * 2, endSize.height, t)!;
+
+    final magnifierOpacity = ((t - 0.5) * 2.0).clamp(0.0, 1.0);
+    return AnimatedBuilder(
+      animation: widget.sharedAnimationController,
+      builder: (BuildContext context, Widget? child) {
+        return Positioned(
+          height: currentHeight,
+          width: currentWidth,
+          child: Opacity(
+            opacity: magnifierOpacity,
+            child: widget.magnifier,
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// This widget represents a single draggable selection handle.
 class _SelectionHandleOverlay extends StatefulWidget {
   /// Create selection overlay.
   const _SelectionHandleOverlay({
+    this.sharedMagnifierHandleTransitionController,
     required this.type,
     required this.handleLayerLink,
     this.onSelectionHandleTapped,
@@ -1838,6 +1905,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
     this.dragStartBehavior = DragStartBehavior.start,
   });
 
+  final AnimationController? sharedMagnifierHandleTransitionController;
   final LayerLink handleLayerLink;
   final VoidCallback? onSelectionHandleTapped;
   final ValueChanged<DragStartDetails>? onSelectionHandleDragStart;
@@ -1941,54 +2009,121 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay> with S
       // Put the handle's anchor point on the leader's anchor point.
       offset: -handleAnchor - Offset(padding.left, padding.top),
       showWhenUnlinked: false,
-      child: FadeTransition(
-        opacity: _opacity,
-        child: SizedBox(
-          width: interactiveRect.width,
-          height: interactiveRect.height,
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: RawGestureDetector(
-              behavior: HitTestBehavior.translucent,
-              gestures: <Type, GestureRecognizerFactory>{
-                PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-                  () => PanGestureRecognizer(
-                    debugOwner: this,
-                    // Mouse events select the text and do not drag the cursor.
-                    supportedDevices: <PointerDeviceKind>{
-                      PointerDeviceKind.touch,
-                      PointerDeviceKind.stylus,
-                      PointerDeviceKind.unknown,
-                    },
-                  ),
-                  (PanGestureRecognizer instance) {
-                    instance
-                      ..dragStartBehavior = widget.dragStartBehavior
-                      ..gestureSettings = eagerlyAcceptDragWhenCollapsed ? const DeviceGestureSettings(touchSlop: 1.0) : null
-                      ..onStart = widget.onSelectionHandleDragStart
-                      ..onUpdate = widget.onSelectionHandleDragUpdate
-                      ..onEnd = widget.onSelectionHandleDragEnd;
+      child: AnimatedBuilder(
+        animation: widget.sharedMagnifierHandleTransitionController!,
+        builder: (BuildContext context, Widget? child) {
+          final animation =
+              CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+          final t = animation.value;
+
+          final endSize = const Size(100, 100);
+          final currentWidth =
+              ui.lerpDouble(10.0 * 2, endSize.width, t)!;
+          final currentHeight =
+              ui.lerpDouble(10.0 * 2, endSize.height, t)!;
+
+          final circleOpacity = (1.0 - t * 2.0).clamp(0.0, 1.0);
+          debugPrint('${widget.type} ${circleOpacity}');
+          return Opacity(
+              opacity: circleOpacity,
+            child: FadeTransition(
+            opacity: _opacity,
+            child: SizedBox(
+              width: interactiveRect.width,
+              height: interactiveRect.height,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: RawGestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  gestures: <Type, GestureRecognizerFactory>{
+                    PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+                      () => PanGestureRecognizer(
+                        debugOwner: this,
+                        // Mouse events select the text and do not drag the cursor.
+                        supportedDevices: <PointerDeviceKind>{
+                          PointerDeviceKind.touch,
+                          PointerDeviceKind.stylus,
+                          PointerDeviceKind.unknown,
+                        },
+                      ),
+                      (PanGestureRecognizer instance) {
+                        instance
+                          ..dragStartBehavior = widget.dragStartBehavior
+                          ..gestureSettings = eagerlyAcceptDragWhenCollapsed ? const DeviceGestureSettings(touchSlop: 1.0) : null
+                          ..onStart = widget.onSelectionHandleDragStart
+                          ..onUpdate = widget.onSelectionHandleDragUpdate
+                          ..onEnd = widget.onSelectionHandleDragEnd;
+                      },
+                    ),
                   },
-                ),
-              },
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: padding.left,
-                  top: padding.top,
-                  right: padding.right,
-                  bottom: padding.bottom,
-                ),
-                child: widget.selectionControls.buildHandle(
-                  context,
-                  widget.type,
-                  widget.preferredLineHeight,
-                  widget.onSelectionHandleTapped,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: padding.left,
+                      top: padding.top,
+                      right: padding.right,
+                      bottom: padding.bottom,
+                    ),
+                    child: widget.selectionControls.buildHandle(
+                      context,
+                      widget.type,
+                      widget.preferredLineHeight,
+                      widget.onSelectionHandleTapped,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
+          ),);
+        },
       ),
+      // child: FadeTransition(
+      //   opacity: _opacity,
+      //   child: SizedBox(
+      //     width: interactiveRect.width,
+      //     height: interactiveRect.height,
+      //     child: Align(
+      //       alignment: Alignment.topLeft,
+      //       child: RawGestureDetector(
+      //         behavior: HitTestBehavior.translucent,
+      //         gestures: <Type, GestureRecognizerFactory>{
+      //           PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+      //             () => PanGestureRecognizer(
+      //               debugOwner: this,
+      //               // Mouse events select the text and do not drag the cursor.
+      //               supportedDevices: <PointerDeviceKind>{
+      //                 PointerDeviceKind.touch,
+      //                 PointerDeviceKind.stylus,
+      //                 PointerDeviceKind.unknown,
+      //               },
+      //             ),
+      //             (PanGestureRecognizer instance) {
+      //               instance
+      //                 ..dragStartBehavior = widget.dragStartBehavior
+      //                 ..gestureSettings = eagerlyAcceptDragWhenCollapsed ? const DeviceGestureSettings(touchSlop: 1.0) : null
+      //                 ..onStart = widget.onSelectionHandleDragStart
+      //                 ..onUpdate = widget.onSelectionHandleDragUpdate
+      //                 ..onEnd = widget.onSelectionHandleDragEnd;
+      //             },
+      //           ),
+      //         },
+      //         child: Padding(
+      //           padding: EdgeInsets.only(
+      //             left: padding.left,
+      //             top: padding.top,
+      //             right: padding.right,
+      //             bottom: padding.bottom,
+      //           ),
+      //           child: widget.selectionControls.buildHandle(
+      //             context,
+      //             widget.type,
+      //             widget.preferredLineHeight,
+      //             widget.onSelectionHandleTapped,
+      //           ),
+      //         ),
+      //       ),
+      //     ),
+      //   ),
+      // ),
     );
   }
 }

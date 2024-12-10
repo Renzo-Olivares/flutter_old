@@ -4001,6 +4001,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
   TextSelectionOverlay _createSelectionOverlay() {
     final EditableTextContextMenuBuilder? contextMenuBuilder = widget.contextMenuBuilder;
     final TextSelectionOverlay selectionOverlay = TextSelectionOverlay(
+      tickerProvider: this,
       clipboardStatus: clipboardStatus,
       context: context,
       value: _value,
