@@ -3205,7 +3205,25 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     int newIndex = -1;
     bool hasFoundEdgeIndex = false;
     SelectionResult? result;
-    for (int index = 0; index < selectables.length && !hasFoundEdgeIndex; index += 1) {
+    // First iterate until we find the [Selectable] containing the globalPosition and
+    // traverse the tree from that starting point.
+    int? targetRectIndex;
+    for (int index = 0; index < selectables.length; index += 1) {
+      if (selectables[index].boundingBoxes.isNotEmpty) {
+        for (final Rect rect in selectables[index].boundingBoxes) {
+          final Rect globalRect = MatrixUtils.transformRect(
+            selectables[index].getTransformTo(null),
+            rect,
+          );
+          if (globalRect.contains(event.globalPosition)) {
+            targetRectIndex = index;
+            break;
+          }
+        }
+      }
+    }
+    targetRectIndex ??= 0;
+    for (int index = targetRectIndex; index < selectables.length && !hasFoundEdgeIndex; index += 1) {
       final Selectable child = selectables[index];
       final SelectionResult childResult = dispatchSelectionEventToChild(child, event);
       switch (childResult) {
