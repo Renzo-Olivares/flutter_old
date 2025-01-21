@@ -8,6 +8,7 @@ library;
 
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:characters/characters.dart';
 import 'package:flutter/foundation.dart';
@@ -730,12 +731,13 @@ class TextSelectionOverlay {
     );
     _dragStartSelection ??= _selection;
 
-    _selectionOverlay.showMagnifier(
+    _selectionOverlay.showAndAnimateMagnifier(
       _buildMagnifier(
         currentTextPosition: position,
         globalGesturePosition: details.globalPosition,
         renderEditable: renderObject,
       ),
+      _selectionOverlay.endHandleType,
     );
   }
 
@@ -872,12 +874,13 @@ class TextSelectionOverlay {
     );
     _dragStartSelection ??= _selection;
 
-    _selectionOverlay.showMagnifier(
+    _selectionOverlay.showAndAnimateMagnifier(
       _buildMagnifier(
         currentTextPosition: position,
         globalGesturePosition: details.globalPosition,
         renderEditable: renderObject,
       ),
+      _selectionOverlay.startHandleType,
     );
   }
 
@@ -971,7 +974,8 @@ class TextSelectionOverlay {
       }
       return;
     }
-    _selectionOverlay.hideMagnifier();
+    // _selectionOverlay.hideMagnifier();
+    _selectionOverlay.hideAndAnimateMagnifier(TextSelectionHandleType.right);
     if (!_selection.isCollapsed) {
       _selectionOverlay.showToolbar(context: context, contextMenuBuilder: contextMenuBuilder);
     }
@@ -1093,6 +1097,25 @@ class SelectionOverlay {
         : _toolbar != null || _spellCheckToolbarController.isShown;
   }
 
+  void showAndAnimateMagnifier(
+    MagnifierInfo initialMagnifierInfo,
+    TextSelectionHandleType handleType,
+  ) {
+    _animateHandle(handleType);
+    showMagnifier(initialMagnifierInfo);
+  }
+
+  void _animateHandle(TextSelectionHandleType handleType) {
+    switch (handleType) {
+      case TextSelectionHandleType.left: 
+        _startHandlesAnimate.value = true;
+      case TextSelectionHandleType.right:
+        _endHandlesAnimate.value = true;
+      case TextSelectionHandleType.collapsed:
+    }
+    return;
+  }
+
   /// {@template flutter.widgets.SelectionOverlay.showMagnifier}
   /// Shows the magnifier, and hides the toolbar if it was showing when [showMagnifier]
   /// was called. This is safe to call on platforms not mobile, since
@@ -1129,6 +1152,24 @@ class SelectionOverlay {
       below: magnifierConfiguration.shouldDisplayHandlesInMagnifier ? null : _handles?.start,
       builder: (_) => builtMagnifier,
     );
+  }
+
+  void hideAndAnimateMagnifier(TextSelectionHandleType handleType) {
+    switch (handleType) {
+      case TextSelectionHandleType.left: 
+        _startHandlesAnimate.value = false;
+      case TextSelectionHandleType.right:
+        _endHandlesAnimate.value = false;
+      case TextSelectionHandleType.collapsed:
+    }
+    // This cannot be a check on `MagnifierController.shown`, since
+    // it's possible that the magnifier is still in the overlay, but
+    // not shown in cases where the magnifier hides itself.
+    if (_magnifierController.overlayEntry == null) {
+      return;
+    }
+
+    _magnifierController.hide();
   }
 
   /// {@template flutter.widgets.SelectionOverlay.hideMagnifier}
@@ -1184,6 +1225,8 @@ class SelectionOverlay {
   ///
   /// If this is null, the start selection handle will always be visible.
   final ValueListenable<bool>? startHandlesVisible;
+
+  final ValueNotifier<bool> _startHandlesAnimate = ValueNotifier<bool>(false);
 
   /// Called when the users start dragging the start selection handles.
   final ValueChanged<DragStartDetails>? onStartHandleDragStart;
@@ -1264,6 +1307,8 @@ class SelectionOverlay {
   ///
   /// If this is null, the end selection handle will always be visible.
   final ValueListenable<bool>? endHandlesVisible;
+
+  final ValueNotifier<bool> _endHandlesAnimate = ValueNotifier<bool>(false);
 
   /// Called when the users start dragging the end selection handles.
   final ValueChanged<DragStartDetails>? onEndHandleDragStart;
@@ -1646,6 +1691,7 @@ class SelectionOverlay {
         onSelectionHandleDragEnd: _handleStartHandleDragEnd,
         selectionControls: selectionControls,
         visibility: startHandlesVisible,
+        animate: _startHandlesAnimate,
         preferredLineHeight: _lineHeightAtStart,
         dragStartBehavior: dragStartBehavior,
       );
@@ -1674,6 +1720,7 @@ class SelectionOverlay {
         onSelectionHandleDragEnd: _handleEndHandleDragEnd,
         selectionControls: selectionControls,
         visibility: endHandlesVisible,
+        animate: _endHandlesAnimate,
         preferredLineHeight: _lineHeightAtEnd,
         dragStartBehavior: dragStartBehavior,
       );
@@ -1849,6 +1896,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
     this.onSelectionHandleDragEnd,
     required this.selectionControls,
     this.visibility,
+    this.animate,
     required this.preferredLineHeight,
     this.dragStartBehavior = DragStartBehavior.start,
   });
@@ -1860,6 +1908,7 @@ class _SelectionHandleOverlay extends StatefulWidget {
   final ValueChanged<DragEndDetails>? onSelectionHandleDragEnd;
   final TextSelectionControls selectionControls;
   final ValueListenable<bool>? visibility;
+  final ValueListenable<bool>? animate;
   final double preferredLineHeight;
   final TextSelectionHandleType type;
   final DragStartBehavior dragStartBehavior;
@@ -1869,8 +1918,9 @@ class _SelectionHandleOverlay extends StatefulWidget {
 }
 
 class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _animateController;
   Animation<double> get _opacity => _controller.view;
 
   @override
@@ -1878,9 +1928,11 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay>
     super.initState();
 
     _controller = AnimationController(duration: SelectionOverlay.fadeDuration, vsync: this);
+    _animateController = AnimationController(duration: SelectionOverlay.fadeDuration, vsync: this);
 
     _handleVisibilityChanged();
     widget.visibility?.addListener(_handleVisibilityChanged);
+    widget.animate?.addListener(_handleAnimateChanged);
   }
 
   void _handleVisibilityChanged() {
@@ -1888,6 +1940,14 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay>
       _controller.forward();
     } else {
       _controller.reverse();
+    }
+  }
+
+  void _handleAnimateChanged() {
+    if (widget.animate?.value ?? true) {
+      _animateController.forward();
+    } else {
+      _animateController.reverse();
     }
   }
 
@@ -1949,57 +2009,130 @@ class _SelectionHandleOverlayState extends State<_SelectionHandleOverlay>
       // Put the handle's anchor point on the leader's anchor point.
       offset: -handleAnchor - Offset(padding.left, padding.top),
       showWhenUnlinked: false,
-      child: FadeTransition(
-        opacity: _opacity,
-        child: SizedBox(
-          width: interactiveRect.width,
-          height: interactiveRect.height,
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: RawGestureDetector(
-              behavior: HitTestBehavior.translucent,
-              gestures: <Type, GestureRecognizerFactory>{
-                PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-                  () => PanGestureRecognizer(
-                    debugOwner: this,
-                    // Mouse events select the text and do not drag the cursor.
-                    supportedDevices: <PointerDeviceKind>{
-                      PointerDeviceKind.touch,
-                      PointerDeviceKind.stylus,
-                      PointerDeviceKind.unknown,
+      child: AnimatedBuilder(
+        animation: _animateController,
+        builder: (BuildContext context, Widget? child) {
+          final CurvedAnimation animation =
+              CurvedAnimation(parent: _animateController, curve: Curves.easeInOut);
+          final double t = animation.value;
+
+          const ui.Size endSize = Size(100, 100);
+          final double currentWidth =
+              ui.lerpDouble(5.0 * 2, endSize.width, t)!;
+          final double currentHeight =
+              ui.lerpDouble(5.0 * 2, endSize.height, t)!;
+
+          final double circleOpacity = (1.0 - t * 2.0).clamp(0.0, 1.0);
+          // FadeTransition is controlled by _controller, which is triggered by
+          // widget.visibility.
+          // We also want
+          return Opacity(
+            opacity: circleOpacity,
+            child: FadeTransition(
+              opacity: _opacity,
+              child: SizedBox(
+                width: interactiveRect.width,
+                height: interactiveRect.height,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: RawGestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    gestures: <Type, GestureRecognizerFactory>{
+                      PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+                        () => PanGestureRecognizer(
+                          debugOwner: this,
+                          // Mouse events select the text and do not drag the cursor.
+                          supportedDevices: <PointerDeviceKind>{
+                            PointerDeviceKind.touch,
+                            PointerDeviceKind.stylus,
+                            PointerDeviceKind.unknown,
+                          },
+                        ),
+                        (PanGestureRecognizer instance) {
+                          instance
+                            ..dragStartBehavior = widget.dragStartBehavior
+                            ..gestureSettings =
+                                eagerlyAcceptDragWhenCollapsed
+                                    ? const DeviceGestureSettings(touchSlop: 1.0)
+                                    : null
+                            ..onStart = widget.onSelectionHandleDragStart
+                            ..onUpdate = widget.onSelectionHandleDragUpdate
+                            ..onEnd = widget.onSelectionHandleDragEnd;
+                        },
+                      ),
                     },
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: padding.left,
+                        top: padding.top,
+                        right: padding.right,
+                        bottom: padding.bottom,
+                      ),
+                      child: widget.selectionControls.buildHandle(
+                        context,
+                        widget.type,
+                        widget.preferredLineHeight,
+                        widget.onSelectionHandleTapped,
+                      ),
+                    ),
                   ),
-                  (PanGestureRecognizer instance) {
-                    instance
-                      ..dragStartBehavior = widget.dragStartBehavior
-                      ..gestureSettings =
-                          eagerlyAcceptDragWhenCollapsed
-                              ? const DeviceGestureSettings(touchSlop: 1.0)
-                              : null
-                      ..onStart = widget.onSelectionHandleDragStart
-                      ..onUpdate = widget.onSelectionHandleDragUpdate
-                      ..onEnd = widget.onSelectionHandleDragEnd;
-                  },
-                ),
-              },
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: padding.left,
-                  top: padding.top,
-                  right: padding.right,
-                  bottom: padding.bottom,
-                ),
-                child: widget.selectionControls.buildHandle(
-                  context,
-                  widget.type,
-                  widget.preferredLineHeight,
-                  widget.onSelectionHandleTapped,
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
+      // child: FadeTransition(
+      //   opacity: _opacity,
+      //   child: SizedBox(
+      //     width: interactiveRect.width,
+      //     height: interactiveRect.height,
+      //     child: Align(
+      //       alignment: Alignment.topLeft,
+      //       child: RawGestureDetector(
+      //         behavior: HitTestBehavior.translucent,
+      //         gestures: <Type, GestureRecognizerFactory>{
+      //           PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+      //             () => PanGestureRecognizer(
+      //               debugOwner: this,
+      //               // Mouse events select the text and do not drag the cursor.
+      //               supportedDevices: <PointerDeviceKind>{
+      //                 PointerDeviceKind.touch,
+      //                 PointerDeviceKind.stylus,
+      //                 PointerDeviceKind.unknown,
+      //               },
+      //             ),
+      //             (PanGestureRecognizer instance) {
+      //               instance
+      //                 ..dragStartBehavior = widget.dragStartBehavior
+      //                 ..gestureSettings =
+      //                     eagerlyAcceptDragWhenCollapsed
+      //                         ? const DeviceGestureSettings(touchSlop: 1.0)
+      //                         : null
+      //                 ..onStart = widget.onSelectionHandleDragStart
+      //                 ..onUpdate = widget.onSelectionHandleDragUpdate
+      //                 ..onEnd = widget.onSelectionHandleDragEnd;
+      //             },
+      //           ),
+      //         },
+      //         child: Padding(
+      //           padding: EdgeInsets.only(
+      //             left: padding.left,
+      //             top: padding.top,
+      //             right: padding.right,
+      //             bottom: padding.bottom,
+      //           ),
+      //           child: widget.selectionControls.buildHandle(
+      //             context,
+      //             widget.type,
+      //             widget.preferredLineHeight,
+      //             widget.onSelectionHandleTapped,
+      //           ),
+      //         ),
+      //       ),
+      //     ),
+      //   ),
+      // ),
     );
   }
 }
