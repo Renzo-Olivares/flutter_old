@@ -21,12 +21,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import 'basic.dart';
-import 'binding.dart';
-import 'debug.dart';
-import 'framework.dart';
-import 'inherited_model.dart';
-
 // Examples can assume:
 // late BuildContext context;
 
@@ -209,12 +203,7 @@ class MediaQueryData {
     this.boldText = false,
     this.navigationMode = NavigationMode.traditional,
     this.gestureSettings = const DeviceGestureSettings(touchSlop: kTouchSlop),
-    this.typographySettings = const TypographySettings(
-      lineHeight: 5.0,
-      paragraphSpacing: 1.0,
-      letterSpacing: 5.0,
-      wordSpacing: 5.0,
-    ),
+    this.typographySettings,
     this.displayFeatures = const <ui.DisplayFeature>[],
     this.supportsShowingSystemContextMenu = false,
   }) : _textScaleFactor = textScaleFactor,
@@ -309,11 +298,12 @@ class MediaQueryData {
       gestureSettings = DeviceGestureSettings.fromView(view),
       displayFeatures = view.displayFeatures,
       typographySettings = const TypographySettings(
-        lineHeight: 1,
-        paragraphSpacing: 1,
-        letterSpacing: 1,
-        wordSpacing: 1,
+        lineHeight: 5,
+        paragraphSpacing: 5,
+        letterSpacing: 5,
+        wordSpacing: 5,
       ),
+      // typographySettings = platformData?.typographySettings ?? view.platformDispatcher.accessibilityFeatures.typographySettings,
       supportsShowingSystemContextMenu =
           platformData?.supportsShowingSystemContextMenu ??
           view.platformDispatcher.supportsShowingSystemContextMenu;
@@ -642,8 +632,8 @@ class MediaQueryData {
   ///    used to show the system context menu when this flag indicates it's
   ///    supported.
   final bool supportsShowingSystemContextMenu;
-  
-  final TypographySettings typographySettings;
+
+  final TypographySettings? typographySettings;
 
   /// The orientation of the media (e.g., whether the device is in landscape or
   /// portrait mode).
@@ -681,6 +671,7 @@ class MediaQueryData {
     NavigationMode? navigationMode,
     DeviceGestureSettings? gestureSettings,
     List<ui.DisplayFeature>? displayFeatures,
+    TypographySettings? typographySettings,
     bool? supportsShowingSystemContextMenu,
   }) {
     assert(textScaleFactor == null || textScaler == null);
@@ -706,6 +697,7 @@ class MediaQueryData {
       navigationMode: navigationMode ?? this.navigationMode,
       gestureSettings: gestureSettings ?? this.gestureSettings,
       displayFeatures: displayFeatures ?? this.displayFeatures,
+      typographySettings: typographySettings ?? this.typographySettings,
       supportsShowingSystemContextMenu:
           supportsShowingSystemContextMenu ?? this.supportsShowingSystemContextMenu,
     );
@@ -960,7 +952,7 @@ class MediaQueryData {
   }
 }
 
-class TypographySettings {
+final class TypographySettings {
   const TypographySettings({
     required this.lineHeight,
     required this.paragraphSpacing,
@@ -1697,8 +1689,14 @@ class MediaQuery extends InheritedModel<_MediaQueryAspect> {
   static bool? maybeBoldTextOf(BuildContext context) =>
       _maybeOf(context, _MediaQueryAspect.boldText)?.boldText;
 
-
-  static TypographySettings typographySettingsOf(BuildContext context) => maybeTypographySettingsOf(context) ?? TypographySettings(lineHeight: 1.0, paragraphSpacing: 1.0, letterSpacing: 1.0, wordSpacing: 1.0);
+  static TypographySettings typographySettingsOf(BuildContext context) =>
+      maybeTypographySettingsOf(context) ??
+      TypographySettings(
+        lineHeight: 1.0,
+        paragraphSpacing: 1.0,
+        letterSpacing: 1.0,
+        wordSpacing: 1.0,
+      );
   static TypographySettings? maybeTypographySettingsOf(BuildContext context) =>
       _maybeOf(context, _MediaQueryAspect.typographySettings)?.typographySettings;
 
@@ -1846,8 +1844,7 @@ class MediaQuery extends InheritedModel<_MediaQueryAspect> {
               data.supportsShowingSystemContextMenu !=
                   oldWidget.data.supportsShowingSystemContextMenu,
             _MediaQueryAspect.typographySettings =>
-              data.typographySettings !=
-                  oldWidget.data.typographySettings,
+              data.typographySettings != oldWidget.data.typographySettings,
           },
     );
   }
