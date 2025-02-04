@@ -206,6 +206,12 @@ class MediaQueryData {
     this.boldText = false,
     this.navigationMode = NavigationMode.traditional,
     this.gestureSettings = const DeviceGestureSettings(touchSlop: kTouchSlop),
+    this.typographySettings = const TypographySettings(
+      lineHeight: 1,
+      paragraphSpacing: 1,
+      letterSpacing: 1,
+      wordSpacing: 1,
+    ),
     this.displayFeatures = const <ui.DisplayFeature>[],
     this.supportsShowingSystemContextMenu = false,
   }) : _textScaleFactor = textScaleFactor,
@@ -299,6 +305,12 @@ class MediaQueryData {
       navigationMode = platformData?.navigationMode ?? NavigationMode.traditional,
       gestureSettings = DeviceGestureSettings.fromView(view),
       displayFeatures = view.displayFeatures,
+      typographySettings = const TypographySettings(
+        lineHeight: 1,
+        paragraphSpacing: 1,
+        letterSpacing: 1,
+        wordSpacing: 1,
+      ),
       supportsShowingSystemContextMenu =
           platformData?.supportsShowingSystemContextMenu ??
           view.platformDispatcher.supportsShowingSystemContextMenu;
@@ -627,6 +639,8 @@ class MediaQueryData {
   ///    used to show the system context menu when this flag indicates it's
   ///    supported.
   final bool supportsShowingSystemContextMenu;
+  
+  final TypographySettings typographySettings;
 
   /// The orientation of the media (e.g., whether the device is in landscape or
   /// portrait mode).
@@ -941,6 +955,20 @@ class MediaQueryData {
     ];
     return '${objectRuntimeType(this, 'MediaQueryData')}(${properties.join(', ')})';
   }
+}
+
+class TypographySettings {
+  const TypographySettings({
+    required this.lineHeight,
+    required this.paragraphSpacing,
+    required this.letterSpacing,
+    required this.wordSpacing,
+  });
+
+  final int lineHeight;
+  final int paragraphSpacing;
+  final int letterSpacing;
+  final int wordSpacing;
 }
 
 /// Establishes a subtree in which media queries resolve to the given data.
