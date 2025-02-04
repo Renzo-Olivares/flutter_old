@@ -19,6 +19,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 
 import 'basic.dart';
 import 'binding.dart';
@@ -108,6 +109,8 @@ enum _MediaQueryAspect {
 
   /// Specifies the aspect corresponding to [MediaQueryData.supportsShowingSystemContextMenu].
   supportsShowingSystemContextMenu,
+
+  typographySettings,
 }
 
 /// Information about a piece of media (e.g., a window).
@@ -207,10 +210,10 @@ class MediaQueryData {
     this.navigationMode = NavigationMode.traditional,
     this.gestureSettings = const DeviceGestureSettings(touchSlop: kTouchSlop),
     this.typographySettings = const TypographySettings(
-      lineHeight: 1,
-      paragraphSpacing: 1,
-      letterSpacing: 1,
-      wordSpacing: 1,
+      lineHeight: 5.0,
+      paragraphSpacing: 1.0,
+      letterSpacing: 5.0,
+      wordSpacing: 5.0,
     ),
     this.displayFeatures = const <ui.DisplayFeature>[],
     this.supportsShowingSystemContextMenu = false,
@@ -965,10 +968,10 @@ class TypographySettings {
     required this.wordSpacing,
   });
 
-  final int lineHeight;
-  final int paragraphSpacing;
-  final int letterSpacing;
-  final int wordSpacing;
+  final double lineHeight;
+  final double paragraphSpacing;
+  final double letterSpacing;
+  final double wordSpacing;
 }
 
 /// Establishes a subtree in which media queries resolve to the given data.
@@ -1694,6 +1697,11 @@ class MediaQuery extends InheritedModel<_MediaQueryAspect> {
   static bool? maybeBoldTextOf(BuildContext context) =>
       _maybeOf(context, _MediaQueryAspect.boldText)?.boldText;
 
+
+  static TypographySettings typographySettingsOf(BuildContext context) => maybeTypographySettingsOf(context) ?? TypographySettings(lineHeight: 1.0, paragraphSpacing: 1.0, letterSpacing: 1.0, wordSpacing: 1.0);
+  static TypographySettings? maybeTypographySettingsOf(BuildContext context) =>
+      _maybeOf(context, _MediaQueryAspect.typographySettings)?.typographySettings;
+
   /// Returns [MediaQueryData.navigationMode] for the nearest [MediaQuery]
   /// ancestor or throws an exception, if no such ancestor exists.
   ///
@@ -1837,6 +1845,9 @@ class MediaQuery extends InheritedModel<_MediaQueryAspect> {
             _MediaQueryAspect.supportsShowingSystemContextMenu =>
               data.supportsShowingSystemContextMenu !=
                   oldWidget.data.supportsShowingSystemContextMenu,
+            _MediaQueryAspect.typographySettings =>
+              data.typographySettings !=
+                  oldWidget.data.typographySettings,
           },
     );
   }
