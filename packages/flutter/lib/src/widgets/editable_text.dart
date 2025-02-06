@@ -5010,6 +5010,7 @@ class EditableTextState extends State<EditableText>
   @override
   void performSelector(String selectorName) {
     final Intent? intent = intentForMacOSSelector(selectorName);
+
     if (intent != null) {
       final BuildContext? primaryContext = primaryFocus?.context;
       if (primaryContext != null) {
