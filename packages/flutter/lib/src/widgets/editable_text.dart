@@ -3123,14 +3123,6 @@ class EditableTextState extends State<EditableText>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (mounted && renderEditable.hasSize) {
-        renderEditable.selectionStartInViewport.removeListener(_updateTextSelectionToolbarVisibilities);
-        renderEditable.selectionEndInViewport.removeListener(_updateTextSelectionToolbarVisibilities);
-        renderEditable.selectionStartInViewport.addListener(_updateTextSelectionToolbarVisibilities);
-        renderEditable.selectionEndInViewport.addListener(_updateTextSelectionToolbarVisibilities);
-      }
-    }, debugLabel: 'EditableText.selectionViewportListener');
 
     _style =
         MediaQuery.boldTextOf(context)
@@ -4870,7 +4862,6 @@ class EditableTextState extends State<EditableText>
     if (_contextMenuPortalController.isShowing) {
       return false;
     }
-    debugPrint('showw toolbar');
     _liveTextInputStatus?.update();
     clipboardStatus.update();
     // _selectionOverlay!.showToolbar();
@@ -4890,6 +4881,9 @@ class EditableTextState extends State<EditableText>
   void hideToolbar([bool hideHandles = true]) {
     // Stop listening to parent scroll events when toolbar is hidden.
     _disposeScrollNotificationObserver();
+    // Stop listening to selection start and end updates when toolbar is hidden.
+    renderEditable.selectionStartInViewport.removeListener(_updateTextSelectionToolbarVisibilities);
+    renderEditable.selectionEndInViewport.removeListener(_updateTextSelectionToolbarVisibilities);
     if (hideHandles) {
       // Hide the handles and the toolbar.
       // _selectionOverlay?.hide();
@@ -5514,7 +5508,8 @@ class EditableTextState extends State<EditableText>
   final ValueNotifier<bool> _effectiveToolbarVisibility = ValueNotifier<bool>(false);
   void _updateTextSelectionToolbarVisibilities() {
     _effectiveToolbarVisibility.value =
-        renderEditable.selectionStartInViewport.value || renderEditable.selectionEndInViewport.value;
+        renderEditable.selectionStartInViewport.value ||
+        renderEditable.selectionEndInViewport.value;
   }
 
   final _SelectionContextMenuEventNotifier _contextMenuTraversalDirectionNotifier =
@@ -5541,20 +5536,30 @@ class EditableTextState extends State<EditableText>
         child: Shortcuts(
           shortcuts: <ShortcutActivator, Intent>{
             if (_contextMenuPortalController.isShowing)
-              const SingleActivator(LogicalKeyboardKey.arrowDown) : const SelectionContextMenuNextItemIntent(),
-              const SingleActivator(LogicalKeyboardKey.arrowUp) : const SelectionContextMenuPreviousItemIntent(), 
+              const SingleActivator(LogicalKeyboardKey.arrowDown):
+                  const SelectionContextMenuNextItemIntent(),
+            const SingleActivator(LogicalKeyboardKey.arrowUp):
+                const SelectionContextMenuPreviousItemIntent(),
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
               if (_contextMenuPortalController.isShowing)
-                SelectionContextMenuNextItemIntent: CallbackAction<SelectionContextMenuNextItemIntent>(onInvoke: (SelectionContextMenuNextItemIntent intent) {
-                  debugPrint('hi from editabletext context menu next item intent');
-                  _contextMenuTraversalDirectionNotifier.value = SelectionContextMenuTraversalDirection.next;
-                }),
-                SelectionContextMenuPreviousItemIntent: CallbackAction<SelectionContextMenuPreviousItemIntent>(onInvoke: (SelectionContextMenuPreviousItemIntent intent) {
-                  debugPrint('hi from editabletext context menu previous item intent');
-                  _contextMenuTraversalDirectionNotifier.value = SelectionContextMenuTraversalDirection.previous;
-                }),
+                SelectionContextMenuNextItemIntent:
+                    CallbackAction<SelectionContextMenuNextItemIntent>(
+                      onInvoke: (SelectionContextMenuNextItemIntent intent) {
+                        debugPrint('hi from editabletext context menu next item intent');
+                        _contextMenuTraversalDirectionNotifier.value =
+                            SelectionContextMenuTraversalDirection.next;
+                      },
+                    ),
+              SelectionContextMenuPreviousItemIntent:
+                  CallbackAction<SelectionContextMenuPreviousItemIntent>(
+                    onInvoke: (SelectionContextMenuPreviousItemIntent intent) {
+                      debugPrint('hi from editabletext context menu previous item intent');
+                      _contextMenuTraversalDirectionNotifier.value =
+                          SelectionContextMenuTraversalDirection.previous;
+                    },
+                  ),
             },
             child: Builder(
               builder: (BuildContext context) {
@@ -5574,15 +5579,18 @@ class EditableTextState extends State<EditableText>
                       onTriggered: (TextEditingValue value) {
                         userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
                       },
-                      shouldChangeUndoStack: (TextEditingValue? oldValue, TextEditingValue newValue) {
+                      shouldChangeUndoStack: (
+                        TextEditingValue? oldValue,
+                        TextEditingValue newValue,
+                      ) {
                         if (!newValue.selection.isValid) {
                           return false;
                         }
-            
+
                         if (oldValue == null) {
                           return true;
                         }
-            
+
                         switch (defaultTargetPlatform) {
                           case TargetPlatform.iOS:
                           case TargetPlatform.macOS:
@@ -5599,7 +5607,7 @@ class EditableTextState extends State<EditableText>
                             // case.
                             break;
                         }
-            
+
                         return oldValue.text != newValue.text ||
                             oldValue.composing != newValue.composing;
                       },
@@ -5691,29 +5699,30 @@ class EditableTextState extends State<EditableText>
                                 ),
                               );
                               if (widget.contextMenuBuilder != null) {
-                                // editable = _EditableTextContextMenu(
-                                //   contextMenu: widget.contextMenuBuilder!(context, this),
-                                //   controller: _contextMenuPortalController,
-                                //   layerLink: _toolbarLayerLink,
-                                //   offsetToShow: -renderEditable.localToGlobal(Offset.zero),
-                                //   visibility: _effectiveToolbarVisibility,
-                                //   child: editable,
-                                // );
                                 editable = OverlayPortal(
                                   controller: _contextMenuPortalController,
                                   overlayChildBuilder: (BuildContext context) {
+                                    renderEditable.selectionStartInViewport.removeListener(
+                                      _updateTextSelectionToolbarVisibilities,
+                                    );
+                                    renderEditable.selectionEndInViewport.removeListener(
+                                      _updateTextSelectionToolbarVisibilities,
+                                    );
+                                    renderEditable.selectionStartInViewport.addListener(
+                                      _updateTextSelectionToolbarVisibilities,
+                                    );
+                                    renderEditable.selectionEndInViewport.addListener(
+                                      _updateTextSelectionToolbarVisibilities,
+                                    );
                                     _updateTextSelectionToolbarVisibilities();
                                     return SelectionToolbarWrapper(
                                       layerLink: _toolbarLayerLink,
                                       offset: -renderEditable.localToGlobal(Offset.zero),
                                       visibility: _effectiveToolbarVisibility,
                                       child: SelectionContextMenuEventScope(
-                                        traversalDirectionNotifier: _contextMenuTraversalDirectionNotifier,
-                                        child: Builder(
-                                          builder: (BuildContext context) {
-                                            return widget.contextMenuBuilder!(context, this);
-                                          }
-                                        ),
+                                        traversalDirectionNotifier:
+                                            _contextMenuTraversalDirectionNotifier,
+                                        child: widget.contextMenuBuilder!(context, this),
                                       ),
                                     );
                                   },
@@ -5847,7 +5856,8 @@ final class _SelectionContextMenuEventNotifier extends ChangeNotifier
       SelectionContextMenuTraversalDirection.none;
 
   @override
-  SelectionContextMenuTraversalDirection get value => _currentSelectionContextMenuTraversalDirection;
+  SelectionContextMenuTraversalDirection get value =>
+      _currentSelectionContextMenuTraversalDirection;
 
   @protected
   set value(SelectionContextMenuTraversalDirection newDirection) {
@@ -5876,50 +5886,7 @@ final class SelectionContextMenuEventScope extends InheritedWidget {
   }
 }
 
-enum SelectionContextMenuTraversalDirection {
-  next,
-  previous,
-  none,
-}
-
-class _EditableTextContextMenu extends StatefulWidget {
-  const _EditableTextContextMenu({
-    required this.contextMenu,
-    required this.controller,
-    required this.layerLink,
-    required this.offsetToShow,
-    required this.visibility,
-    required this.child,
-  });
-
-  final Widget contextMenu;
-  final OverlayPortalController controller;
-  final LayerLink layerLink;
-  final Offset offsetToShow;
-  final ValueNotifier<bool> visibility;
-  final Widget child;
-
-  @override
-  _EditableTextContextMenuState createState() => _EditableTextContextMenuState();
-}
-
-class _EditableTextContextMenuState extends State<_EditableTextContextMenu> {
-  @override
-  Widget build(Object context) {
-    return OverlayPortal(
-      controller: widget.controller,
-      overlayChildBuilder: (BuildContext context) {
-        return SelectionToolbarWrapper(
-          layerLink: widget.layerLink,
-          offset: widget.offsetToShow,
-          visibility: widget.visibility,
-          child: widget.contextMenu,
-        );
-      },
-      child: widget.child,
-    );
-  }
-}
+enum SelectionContextMenuTraversalDirection { next, previous, none }
 
 class _Editable extends MultiChildRenderObjectWidget {
   _Editable({
