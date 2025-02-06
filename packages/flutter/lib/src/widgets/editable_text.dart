@@ -2365,7 +2365,6 @@ class EditableTextState extends State<EditableText>
         TextSelectionDelegate,
         TextInputClient
     implements AutofillClient {
-  final OverlayPortalController _contextMenuPortalController = OverlayPortalController();
   Timer? _cursorTimer;
   AnimationController get _cursorBlinkOpacityController {
     return _backingCursorBlinkOpacityController ??= AnimationController(vsync: this)
@@ -2424,6 +2423,11 @@ class EditableTextState extends State<EditableText>
 
   late SpellCheckConfiguration _spellCheckConfiguration;
   late TextStyle _style;
+
+  final OverlayPortalController _contextMenuPortalController = OverlayPortalController();
+  final _SelectionContextMenuEventNotifier _contextMenuTraversalDirectionNotifier =
+      _SelectionContextMenuEventNotifier._();
+  bool get _contextMenuIsVisible => _contextMenuPortalController.isShowing || (_selectionOverlay?.spellCheckToolbarIsVisible ?? false);
 
   /// Configuration that determines how spell check will be performed.
   ///
@@ -3213,7 +3217,7 @@ class EditableTextState extends State<EditableText>
             widget.onSelectionHandleTapped != oldWidget.onSelectionHandleTapped ||
             widget.dragStartBehavior != oldWidget.dragStartBehavior ||
             widget.magnifierConfiguration != oldWidget.magnifierConfiguration)) {
-      final bool shouldShowToolbar = _contextMenuPortalController.isShowing;
+      final bool shouldShowToolbar = _contextMenuIsVisible;
       final bool shouldShowHandles = _selectionOverlay!.handlesVisible;
       _selectionOverlay!.dispose();
       _selectionOverlay = _createSelectionOverlay();
@@ -4857,7 +4861,7 @@ class EditableTextState extends State<EditableText>
     if (_selectionOverlay == null) {
       return false;
     }
-    if (_contextMenuPortalController.isShowing) {
+    if (_contextMenuIsVisible) {
       return false;
     }
     _liveTextInputStatus?.update();
@@ -4884,7 +4888,7 @@ class EditableTextState extends State<EditableText>
       // _selectionOverlay?.hide();
       _contextMenuPortalController.hide();
       _selectionOverlay?.hideHandles();
-    } else if (_contextMenuPortalController.isShowing) {
+    } else if (_contextMenuIsVisible) {
       // Hide only the toolbar but not the handles.
       // _selectionOverlay?.hideToolbar();
       _contextMenuPortalController.hide();
@@ -4894,7 +4898,7 @@ class EditableTextState extends State<EditableText>
   /// Toggles the visibility of the toolbar.
   void toggleToolbar([bool hideHandles = true]) {
     final TextSelectionOverlay selectionOverlay = _selectionOverlay ??= _createSelectionOverlay();
-    if (_contextMenuPortalController.isShowing) {
+    if (_contextMenuIsVisible) {
       hideToolbar(hideHandles);
     } else {
       showToolbar();
@@ -5360,7 +5364,7 @@ class EditableTextState extends State<EditableText>
       _UpdateTextSelectionVerticallyAction<DirectionalCaretMovementIntent>(this);
 
   Object? _hideToolbarIfVisible(DismissIntent intent) {
-    if (_contextMenuPortalController.isShowing) {
+    if (_contextMenuIsVisible) {
       hideToolbar(false);
       return null;
     }
@@ -5499,9 +5503,6 @@ class EditableTextState extends State<EditableText>
     TransposeCharactersIntent: _makeOverridable(_transposeCharactersAction),
     EditableTextTapOutsideIntent: _makeOverridable(_EditableTextTapOutsideAction()),
   };
-
-  final _SelectionContextMenuEventNotifier _contextMenuTraversalDirectionNotifier =
-      _SelectionContextMenuEventNotifier._();
 
   @protected
   @override
@@ -6367,7 +6368,7 @@ class _DeleteTextAction<T extends DirectionalTextEditingIntent> extends ContextA
   final _ApplyTextBoundary _applyTextBoundary;
 
   void _hideToolbarIfTextChanged(ReplaceTextIntent intent) {
-    if (state._selectionOverlay == null || !state._contextMenuPortalController.isShowing) {
+    if (state._selectionOverlay == null || !state._contextMenuIsVisible) {
       return;
     }
     final TextEditingValue oldValue = intent.currentTextEditingValue;
