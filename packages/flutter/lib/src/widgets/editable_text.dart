@@ -4138,7 +4138,6 @@ class EditableTextState extends State<EditableText>
   }
 
   TextSelectionOverlay _createSelectionOverlay() {
-    final EditableTextContextMenuBuilder? contextMenuBuilder = widget.contextMenuBuilder;
     final TextSelectionOverlay selectionOverlay = TextSelectionOverlay(
       clipboardStatus: clipboardStatus,
       context: context,
@@ -4152,12 +4151,6 @@ class EditableTextState extends State<EditableText>
       selectionDelegate: this,
       dragStartBehavior: widget.dragStartBehavior,
       onSelectionHandleTapped: widget.onSelectionHandleTapped,
-      contextMenuBuilder:
-          contextMenuBuilder == null || _webContextMenuEnabled
-              ? null
-              : (BuildContext context) {
-                return contextMenuBuilder(context, this);
-              },
       magnifierConfiguration: widget.magnifierConfiguration,
     );
 
