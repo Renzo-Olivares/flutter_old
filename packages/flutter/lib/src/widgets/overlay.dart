@@ -1651,10 +1651,8 @@ class OverlayPortalController {
   void show() {
     final _OverlayPortalState? state = _attachTarget;
     if (state != null) {
-      debugPrint('showing');
       state.show(_now());
     } else {
-      debugPrint('not showing');
       _zOrderIndex = _now();
     }
   }

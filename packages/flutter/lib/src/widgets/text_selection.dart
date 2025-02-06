@@ -1781,7 +1781,6 @@ class SelectionToolbarWrapperState extends State<SelectionToolbarWrapper>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   Animation<double> get _opacity => _controller.view;
-  // final ValueNotifier<int?> _highlightedOptionIndex = ValueNotifier<int?>(null);
 
   @override
   void initState() {
