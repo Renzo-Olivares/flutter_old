@@ -1077,6 +1077,8 @@ class PlatformDispatcher {
   /// This option is used by [showTimePicker].
   bool get alwaysUse24HourFormat => _configuration.alwaysUse24HourFormat;
 
+  TypographySettings? get typographySettings => _configuration.typographySettings;
+
   /// The system-reported text scale.
   ///
   /// This establishes the text scaling factor to use when rendering text,
@@ -1522,6 +1524,7 @@ class _PlatformConfiguration {
     this.defaultRouteName,
     this.systemFontFamily,
     this.configurationId,
+    this.typographySettings,
   });
 
   _PlatformConfiguration copyWith({
@@ -1534,6 +1537,7 @@ class _PlatformConfiguration {
     String? defaultRouteName,
     String? systemFontFamily,
     int? configurationId,
+    TypographySettings? typographySettings,
   }) {
     return _PlatformConfiguration(
       accessibilityFeatures: accessibilityFeatures ?? this.accessibilityFeatures,
@@ -1545,6 +1549,7 @@ class _PlatformConfiguration {
       defaultRouteName: defaultRouteName ?? this.defaultRouteName,
       systemFontFamily: systemFontFamily ?? this.systemFontFamily,
       configurationId: configurationId ?? this.configurationId,
+      typographySettings: typographySettings ?? this.typographySettings,
     );
   }
 
@@ -1592,6 +1597,8 @@ class _PlatformConfiguration {
   /// configuration updates from the embedder yet. The _getScaledFontSize
   /// function should not be called in either case.
   final int? configurationId;
+  
+  final TypographySettings? typographySettings;
 }
 
 /// An immutable view configuration.
