@@ -2414,11 +2414,18 @@ extension DomMutationObserverExtension on DomMutationObserver {
 
   @JS('observe')
   external void _observe(DomNode target, JSAny options);
-  void observe(DomNode target, {bool? childList, bool? attributes, List<String>? attributeFilter}) {
+  void observe(
+    DomNode target, {
+    bool? subtree,
+    bool? childList,
+    bool? attributes,
+    List<String>? attributeFilter,
+  }) {
     final Map<String, dynamic> options = <String, dynamic>{
       if (childList != null) 'childList': childList,
       if (attributes != null) 'attributes': attributes,
       if (attributeFilter != null) 'attributeFilter': attributeFilter,
+      if (subtree != null) 'subtree': subtree,
     };
     return _observe(target, options.toJSAnyDeep);
   }
